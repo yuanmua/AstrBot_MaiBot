@@ -566,6 +566,19 @@
       }
     }
   },
+  "maibot_group": {
+    "name": "MaiBot Configuration",
+    "maibot": {
+      "description": "MaiBot Processing",
+      "hint": "When enabled, messages will be processed and returned by MaiBot. MaiBot uses its own personality, memory, and thought flow system to generate responses.",
+      "maibot_processing": {
+        "enable": {
+          "description": "Enable MaiBot Processing",
+          "hint": "When enabled, all messages for this bot will be processed by MaiBot, bypassing AstrBot's plugin and LLM pipeline."
+        }
+      }
+    }
+  },
   "help": {
     "documentation": "Official Documentation",
     "support": "Join Support Group",

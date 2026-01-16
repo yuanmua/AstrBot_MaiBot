@@ -44,6 +44,11 @@ const sidebarItem: menu[] = [
     to: '/knowledge-base',
   },
   {
+    title: 'core.navigation.maibot',
+    icon: 'mdi-chat-processing',
+    to: '/maibot',
+  },
+  {
     title: 'core.navigation.groups.more',
     icon: 'mdi-dots-horizontal',
     children: [

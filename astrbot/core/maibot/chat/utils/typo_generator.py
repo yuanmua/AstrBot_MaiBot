@@ -19,7 +19,14 @@ logger = get_logger("typo_gen")
 
 
 class ChineseTypoGenerator:
-    def __init__(self, error_rate=0.3, min_freq=5, tone_error_rate=0.2, word_replace_rate=0.3, max_freq_diff=200):
+    def __init__(
+        self,
+        error_rate=0.3,
+        min_freq=5,
+        tone_error_rate=0.2,
+        word_replace_rate=0.3,
+        max_freq_diff=200,
+    ):
         """
         初始化错别字生成器
 
@@ -47,7 +54,12 @@ class ChineseTypoGenerator:
         """
         加载或创建汉字频率字典
         """
-        cache_file = Path("depends-data/char_frequency.json")
+        # 从环境变量获取 depends-data 目录
+        depends_dir = os.environ.get("MAIBOT_DEPENDS_DATA_DIR")
+        if depends_dir:
+            cache_file = Path(depends_dir) / "char_frequency.json"
+        else:
+            cache_file = Path("depends-data/char_frequency.json")
 
         # 如果缓存文件存在，直接加载
         if cache_file.exists():
@@ -69,7 +81,9 @@ class ChineseTypoGenerator:
 
         # 归一化频率值
         max_freq = max(char_freq.values())
-        normalized_freq = {char: freq / max_freq * 1000 for char, freq in char_freq.items()}
+        normalized_freq = {
+            char: freq / max_freq * 1000 for char, freq in char_freq.items()
+        }
 
         # 保存到缓存文件
         with open(cache_file, "w", encoding="utf-8") as f:
@@ -275,7 +289,9 @@ class ChineseTypoGenerator:
                 # 只保留词频达到阈值的词
                 if new_word_freq >= min_word_freq:
                     # 计算词的平均字频（考虑字频和词频）
-                    char_avg_freq = sum(self.char_frequency.get(c, 0) for c in new_word) / len(new_word)
+                    char_avg_freq = sum(
+                        self.char_frequency.get(c, 0) for c in new_word
+                    ) / len(new_word)
                     # 综合评分：结合词频和字频
                     combined_score = new_word_freq * 0.7 + char_avg_freq * 0.3
                     if combined_score >= self.min_freq:
@@ -321,8 +337,12 @@ class ChineseTypoGenerator:
                 if word_homophones:
                     typo_word = random.choice(word_homophones)
                     # 计算词的平均频率
-                    orig_freq = sum(self.char_frequency.get(c, 0) for c in word) / len(word)
-                    typo_freq = sum(self.char_frequency.get(c, 0) for c in typo_word) / len(typo_word)
+                    orig_freq = sum(self.char_frequency.get(c, 0) for c in word) / len(
+                        word
+                    )
+                    typo_freq = sum(
+                        self.char_frequency.get(c, 0) for c in typo_word
+                    ) / len(typo_word)
 
                     # 添加到结果中
                     result.append(typo_word)
@@ -350,11 +370,15 @@ class ChineseTypoGenerator:
                         typo_char = random.choice(similar_chars)
                         typo_freq = self.char_frequency.get(typo_char, 0)
                         orig_freq = self.char_frequency.get(char, 0)
-                        replace_prob = self._calculate_replacement_probability(orig_freq, typo_freq)
+                        replace_prob = self._calculate_replacement_probability(
+                            orig_freq, typo_freq
+                        )
                         if random.random() < replace_prob:
                             result.append(typo_char)
                             typo_py = pinyin(typo_char, style=Style.TONE3)[0][0]
-                            typo_info.append((char, typo_char, py, typo_py, orig_freq, typo_freq))
+                            typo_info.append(
+                                (char, typo_char, py, typo_py, orig_freq, typo_freq)
+                            )
                             char_typos.append((typo_char, char))  # 记录(错字,正确字)对
                             current_pos += 1
                             continue
@@ -373,12 +397,18 @@ class ChineseTypoGenerator:
                             typo_char = random.choice(similar_chars)
                             typo_freq = self.char_frequency.get(typo_char, 0)
                             orig_freq = self.char_frequency.get(char, 0)
-                            replace_prob = self._calculate_replacement_probability(orig_freq, typo_freq)
+                            replace_prob = self._calculate_replacement_probability(
+                                orig_freq, typo_freq
+                            )
                             if random.random() < replace_prob:
                                 word_result.append(typo_char)
                                 typo_py = pinyin(typo_char, style=Style.TONE3)[0][0]
-                                typo_info.append((char, typo_char, py, typo_py, orig_freq, typo_freq))
-                                char_typos.append((typo_char, char))  # 记录(错字,正确字)对
+                                typo_info.append(
+                                    (char, typo_char, py, typo_py, orig_freq, typo_freq)
+                                )
+                                char_typos.append(
+                                    (typo_char, char)
+                                )  # 记录(错字,正确字)对
                                 continue
                     word_result.append(char)
                 result.append("".join(word_result))
@@ -449,7 +479,9 @@ class ChineseTypoGenerator:
 
 def main():
     # 创建错别字生成器实例
-    typo_generator = ChineseTypoGenerator(error_rate=0.03, min_freq=7, tone_error_rate=0.02, word_replace_rate=0.3)
+    typo_generator = ChineseTypoGenerator(
+        error_rate=0.03, min_freq=7, tone_error_rate=0.02, word_replace_rate=0.3
+    )
 
     # 获取用户输入
     sentence = input("请输入中文句子：")

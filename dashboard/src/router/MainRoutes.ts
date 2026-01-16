@@ -85,6 +85,11 @@ const MainRoutes = {
         }
       ]
     },
+    {
+      name: 'MaiBot',
+      path: '/maibot',
+      component: () => import('@/views/MaiBotPage.vue')
+    },
 
     // 旧版本的知识库路由
     {

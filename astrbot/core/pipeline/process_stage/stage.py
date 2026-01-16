@@ -8,6 +8,7 @@ from ..context import PipelineContext
 from ..stage import Stage, register_stage
 from .method.agent_request import AgentRequestSubStage
 from .method.star_request import StarRequestSubStage
+from .method.maibot_process import MaiBotProcessSubStage
 
 
 @register_stage
@@ -25,11 +26,21 @@ class ProcessStage(Stage):
         self.star_request_sub_stage = StarRequestSubStage()
         await self.star_request_sub_stage.initialize(ctx)
 
+        # initialize maibot process sub stage
+        self.maibot_sub_stage = MaiBotProcessSubStage()
+        await self.maibot_sub_stage.initialize(ctx)
+
     async def process(
         self,
         event: AstrMessageEvent,
     ) -> None | AsyncGenerator[None, None]:
         """处理事件"""
+        # 优先检查是否需要由 MaiBot 处理
+        maibot_processed = await self.maibot_sub_stage.process(event)
+        if maibot_processed:
+            # MaiBot 已经处理并停止了事件，直接返回
+            return
+
         activated_handlers: list[StarHandlerMetadata] = event.get_extra(
             "activated_handlers",
         )

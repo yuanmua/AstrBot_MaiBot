@@ -2,6 +2,7 @@
 
 import asyncio
 import mimetypes
+import os
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -84,8 +85,31 @@ class WebUIServer:
         mimetypes.add_type("text/css", ".css")
         mimetypes.add_type("application/json", ".json")
 
-        base_dir = Path(__file__).parent.parent.parent
-        static_path = base_dir / "webui" / "dist"
+        # 从环境变量获取静态文件目录，默认为 MaiBot 项目路径
+        static_path = os.environ.get("MAIBOT_WEBUI_DIST")
+        if not static_path:
+            # 回退到相对路径（从 MaiBot 项目目录查找）
+            maibot_path = os.environ.get("MAIBOT_PATH")
+            if maibot_path:
+                static_path = os.path.join(maibot_path, "webui", "dist")
+            else:
+                # TODO: 后续统一到 data 目录，当前先指向 MaiBot 原始路径
+                static_path = os.path.join(
+                    os.path.dirname(
+                        os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+                    ),
+                    "..",
+                    "..",
+                    "..",
+                    "MaiBot",
+                    "webui",
+                    "dist",
+                )
+                static_path = os.path.normpath(static_path)
+
+        static_path = Path(static_path) if isinstance(static_path, str) else static_path
+
+        static_path = Path(static_path) if isinstance(static_path, str) else static_path
 
         if not static_path.exists():
             logger.warning(f"❌ WebUI 静态文件目录不存在: {static_path}")
@@ -168,10 +192,10 @@ class WebUIServer:
 
             # 导入本地聊天室路由
             from astrbot.core.maibot.webui.chat_routes import router as chat_router
-            
+
             # 导入规划器监控路由
             from astrbot.core.maibot.webui.api.planner import router as planner_router
-            
+
             # 导入回复器监控路由
             from astrbot.core.maibot.webui.api.replier import router as replier_router
 
@@ -209,7 +233,7 @@ class WebUIServer:
         self._server = UvicornServer(config=config)
 
         logger.info("🌐 WebUI 服务器启动中...")
-        
+
         # 根据地址类型显示正确的访问地址
         if ':' in self.host:
             # IPv6 地址需要用方括号包裹

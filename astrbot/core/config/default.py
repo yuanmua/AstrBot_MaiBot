@@ -191,6 +191,9 @@ DEFAULT_CONFIG = {
     "kb_final_top_k": 5,  # 知识库检索最终返回结果数量
     "kb_agentic_mode": False,
     "disable_builtin_commands": False,
+    "maibot_processing": {
+        "enable": False,  # 是否启用麦麦处理
+    },
 }
 
 
@@ -3123,6 +3126,23 @@ CONFIG_METADATA_3 = {
                         "condition": {
                             "provider_ltm_settings.active_reply.enable": True,
                         },
+                    },
+                },
+            },
+        },
+    },
+    "maibot_group": {
+        "name": "麦麦配置",
+        "metadata": {
+            "maibot": {
+                "description": "麦麦处理",
+                "hint": "启用后，消息将由麦麦（MaiBot）处理并返回。麦麦使用自己的人格、记忆和思维流系统来生成回复。",
+                "type": "object",
+                "items": {
+                    "maibot_processing.enable": {
+                        "description": "启用麦麦处理",
+                        "type": "bool",
+                        "hint": "开启后，该机器人的所有消息都将由麦麦处理，不再使用 AstrBot 的插件和 LLM 流水线。",
                     },
                 },
             },

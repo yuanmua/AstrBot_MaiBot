@@ -50,14 +50,36 @@ install(extra_lines=3)
 # 配置主程序日志格式
 logger = get_logger("config")
 
-# 获取当前文件所在目录的父目录的父目录（即MaiBot项目根目录）
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-CONFIG_DIR = os.path.join(PROJECT_ROOT, "config")
-TEMPLATE_DIR = os.path.join(PROJECT_ROOT, "template")
+# 全局路径变量，由外部初始化
+PROJECT_ROOT: str | None = None
+CONFIG_DIR: str | None = None
+TEMPLATE_DIR: str | None = None
 
 # 考虑到，实际上配置文件中的mai_version是不会自动更新的,所以采用硬编码
 # 对该字段的更新，请严格参照语义化版本规范：https://semver.org/lang/zh-CN/
 MMC_VERSION = "0.12.2"
+
+
+def initialize_paths(data_root: str):
+    """
+    初始化MaiBot路径配置
+    Args:
+        data_root: 数据根目录，例如 'data/maibot'
+    """
+    global PROJECT_ROOT, CONFIG_DIR, TEMPLATE_DIR
+
+    PROJECT_ROOT = os.path.abspath(data_root)
+    CONFIG_DIR = os.path.join(PROJECT_ROOT, "config")
+    TEMPLATE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "template"))
+
+    # 创建必要的目录
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+    os.makedirs(TEMPLATE_DIR, exist_ok=True)
+
+    logger.info(f"MaiBot路径已初始化:")
+    logger.info(f"  PROJECT_ROOT: {PROJECT_ROOT}")
+    logger.info(f"  CONFIG_DIR: {CONFIG_DIR}")
+    logger.info(f"  TEMPLATE_DIR: {TEMPLATE_DIR}")
 
 
 def get_key_comment(toml_table, key):
@@ -454,12 +476,26 @@ def api_ada_load_config(config_path: str) -> APIAdapterConfig:
         raise e
 
 
-# 获取配置文件路径
-logger.info(f"MaiCore当前版本: {MMC_VERSION}")
-update_config()
-update_model_config()
+# 全局配置对象，由load_configs()初始化
+global_config: Config | None = None
+model_config: APIAdapterConfig | None = None
 
-logger.info("正在品鉴配置文件...")
-global_config = load_config(config_path=os.path.join(CONFIG_DIR, "bot_config.toml"))
-model_config = api_ada_load_config(config_path=os.path.join(CONFIG_DIR, "model_config.toml"))
-logger.info("非常的新鲜，非常的美味！")
+
+def load_configs():
+    """
+    加载配置文件
+    必须在initialize_paths()之后调用
+    """
+    global global_config, model_config
+
+    if CONFIG_DIR is None:
+        raise RuntimeError("必须先调用initialize_paths()初始化路径")
+
+    logger.info(f"MaiCore当前版本: {MMC_VERSION}")
+    update_config()
+    update_model_config()
+
+    logger.info("正在品鉴配置文件...")
+    global_config = load_config(config_path=os.path.join(CONFIG_DIR, "bot_config.toml"))
+    model_config = api_ada_load_config(config_path=os.path.join(CONFIG_DIR, "model_config.toml"))
+    logger.info("非常的新鲜，非常的美味！")
