@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from typing import Literal, Optional
 import time
 
-from src.config.config_base import ConfigBase
+from astrbot.core.maibot.config.config_base import ConfigBase
 
 """
 须知：
@@ -138,7 +138,7 @@ class ChatConfig(ConfigBase):
 
             is_group = stream_type == "group"
 
-            from src.chat.message_receive.chat_stream import get_chat_manager
+            from astrbot.core.maibot.chat.message_receive.chat_stream import get_chat_manager
 
             return get_chat_manager().get_stream_id(platform, str(id_str), is_group=is_group)
 
@@ -407,7 +407,7 @@ class ExpressionConfig(ConfigBase):
             is_group = stream_type == "group"
 
             # 使用 ChatManager 提供的接口生成 chat_id，避免在此重复实现逻辑
-            from src.chat.message_receive.chat_stream import get_chat_manager
+            from astrbot.core.maibot.chat.message_receive.chat_stream import get_chat_manager
 
             return get_chat_manager().get_stream_id(platform, str(id_str), is_group=is_group)
 

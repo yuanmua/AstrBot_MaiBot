@@ -1,9 +1,9 @@
-from src.plugin_system.apis.plugin_register_api import register_plugin
-from src.plugin_system.base.base_plugin import BasePlugin
-from src.plugin_system.base.component_types import ComponentInfo
-from src.common.logger import get_logger
-from src.plugin_system.base.base_action import BaseAction, ActionActivationType
-from src.plugin_system.base.config_types import ConfigField
+from astrbot.core.maibot.plugin_system.apis.plugin_register_api import register_plugin
+from astrbot.core.maibot.plugin_system.base.base_plugin import BasePlugin
+from astrbot.core.maibot.plugin_system.base.component_types import ComponentInfo
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.plugin_system.base.base_action import BaseAction, ActionActivationType
+from astrbot.core.maibot.plugin_system.base.config_types import ConfigField
 from typing import Tuple, List, Type
 
 logger = get_logger("tts")

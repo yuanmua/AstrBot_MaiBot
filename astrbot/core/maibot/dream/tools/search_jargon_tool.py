@@ -1,10 +1,10 @@
 from typing import List
 
-from src.common.logger import get_logger
-from src.common.database.database_model import Jargon
-from src.config.config import global_config
-from src.chat.utils.utils import parse_keywords_string
-from src.bw_learner.learner_utils import parse_chat_id_list, chat_id_list_contains
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.database.database_model import Jargon
+from astrbot.core.maibot.config.config import global_config
+from astrbot.core.maibot.chat.utils.utils import parse_keywords_string
+from astrbot.core.maibot.bw_learner.learner_utils import parse_chat_id_list, chat_id_list_contains
 
 logger = get_logger("dream_agent")
 

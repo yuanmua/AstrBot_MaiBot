@@ -3,20 +3,20 @@
 
 专门负责聊天信息的查询和管理，采用标准Python包设计模式
 使用方式：
-    from src.plugin_system.apis import chat_api
+    from astrbot.core.maibot.plugin_system.apis import chat_api
     streams = chat_api.get_all_group_streams()
     chat_type = chat_api.get_stream_type(stream)
 
 或者：
-    from src.plugin_system.apis.chat_api import ChatManager as chat
+    from astrbot.core.maibot.plugin_system.apis.chat_api import ChatManager as chat
     streams = chat.get_all_group_streams()
 """
 
 from typing import List, Dict, Any, Optional
 from enum import Enum
 
-from src.common.logger import get_logger
-from src.chat.message_receive.chat_stream import ChatStream, get_chat_manager
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.chat.message_receive.chat_stream import ChatStream, get_chat_manager
 
 logger = get_logger("chat_api")
 

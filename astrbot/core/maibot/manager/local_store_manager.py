@@ -1,7 +1,7 @@
 import json
 import os
 
-from src.common.logger import get_logger
+from astrbot.core.maibot.common.logger import get_logger
 
 LOCAL_STORE_FILE_PATH = "data/local_store.json"
 

@@ -2,8 +2,8 @@ from abc import abstractmethod
 from typing import List, Type, Tuple, Union
 from .plugin_base import PluginBase
 
-from src.common.logger import get_logger
-from src.plugin_system.base.component_types import ActionInfo, CommandInfo, EventHandlerInfo, ToolInfo
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.plugin_system.base.component_types import ActionInfo, CommandInfo, EventHandlerInfo, ToolInfo
 from .base_action import BaseAction
 from .base_command import BaseCommand
 from .base_events_handler import BaseEventHandler
@@ -46,7 +46,7 @@ class BasePlugin(PluginBase):
 
     def register_plugin(self) -> bool:
         """注册插件及其所有组件"""
-        from src.plugin_system.core.component_registry import component_registry
+        from astrbot.core.maibot.plugin_system.core.component_registry import component_registry
 
         components = self.get_plugin_components()
 

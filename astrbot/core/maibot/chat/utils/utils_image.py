@@ -10,11 +10,11 @@ from typing import Optional, Tuple
 from PIL import Image
 from rich.traceback import install
 
-from src.common.logger import get_logger
-from src.common.database.database import db
-from src.common.database.database_model import Images, ImageDescriptions, EmojiDescriptionCache
-from src.config.config import global_config, model_config
-from src.llm_models.utils_model import LLMRequest
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.database.database import db
+from astrbot.core.maibot.common.database.database_model import Images, ImageDescriptions, EmojiDescriptionCache
+from astrbot.core.maibot.config.config import global_config, model_config
+from astrbot.core.maibot.llm_models.utils_model import LLMRequest
 
 install(extra_lines=3)
 
@@ -148,7 +148,7 @@ class ImageManager:
             raise
 
     async def get_emoji_tag(self, image_base64: str) -> str:
-        from src.chat.emoji_system.emoji_manager import get_emoji_manager
+        from astrbot.core.maibot.chat.emoji_system.emoji_manager import get_emoji_manager
 
         emoji_manager = get_emoji_manager()
         if isinstance(image_base64, str):
@@ -174,8 +174,8 @@ class ImageManager:
             return
 
         try:
-            from src.chat.emoji_system.emoji_manager import EMOJI_DIR
-            from src.chat.emoji_system.emoji_manager import get_emoji_manager
+            from astrbot.core.maibot.chat.emoji_system.emoji_manager import EMOJI_DIR
+            from astrbot.core.maibot.chat.emoji_system.emoji_manager import get_emoji_manager
 
             # 确保目录存在
             os.makedirs(EMOJI_DIR, exist_ok=True)
@@ -216,7 +216,7 @@ class ImageManager:
 
             # 优先使用EmojiManager查询已注册表情包的描述
             try:
-                from src.chat.emoji_system.emoji_manager import get_emoji_manager
+                from astrbot.core.maibot.chat.emoji_system.emoji_manager import get_emoji_manager
 
                 emoji_manager = get_emoji_manager()
                 tags = await emoji_manager.get_emoji_tag_by_hash(image_hash)

@@ -1,13 +1,13 @@
 from pathlib import Path
 
-from src.common.logger import get_logger
+from astrbot.core.maibot.common.logger import get_logger
 
 logger = get_logger("plugin_manager")  # 复用plugin_manager名称
 
 
 def register_plugin(cls):
-    from src.plugin_system.core.plugin_manager import plugin_manager
-    from src.plugin_system.base.base_plugin import BasePlugin
+    from astrbot.core.maibot.plugin_system.core.plugin_manager import plugin_manager
+    from astrbot.core.maibot.plugin_system.base.base_plugin import BasePlugin
 
     """插件注册装饰器
 

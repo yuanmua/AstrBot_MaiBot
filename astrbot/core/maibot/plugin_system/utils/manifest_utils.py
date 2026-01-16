@@ -6,11 +6,11 @@
 
 import re
 from typing import Dict, Any, Tuple
-from src.common.logger import get_logger
-from src.config.config import MMC_VERSION
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.config.config import MMC_VERSION
 
 # if TYPE_CHECKING:
-#     from src.plugin_system.base.base_plugin import BasePlugin
+#     from astrbot.core.maibot.plugin_system.base.base_plugin import BasePlugin
 
 logger = get_logger("manifest_utils")
 

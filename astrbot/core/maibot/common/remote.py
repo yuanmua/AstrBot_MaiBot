@@ -3,11 +3,11 @@ import asyncio
 import aiohttp
 import platform
 
-from src.common.logger import get_logger
-from src.common.tcp_connector import get_tcp_connector
-from src.config.config import global_config
-from src.manager.async_task_manager import AsyncTask
-from src.manager.local_store_manager import local_storage
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.tcp_connector import get_tcp_connector
+from astrbot.core.maibot.config.config import global_config
+from astrbot.core.maibot.manager.async_task_manager import AsyncTask
+from astrbot.core.maibot.manager.local_store_manager import local_storage
 
 logger = get_logger("remote")
 

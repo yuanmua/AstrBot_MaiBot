@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 
 
 from . import INVALID_ENTITY, ROOT_PATH, DATA_PATH
-# from src.manager.local_store_manager import local_storage
+# from astrbot.core.maibot.manager.local_store_manager import local_storage
 
 
 def _filter_invalid_entities(entities: List[str]) -> List[str]:

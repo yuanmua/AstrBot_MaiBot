@@ -8,12 +8,12 @@ import math
 from json_repair import repair_json
 from typing import Union, Optional
 
-from src.common.logger import get_logger
-from src.common.database.database import db
-from src.common.database.database_model import PersonInfo
-from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config, model_config
-from src.chat.message_receive.chat_stream import get_chat_manager
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.database.database import db
+from astrbot.core.maibot.common.database.database_model import PersonInfo
+from astrbot.core.maibot.llm_models.utils_model import LLMRequest
+from astrbot.core.maibot.config.config import global_config, model_config
+from astrbot.core.maibot.chat.message_receive.chat_stream import get_chat_manager
 
 
 logger = get_logger("person_info")

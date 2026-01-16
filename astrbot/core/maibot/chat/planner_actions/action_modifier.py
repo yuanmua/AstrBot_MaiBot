@@ -2,16 +2,16 @@ import random
 import time
 from typing import List, Dict, TYPE_CHECKING, Tuple
 
-from src.common.logger import get_logger
-from src.config.config import global_config
-from src.chat.message_receive.chat_stream import get_chat_manager, ChatMessageContext
-from src.chat.planner_actions.action_manager import ActionManager
-from src.chat.utils.chat_message_builder import get_raw_msg_before_timestamp_with_chat, build_readable_messages
-from src.plugin_system.base.component_types import ActionInfo, ActionActivationType
-from src.plugin_system.core.global_announcement_manager import global_announcement_manager
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.config.config import global_config
+from astrbot.core.maibot.chat.message_receive.chat_stream import get_chat_manager, ChatMessageContext
+from astrbot.core.maibot.chat.planner_actions.action_manager import ActionManager
+from astrbot.core.maibot.chat.utils.chat_message_builder import get_raw_msg_before_timestamp_with_chat, build_readable_messages
+from astrbot.core.maibot.plugin_system.base.component_types import ActionInfo, ActionActivationType
+from astrbot.core.maibot.plugin_system.core.global_announcement_manager import global_announcement_manager
 
 if TYPE_CHECKING:
-    from src.chat.message_receive.chat_stream import ChatStream
+    from astrbot.core.maibot.chat.message_receive.chat_stream import ChatStream
 
 logger = get_logger("action_manager")
 

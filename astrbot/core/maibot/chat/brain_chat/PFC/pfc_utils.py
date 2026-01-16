@@ -1,7 +1,7 @@
 import json
 import re
 from typing import Dict, Any, Optional, Tuple, List, Union
-from src.common.logger import get_module_logger
+from astrbot.core.maibot.common.logger import get_module_logger
 
 logger = get_module_logger("pfc_utils")
 

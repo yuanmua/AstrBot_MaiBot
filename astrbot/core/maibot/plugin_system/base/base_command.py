@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Tuple, Optional, TYPE_CHECKING, List
-from src.common.logger import get_logger
-from src.common.data_models.message_data_model import ReplyContentType, ReplyContent, ReplySetModel, ForwardNode
-from src.plugin_system.base.component_types import CommandInfo, ComponentType
-from src.chat.message_receive.message import MessageRecv
-from src.plugin_system.apis import send_api
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.data_models.message_data_model import ReplyContentType, ReplyContent, ReplySetModel, ForwardNode
+from astrbot.core.maibot.plugin_system.base.component_types import CommandInfo, ComponentType
+from astrbot.core.maibot.chat.message_receive.message import MessageRecv
+from astrbot.core.maibot.plugin_system.apis import send_api
 
 if TYPE_CHECKING:
-    from src.common.data_models.database_data_model import DatabaseMessages
+    from astrbot.core.maibot.common.data_models.database_data_model import DatabaseMessages
 
 logger = get_logger("base_command")
 

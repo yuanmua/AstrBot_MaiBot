@@ -6,7 +6,7 @@ from typing import List, Union
 from .global_logger import logger
 from . import prompt_template
 from . import INVALID_ENTITY
-from src.llm_models.utils_model import LLMRequest
+from astrbot.core.maibot.llm_models.utils_model import LLMRequest
 from json_repair import repair_json
 
 

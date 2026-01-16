@@ -4,12 +4,12 @@ import random
 import json
 from typing import Optional, List, Dict, Any, Tuple
 
-from src.common.logger import get_logger
-from src.config.config import global_config
-from src.chat.utils.chat_message_builder import (
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.config.config import global_config
+from astrbot.core.maibot.chat.utils.chat_message_builder import (
     build_readable_messages,
 )
-from src.chat.utils.utils import parse_platform_accounts
+from astrbot.core.maibot.chat.utils.utils import parse_platform_accounts
 from json_repair import repair_json
 
 

@@ -2,11 +2,11 @@ from abc import ABC, abstractmethod
 from typing import Any, List, Optional, Tuple, TYPE_CHECKING
 from rich.traceback import install
 
-from src.common.logger import get_logger
-from src.plugin_system.base.component_types import ComponentType, ToolInfo, ToolParamType
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.plugin_system.base.component_types import ComponentType, ToolInfo, ToolParamType
 
 if TYPE_CHECKING:
-    from src.chat.message_receive.chat_stream import ChatStream
+    from astrbot.core.maibot.chat.message_receive.chat_stream import ChatStream
 
 install(extra_lines=3)
 

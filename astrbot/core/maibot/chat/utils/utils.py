@@ -9,17 +9,17 @@ from datetime import datetime
 
 from typing import Optional, Tuple, List, TYPE_CHECKING
 
-from src.common.logger import get_logger
-from src.common.data_models.database_data_model import DatabaseMessages
-from src.config.config import global_config, model_config
-from src.chat.message_receive.message import MessageRecv
-from src.chat.message_receive.chat_stream import get_chat_manager
-from src.llm_models.utils_model import LLMRequest
-from src.person_info.person_info import Person
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.data_models.database_data_model import DatabaseMessages
+from astrbot.core.maibot.config.config import global_config, model_config
+from astrbot.core.maibot.chat.message_receive.message import MessageRecv
+from astrbot.core.maibot.chat.message_receive.chat_stream import get_chat_manager
+from astrbot.core.maibot.llm_models.utils_model import LLMRequest
+from astrbot.core.maibot.person_info.person_info import Person
 from .typo_generator import ChineseTypoGenerator
 
 if TYPE_CHECKING:
-    from src.common.data_models.info_data_model import TargetPersonInfo
+    from astrbot.core.maibot.common.data_models.info_data_model import TargetPersonInfo
 
 logger = get_logger("chat_utils")
 
@@ -706,7 +706,7 @@ def get_chat_type_and_target_info(chat_id: str) -> Tuple[bool, Optional["TargetP
                 platform: str = chat_stream.platform
                 user_id: str = user_info.user_id  # type: ignore
 
-                from src.common.data_models.info_data_model import TargetPersonInfo  # 解决循环导入问题
+                from astrbot.core.maibot.common.data_models.info_data_model import TargetPersonInfo  # 解决循环导入问题
 
                 # Initialize target_info with basic info
                 target_info = TargetPersonInfo(

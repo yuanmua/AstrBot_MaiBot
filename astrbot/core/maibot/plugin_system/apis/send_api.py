@@ -4,7 +4,7 @@
 专门负责发送各种类型的消息，采用标准Python包设计模式
 
 使用方式：
-    from src.plugin_system.apis import send_api
+    from astrbot.core.maibot.plugin_system.apis import send_api
 
     # 方式1：直接使用stream_id（推荐）
     await send_api.text_to_stream("hello", stream_id)
@@ -23,17 +23,17 @@ import traceback
 import time
 from typing import Optional, Union, Dict, List, TYPE_CHECKING, Tuple
 
-from src.common.logger import get_logger
-from src.common.data_models.message_data_model import ReplyContentType
-from src.config.config import global_config
-from src.chat.message_receive.chat_stream import get_chat_manager
-from src.chat.message_receive.uni_message_sender import UniversalMessageSender
-from src.chat.message_receive.message import MessageSending, MessageRecv
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.data_models.message_data_model import ReplyContentType
+from astrbot.core.maibot.config.config import global_config
+from astrbot.core.maibot.chat.message_receive.chat_stream import get_chat_manager
+from astrbot.core.maibot.chat.message_receive.uni_message_sender import UniversalMessageSender
+from astrbot.core.maibot.chat.message_receive.message import MessageSending, MessageRecv
 from maim_message import Seg, UserInfo, MessageBase, BaseMessageInfo
 
 if TYPE_CHECKING:
-    from src.common.data_models.database_data_model import DatabaseMessages
-    from src.common.data_models.message_data_model import ReplySetModel, ReplyContent, ForwardNode
+    from astrbot.core.maibot.common.data_models.database_data_model import DatabaseMessages
+    from astrbot.core.maibot.common.data_models.message_data_model import ReplySetModel, ReplyContent, ForwardNode
 
 logger = get_logger("send_api")
 

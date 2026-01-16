@@ -4,12 +4,12 @@ import traceback
 from rich.traceback import install
 from maim_message import Seg
 
-from src.common.message.api import get_global_api
-from src.common.logger import get_logger
-from src.chat.message_receive.message import MessageSending
-from src.chat.message_receive.storage import MessageStorage
-from src.chat.utils.utils import truncate_message
-from src.chat.utils.utils import calculate_typing_time
+from astrbot.core.maibot.common.message.api import get_global_api
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.chat.message_receive.message import MessageSending
+from astrbot.core.maibot.chat.message_receive.storage import MessageStorage
+from astrbot.core.maibot.chat.utils.utils import truncate_message
+from astrbot.core.maibot.chat.utils.utils import calculate_typing_time
 
 install(extra_lines=3)
 
@@ -27,7 +27,7 @@ def get_webui_chat_broadcaster():
     global _webui_chat_broadcaster
     if _webui_chat_broadcaster is None:
         try:
-            from src.webui.chat_routes import chat_manager, WEBUI_CHAT_PLATFORM
+            from astrbot.core.maibot.webui.chat_routes import chat_manager, WEBUI_CHAT_PLATFORM
 
             _webui_chat_broadcaster = (chat_manager, WEBUI_CHAT_PLATFORM)
         except ImportError:
@@ -141,7 +141,7 @@ async def _send_message(message: MessageSending, show_log=True) -> bool:
         if is_webui_message and chat_manager is not None:
             # WebUI 聊天室消息（包括虚拟身份模式），通过 WebSocket 广播
             import time
-            from src.config.config import global_config
+            from astrbot.core.maibot.config.config import global_config
 
             # 解析消息段，获取富文本内容
             message_segments = parse_message_segments(message.message_segment)
@@ -185,7 +185,7 @@ async def _send_message(message: MessageSending, show_log=True) -> bool:
         # Fallback 逻辑: 尝试通过 API Server 发送
         async def send_with_new_api(legacy_exception=None):
             try:
-                from src.config.config import global_config
+                from astrbot.core.maibot.config.config import global_config
 
                 # 如果未开启 API Server，直接跳过 Fallback
                 if not global_config.maim_message.enable_api_server:
@@ -287,8 +287,8 @@ class UniversalMessageSender:
                 message.build_reply()
                 logger.debug(f"[{chat_id}] 选择回复引用消息: {message.processed_plain_text[:20]}...")
 
-            from src.plugin_system.core.events_manager import events_manager
-            from src.plugin_system.base.component_types import EventType
+            from astrbot.core.maibot.plugin_system.core.events_manager import events_manager
+            from astrbot.core.maibot.plugin_system.base.component_types import EventType
 
             continue_flag, modified_message = await events_manager.handle_mai_events(
                 EventType.POST_SEND_PRE_PROCESS, message=message, stream_id=chat_id

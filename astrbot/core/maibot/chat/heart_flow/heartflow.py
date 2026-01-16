@@ -1,11 +1,11 @@
 import traceback
 from typing import Any, Optional, Dict
 
-from src.chat.message_receive.chat_stream import get_chat_manager
-from src.common.logger import get_logger
-from src.chat.heart_flow.heartFC_chat import HeartFChatting
-from src.chat.brain_chat.brain_chat import BrainChatting
-from src.chat.message_receive.chat_stream import ChatStream
+from astrbot.core.maibot.chat.message_receive.chat_stream import get_chat_manager
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.chat.heart_flow.heartFC_chat import HeartFChatting
+from astrbot.core.maibot.chat.brain_chat.brain_chat import BrainChatting
+from astrbot.core.maibot.chat.message_receive.chat_stream import ChatStream
 
 logger = get_logger("heartflow")
 

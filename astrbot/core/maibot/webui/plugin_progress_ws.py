@@ -4,9 +4,9 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from typing import Set, Dict, Any, Optional
 import json
 import asyncio
-from src.common.logger import get_logger
-from src.webui.token_manager import get_token_manager
-from src.webui.ws_auth import verify_ws_token
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.webui.token_manager import get_token_manager
+from astrbot.core.maibot.webui.ws_auth import verify_ws_token
 
 logger = get_logger("webui.plugin_progress")
 

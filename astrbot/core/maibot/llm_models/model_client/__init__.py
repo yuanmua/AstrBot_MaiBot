@@ -1,4 +1,4 @@
-from src.config.config import model_config
+from astrbot.core.maibot.config.config import model_config
 
 used_client_types = {provider.client_type for provider in model_config.api_providers}
 

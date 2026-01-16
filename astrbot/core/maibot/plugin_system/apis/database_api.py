@@ -2,7 +2,7 @@
 
 提供数据库操作相关功能，采用标准Python包设计模式
 使用方式：
-    from src.plugin_system.apis import database_api
+    from astrbot.core.maibot.plugin_system.apis import database_api
     records = await database_api.db_query(ActionRecords, query_type="get")
     record = await database_api.db_save(ActionRecords, data={"action_id": "123"})
 """
@@ -11,7 +11,7 @@ import traceback
 import time
 import json
 from typing import Dict, List, Any, Union, Type, Optional
-from src.common.logger import get_logger
+from astrbot.core.maibot.common.logger import get_logger
 from peewee import Model, DoesNotExist
 
 logger = get_logger("database_api")
@@ -340,7 +340,7 @@ async def store_action_info(
         )
     """
     try:
-        from src.common.database.database_model import ActionRecords
+        from astrbot.core.maibot.common.database.database_model import ActionRecords
 
         # 构建动作记录数据
         record_data = {

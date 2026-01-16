@@ -1,6 +1,6 @@
 import time
 from typing import Dict, Optional
-from src.common.logger import get_module_logger
+from astrbot.core.maibot.common.logger import get_module_logger
 from .conversation import Conversation
 import traceback
 

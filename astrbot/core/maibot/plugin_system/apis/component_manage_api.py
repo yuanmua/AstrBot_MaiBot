@@ -1,5 +1,5 @@
 from typing import Optional, Union, Dict
-from src.plugin_system.base.component_types import (
+from astrbot.core.maibot.plugin_system.base.component_types import (
     CommandInfo,
     ActionInfo,
     EventHandlerInfo,
@@ -17,7 +17,7 @@ def get_all_plugin_info() -> Dict[str, PluginInfo]:
     Returns:
         dict: 包含所有插件信息的字典，键为插件名称，值为 PluginInfo 对象。
     """
-    from src.plugin_system.core.component_registry import component_registry
+    from astrbot.core.maibot.plugin_system.core.component_registry import component_registry
 
     return component_registry.get_all_plugins()
 
@@ -32,7 +32,7 @@ def get_plugin_info(plugin_name: str) -> Optional[PluginInfo]:
     Returns:
         PluginInfo: 插件信息对象，如果插件不存在则返回 None。
     """
-    from src.plugin_system.core.component_registry import component_registry
+    from astrbot.core.maibot.plugin_system.core.component_registry import component_registry
 
     return component_registry.get_plugin_info(plugin_name)
 
@@ -50,7 +50,7 @@ def get_component_info(
     Returns:
         Union[CommandInfo, ActionInfo, EventHandlerInfo]: 组件信息对象，如果组件不存在则返回 None。
     """
-    from src.plugin_system.core.component_registry import component_registry
+    from astrbot.core.maibot.plugin_system.core.component_registry import component_registry
 
     return component_registry.get_component_info(component_name, component_type)  # type: ignore
 
@@ -67,7 +67,7 @@ def get_components_info_by_type(
     Returns:
         dict: 包含指定类型组件信息的字典，键为组件名称，值为对应的组件信息对象。
     """
-    from src.plugin_system.core.component_registry import component_registry
+    from astrbot.core.maibot.plugin_system.core.component_registry import component_registry
 
     return component_registry.get_components_by_type(component_type)  # type: ignore
 
@@ -84,7 +84,7 @@ def get_enabled_components_info_by_type(
     Returns:
         dict: 包含指定类型启用组件信息的字典，键为组件名称，值为对应的组件信息对象。
     """
-    from src.plugin_system.core.component_registry import component_registry
+    from astrbot.core.maibot.plugin_system.core.component_registry import component_registry
 
     return component_registry.get_enabled_components_by_type(component_type)  # type: ignore
 
@@ -100,7 +100,7 @@ def get_registered_action_info(action_name: str) -> Optional[ActionInfo]:
     Returns:
         ActionInfo: Action 信息对象，如果 Action 不存在则返回 None。
     """
-    from src.plugin_system.core.component_registry import component_registry
+    from astrbot.core.maibot.plugin_system.core.component_registry import component_registry
 
     return component_registry.get_registered_action_info(action_name)
 
@@ -115,7 +115,7 @@ def get_registered_command_info(command_name: str) -> Optional[CommandInfo]:
     Returns:
         CommandInfo: Command 信息对象，如果 Command 不存在则返回 None。
     """
-    from src.plugin_system.core.component_registry import component_registry
+    from astrbot.core.maibot.plugin_system.core.component_registry import component_registry
 
     return component_registry.get_registered_command_info(command_name)
 
@@ -130,7 +130,7 @@ def get_registered_tool_info(tool_name: str) -> Optional[ToolInfo]:
     Returns:
         ToolInfo: Tool 信息对象，如果 Tool 不存在则返回 None。
     """
-    from src.plugin_system.core.component_registry import component_registry
+    from astrbot.core.maibot.plugin_system.core.component_registry import component_registry
 
     return component_registry.get_registered_tool_info(tool_name)
 
@@ -148,7 +148,7 @@ def get_registered_event_handler_info(
     Returns:
         EventHandlerInfo: EventHandler 信息对象，如果 EventHandler 不存在则返回 None。
     """
-    from src.plugin_system.core.component_registry import component_registry
+    from astrbot.core.maibot.plugin_system.core.component_registry import component_registry
 
     return component_registry.get_registered_event_handler_info(event_handler_name)
 
@@ -165,7 +165,7 @@ def globally_enable_component(component_name: str, component_type: ComponentType
     Returns:
         bool: 启用成功返回 True，否则返回 False。
     """
-    from src.plugin_system.core.component_registry import component_registry
+    from astrbot.core.maibot.plugin_system.core.component_registry import component_registry
 
     return component_registry.enable_component(component_name, component_type)
 
@@ -183,7 +183,7 @@ async def globally_disable_component(component_name: str, component_type: Compon
     Returns:
         bool: 禁用成功返回 True，否则返回 False。
     """
-    from src.plugin_system.core.component_registry import component_registry
+    from astrbot.core.maibot.plugin_system.core.component_registry import component_registry
 
     return await component_registry.disable_component(component_name, component_type)
 
@@ -200,7 +200,7 @@ def locally_enable_component(component_name: str, component_type: ComponentType,
     Returns:
         bool: 启用成功返回 True，否则返回 False。
     """
-    from src.plugin_system.core.global_announcement_manager import global_announcement_manager
+    from astrbot.core.maibot.plugin_system.core.global_announcement_manager import global_announcement_manager
 
     match component_type:
         case ComponentType.ACTION:
@@ -227,7 +227,7 @@ def locally_disable_component(component_name: str, component_type: ComponentType
     Returns:
         bool: 禁用成功返回 True，否则返回 False。
     """
-    from src.plugin_system.core.global_announcement_manager import global_announcement_manager
+    from astrbot.core.maibot.plugin_system.core.global_announcement_manager import global_announcement_manager
 
     match component_type:
         case ComponentType.ACTION:
@@ -253,7 +253,7 @@ def get_locally_disabled_components(stream_id: str, component_type: ComponentTyp
     Returns:
         list[str]: 禁用的组件名称列表。
     """
-    from src.plugin_system.core.global_announcement_manager import global_announcement_manager
+    from astrbot.core.maibot.plugin_system.core.global_announcement_manager import global_announcement_manager
 
     match component_type:
         case ComponentType.ACTION:

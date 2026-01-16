@@ -1,5 +1,5 @@
-from src.chat.utils.prompt_builder import Prompt
-# from src.chat.memory_system.memory_activator import MemoryActivator
+from astrbot.core.maibot.chat.utils.prompt_builder import Prompt
+# from astrbot.core.maibot.chat.memory_system.memory_activator import MemoryActivator
 
 
 def init_replyer_prompt():

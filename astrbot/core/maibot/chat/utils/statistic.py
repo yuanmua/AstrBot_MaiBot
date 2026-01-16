@@ -6,12 +6,12 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Dict, Tuple, List
 
-from src.common.logger import get_logger
-from src.common.database.database import db
-from src.common.database.database_model import OnlineTime, LLMUsage, Messages, ActionRecords
-from src.manager.async_task_manager import AsyncTask
-from src.manager.local_store_manager import local_storage
-from src.config.config import global_config
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.database.database import db
+from astrbot.core.maibot.common.database.database_model import OnlineTime, LLMUsage, Messages, ActionRecords
+from astrbot.core.maibot.manager.async_task_manager import AsyncTask
+from astrbot.core.maibot.manager.local_store_manager import local_storage
+from astrbot.core.maibot.config.config import global_config
 
 logger = get_logger("maibot_statistic")
 
@@ -877,7 +877,7 @@ class StatisticOutputTask(AsyncTask):
         """从chat_id获取显示名称"""
         try:
             # 首先尝试从chat_stream获取真实群组名称
-            from src.chat.message_receive.chat_stream import get_chat_manager
+            from astrbot.core.maibot.chat.message_receive.chat_stream import get_chat_manager
 
             chat_manager = get_chat_manager()
 

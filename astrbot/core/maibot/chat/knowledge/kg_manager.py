@@ -21,7 +21,7 @@ from quick_algo import di_graph, pagerank
 
 from .utils.hash import get_sha256
 from .embedding_store import EmbeddingManager, EmbeddingStoreItem
-from src.config.config import global_config
+from astrbot.core.maibot.config.config import global_config
 
 from .global_logger import logger
 
@@ -114,7 +114,7 @@ class KGManager:
         ent_appear_cnt: Dict[str, float] = {}
         for edge_tuple in edges:
             src, tgt = edge_tuple[0], edge_tuple[1]
-            if src.startswith("entity") and tgt.startswith("paragraph"):
+            if astrbot.core.maibot.startswith("entity") and tgt.startswith("paragraph"):
                 edge_data = self.graph[src, tgt]
                 weight = edge_data["weight"] if "weight" in edge_data else 1.0
                 ent_appear_cnt[src] = ent_appear_cnt.get(src, 0.0) + float(weight)

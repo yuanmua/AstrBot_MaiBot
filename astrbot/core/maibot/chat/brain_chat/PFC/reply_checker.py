@@ -1,8 +1,8 @@
 import json
 from typing import Tuple, List, Dict, Any
-from src.common.logger import get_module_logger
-from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config
+from astrbot.core.maibot.common.logger import get_module_logger
+from astrbot.core.maibot.llm_models.utils_model import LLMRequest
+from astrbot.core.maibot.config.config import global_config
 from .chat_observer import ChatObserver
 from maim_message import UserInfo
 

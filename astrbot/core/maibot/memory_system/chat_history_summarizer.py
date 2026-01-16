@@ -13,16 +13,16 @@ from typing import Any, Dict, List, Optional, Set
 from dataclasses import dataclass, field
 from json_repair import repair_json
 
-from src.common.logger import get_logger
-from src.common.data_models.database_data_model import DatabaseMessages
-from src.config.config import model_config
-from src.llm_models.utils_model import LLMRequest
-from src.plugin_system.apis import message_api
-from src.chat.utils.chat_message_builder import build_readable_messages
-from src.chat.utils.utils import is_bot_self
-from src.person_info.person_info import Person
-from src.chat.message_receive.chat_stream import get_chat_manager
-from src.chat.utils.prompt_builder import Prompt, global_prompt_manager
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.data_models.database_data_model import DatabaseMessages
+from astrbot.core.maibot.config.config import model_config
+from astrbot.core.maibot.llm_models.utils_model import LLMRequest
+from astrbot.core.maibot.plugin_system.apis import message_api
+from astrbot.core.maibot.chat.utils.chat_message_builder import build_readable_messages
+from astrbot.core.maibot.chat.utils.utils import is_bot_self
+from astrbot.core.maibot.person_info.person_info import Person
+from astrbot.core.maibot.chat.message_receive.chat_stream import get_chat_manager
+from astrbot.core.maibot.chat.utils.prompt_builder import Prompt, global_prompt_manager
 
 logger = get_logger("chat_history_summarizer")
 
@@ -942,8 +942,8 @@ class ChatHistorySummarizer:
     ):
         """存储到数据库"""
         try:
-            from src.common.database.database_model import ChatHistory
-            from src.plugin_system.apis import database_api
+            from astrbot.core.maibot.common.database.database_model import ChatHistory
+            from astrbot.core.maibot.plugin_system.apis import database_api
 
             # 准备数据
             data = {

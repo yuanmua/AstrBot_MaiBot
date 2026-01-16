@@ -1,9 +1,9 @@
-from src.common.server import get_global_server
+from astrbot.core.maibot.common.server import get_global_server
 import os
 import importlib.metadata
 from maim_message import MessageServer
-from src.common.logger import get_logger
-from src.config.config import global_config
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.config.config import global_config
 
 global_api = None
 

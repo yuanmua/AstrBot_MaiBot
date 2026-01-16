@@ -8,10 +8,10 @@ from rich.traceback import install
 from typing import Optional, Any, List
 from maim_message import Seg, UserInfo, BaseMessageInfo, MessageBase
 
-from src.common.logger import get_logger
-from src.config.config import global_config
-from src.chat.utils.utils_image import get_image_manager
-from src.chat.utils.utils_voice import get_voice_text
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.config.config import global_config
+from astrbot.core.maibot.chat.utils.utils_image import get_image_manager
+from astrbot.core.maibot.chat.utils.utils_voice import get_voice_text
 from .chat_stream import ChatStream
 
 install(extra_lines=3)

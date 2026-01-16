@@ -5,7 +5,7 @@
 """
 
 # 导入所有API模块
-from src.plugin_system.apis import (
+from astrbot.core.maibot.plugin_system.apis import (
     chat_api,
     component_manage_api,
     config_api,

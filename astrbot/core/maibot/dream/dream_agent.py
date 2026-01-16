@@ -5,24 +5,24 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from peewee import fn
 
-from src.common.logger import get_logger
-from src.config.config import global_config, model_config
-from src.common.database.database_model import ChatHistory
-from src.chat.utils.prompt_builder import Prompt, global_prompt_manager
-from src.llm_models.payload_content.message import MessageBuilder, RoleType, Message
-from src.plugin_system.apis import llm_api
-from src.dream.dream_generator import generate_dream_summary
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.config.config import global_config, model_config
+from astrbot.core.maibot.common.database.database_model import ChatHistory
+from astrbot.core.maibot.chat.utils.prompt_builder import Prompt, global_prompt_manager
+from astrbot.core.maibot.llm_models.payload_content.message import MessageBuilder, RoleType, Message
+from astrbot.core.maibot.plugin_system.apis import llm_api
+from astrbot.core.maibot.dream.dream_generator import generate_dream_summary
 
 # dream 工具工厂函数
-from src.dream.tools.search_chat_history_tool import make_search_chat_history
-from src.dream.tools.get_chat_history_detail_tool import make_get_chat_history_detail
-from src.dream.tools.delete_chat_history_tool import make_delete_chat_history
-from src.dream.tools.create_chat_history_tool import make_create_chat_history
-from src.dream.tools.update_chat_history_tool import make_update_chat_history
-from src.dream.tools.finish_maintenance_tool import make_finish_maintenance
-from src.dream.tools.search_jargon_tool import make_search_jargon
-from src.dream.tools.delete_jargon_tool import make_delete_jargon
-from src.dream.tools.update_jargon_tool import make_update_jargon
+from astrbot.core.maibot.dream.tools.search_chat_history_tool import make_search_chat_history
+from astrbot.core.maibot.dream.tools.get_chat_history_detail_tool import make_get_chat_history_detail
+from astrbot.core.maibot.dream.tools.delete_chat_history_tool import make_delete_chat_history
+from astrbot.core.maibot.dream.tools.create_chat_history_tool import make_create_chat_history
+from astrbot.core.maibot.dream.tools.update_chat_history_tool import make_update_chat_history
+from astrbot.core.maibot.dream.tools.finish_maintenance_tool import make_finish_maintenance
+from astrbot.core.maibot.dream.tools.search_jargon_tool import make_search_jargon
+from astrbot.core.maibot.dream.tools.delete_jargon_tool import make_delete_jargon
+from astrbot.core.maibot.dream.tools.update_jargon_tool import make_update_jargon
 
 logger = get_logger("dream_agent")
 
@@ -129,7 +129,7 @@ def get_dream_tool_registry() -> DreamToolRegistry:
 
 def init_dream_tools(chat_id: str) -> None:
     """注册 dream agent 可用的 ChatHistory / Jargon 相关工具（限定在当前 chat_id 作用域内）"""
-    from src.llm_models.payload_content.tool_option import ToolParamType
+    from astrbot.core.maibot.llm_models.payload_content.tool_option import ToolParamType
 
     # 通过工厂函数生成绑定当前 chat_id 的工具实现
     search_chat_history = make_search_chat_history(chat_id)

@@ -6,9 +6,9 @@ from typing import Dict, Optional, TYPE_CHECKING
 from rich.traceback import install
 from maim_message import GroupInfo, UserInfo
 
-from src.common.logger import get_logger
-from src.common.database.database import db
-from src.common.database.database_model import ChatStreams  # 新增导入
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.database.database import db
+from astrbot.core.maibot.common.database.database_model import ChatStreams  # 新增导入
 
 # 避免循环导入，使用TYPE_CHECKING进行类型提示
 if TYPE_CHECKING:

@@ -10,10 +10,10 @@ from dataclasses import field, dataclass
 from rich.traceback import install
 from typing import List, Optional
 
-from src.common.logger import get_logger
-from src.common.toml_utils import format_toml_string
-from src.config.config_base import ConfigBase
-from src.config.official_configs import (
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.toml_utils import format_toml_string
+from astrbot.core.maibot.config.config_base import ConfigBase
+from astrbot.core.maibot.config.official_configs import (
     BotConfig,
     PersonalityConfig,
     ExpressionConfig,

@@ -11,13 +11,13 @@ from typing import Dict, Any, Optional, List
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, Depends, Cookie, Header
 from pydantic import BaseModel
 
-from src.common.logger import get_logger
-from src.common.database.database_model import Messages, PersonInfo
-from src.config.config import global_config
-from src.chat.message_receive.bot import chat_bot
-from src.webui.auth import verify_auth_token_from_cookie_or_header
-from src.webui.token_manager import get_token_manager
-from src.webui.ws_auth import verify_ws_token
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.database.database_model import Messages, PersonInfo
+from astrbot.core.maibot.config.config import global_config
+from astrbot.core.maibot.chat.message_receive.bot import chat_bot
+from astrbot.core.maibot.webui.auth import verify_auth_token_from_cookie_or_header
+from astrbot.core.maibot.webui.token_manager import get_token_manager
+from astrbot.core.maibot.webui.ws_auth import verify_ws_token
 
 logger = get_logger("webui.chat")
 

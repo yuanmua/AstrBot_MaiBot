@@ -1,30 +1,31 @@
 import asyncio
 import time
+
 from maim_message import MessageServer
 
-from src.common.remote import TelemetryHeartBeatTask
-from src.manager.async_task_manager import async_task_manager
-from src.chat.utils.statistic import OnlineTimeRecordTask, StatisticOutputTask
+from astrbot.core.maibot.common.remote import TelemetryHeartBeatTask
+from astrbot.core.maibot.manager.async_task_manager import async_task_manager
+from astrbot.core.maibot.chat.utils.statistic import OnlineTimeRecordTask, StatisticOutputTask
 
-# from src.chat.utils.token_statistics import TokenStatisticsTask
-from src.chat.emoji_system.emoji_manager import get_emoji_manager
-from src.chat.message_receive.chat_stream import get_chat_manager
-from src.config.config import global_config
-from src.chat.message_receive.bot import chat_bot
-from src.common.logger import get_logger
-from src.common.server import get_global_server, Server
-from src.chat.knowledge import lpmm_start_up
+# from astrbot.core.maibot.chat.utils.token_statistics import TokenStatisticsTask
+from astrbot.core.maibot.chat.emoji_system.emoji_manager import get_emoji_manager
+from astrbot.core.maibot.chat.message_receive.chat_stream import get_chat_manager
+from astrbot.core.maibot.config.config import global_config
+from astrbot.core.maibot.chat.message_receive.bot import chat_bot
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.server import get_global_server, Server
+from astrbot.core.maibot.chat.knowledge import lpmm_start_up
 from rich.traceback import install
 
-# from src.api.main import start_api_server
+# from astrbot.core.maibot.api.main import start_api_server
 
 # 导入新的插件管理器
-from src.plugin_system.core.plugin_manager import plugin_manager
+from astrbot.core.maibot.plugin_system.core.plugin_manager import plugin_manager
 
 # 导入消息API和traceback模块
-from src.common.message import get_global_api
-from src.dream.dream_agent import start_dream_scheduler
-from src.bw_learner.expression_auto_check_task import ExpressionAutoCheckTask
+from astrbot.core.maibot.common.message import get_global_api
+from astrbot.core.maibot.dream.dream_agent import start_dream_scheduler
+from astrbot.core.maibot.bw_learner.expression_auto_check_task import ExpressionAutoCheckTask
 
 # 插件系统现在使用统一的插件加载器
 
@@ -45,14 +46,14 @@ class MainSystem:
 
     def _setup_webui_server(self):
         """设置独立的 WebUI 服务器"""
-        from src.config.config import global_config
+        from astrbot.core.maibot.config.config import global_config
 
         if not global_config.webui.enabled:
             logger.info("WebUI 已禁用")
             return
 
         try:
-            from src.webui.webui_server import get_webui_server
+            from astrbot.core.maibot.webui.webui_server import get_webui_server
 
             self.webui_server = get_webui_server()
 
@@ -121,8 +122,8 @@ class MainSystem:
         self.app.register_custom_message_handler("message_id_echo", chat_bot.echo_message_process)
 
         # 触发 ON_START 事件
-        from src.plugin_system.core.events_manager import events_manager
-        from src.plugin_system.base.component_types import EventType
+        from astrbot.core.maibot.plugin_system.core.events_manager import events_manager
+        from astrbot.core.maibot.plugin_system.base.component_types import EventType
 
         await events_manager.handle_mai_events(event_type=EventType.ON_START)
         # logger.info("已触发 ON_START 事件")

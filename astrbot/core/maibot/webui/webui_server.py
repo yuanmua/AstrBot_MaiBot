@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from uvicorn import Config, Server as UvicornServer
-from src.common.logger import get_logger
+from astrbot.core.maibot.common.logger import get_logger
 
 logger = get_logger("webui_server")
 
@@ -66,7 +66,7 @@ class WebUIServer:
     def _show_access_token(self):
         """显示 WebUI Access Token"""
         try:
-            from src.webui.token_manager import get_token_manager
+            from astrbot.core.maibot.webui.token_manager import get_token_manager
 
             token_manager = get_token_manager()
             current_token = token_manager.get_token()
@@ -128,8 +128,8 @@ class WebUIServer:
     def _setup_anti_crawler(self):
         """配置防爬虫中间件"""
         try:
-            from src.webui.anti_crawler import AntiCrawlerMiddleware
-            from src.config.config import global_config
+            from astrbot.core.maibot.webui.anti_crawler import AntiCrawlerMiddleware
+            from astrbot.core.maibot.config.config import global_config
 
             # 从配置读取防爬虫模式
             anti_crawler_mode = global_config.webui.anti_crawler_mode
@@ -147,7 +147,7 @@ class WebUIServer:
     def _setup_robots_txt(self):
         """设置robots.txt路由"""
         try:
-            from src.webui.anti_crawler import create_robots_txt_response
+            from astrbot.core.maibot.webui.anti_crawler import create_robots_txt_response
 
             @self.app.get("/robots.txt", include_in_schema=False)
             async def robots_txt():
@@ -162,18 +162,18 @@ class WebUIServer:
         """注册所有 WebUI API 路由"""
         try:
             # 导入所有 WebUI 路由
-            from src.webui.routes import router as webui_router
-            from src.webui.logs_ws import router as logs_router
-            from src.webui.knowledge_routes import router as knowledge_router
+            from astrbot.core.maibot.webui.routes import router as webui_router
+            from astrbot.core.maibot.webui.logs_ws import router as logs_router
+            from astrbot.core.maibot.webui.knowledge_routes import router as knowledge_router
 
             # 导入本地聊天室路由
-            from src.webui.chat_routes import router as chat_router
+            from astrbot.core.maibot.webui.chat_routes import router as chat_router
             
             # 导入规划器监控路由
-            from src.webui.api.planner import router as planner_router
+            from astrbot.core.maibot.webui.api.planner import router as planner_router
             
             # 导入回复器监控路由
-            from src.webui.api.replier import router as replier_router
+            from astrbot.core.maibot.webui.api.replier import router as replier_router
 
             # 注册路由
             self.app.include_router(webui_router)

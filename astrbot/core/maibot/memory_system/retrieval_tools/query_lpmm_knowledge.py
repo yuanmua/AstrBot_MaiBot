@@ -2,9 +2,9 @@
 通过LPMM知识库查询信息 - 工具实现
 """
 
-from src.common.logger import get_logger
-from src.config.config import global_config
-from src.chat.knowledge import get_qa_manager
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.config.config import global_config
+from astrbot.core.maibot.chat.knowledge import get_qa_manager
 from .tool_registry import register_memory_retrieval_tool
 
 logger = get_logger("memory_retrieval_tools")

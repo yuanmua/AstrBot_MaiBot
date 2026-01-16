@@ -3,7 +3,7 @@
 
 提供回复器相关功能，采用标准Python包设计模式
 使用方式：
-    from src.plugin_system.apis import generator_api
+    from astrbot.core.maibot.plugin_system.apis import generator_api
     replyer = generator_api.get_replyer(chat_stream)
     success, reply_set, _ = await generator_api.generate_reply(chat_stream, action_data, reasoning)
 """
@@ -12,20 +12,20 @@ import traceback
 import time
 from typing import Tuple, Any, Dict, List, Optional, TYPE_CHECKING
 from rich.traceback import install
-from src.common.logger import get_logger
-from src.common.data_models.message_data_model import ReplySetModel
-from src.chat.replyer.group_generator import DefaultReplyer
-from src.chat.replyer.private_generator import PrivateReplyer
-from src.chat.message_receive.chat_stream import ChatStream
-from src.chat.utils.utils import process_llm_response
-from src.chat.replyer.replyer_manager import replyer_manager
-from src.plugin_system.base.component_types import ActionInfo
-from src.chat.logger.plan_reply_logger import PlanReplyLogger
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.data_models.message_data_model import ReplySetModel
+from astrbot.core.maibot.chat.replyer.group_generator import DefaultReplyer
+from astrbot.core.maibot.chat.replyer.private_generator import PrivateReplyer
+from astrbot.core.maibot.chat.message_receive.chat_stream import ChatStream
+from astrbot.core.maibot.chat.utils.utils import process_llm_response
+from astrbot.core.maibot.chat.replyer.replyer_manager import replyer_manager
+from astrbot.core.maibot.plugin_system.base.component_types import ActionInfo
+from astrbot.core.maibot.chat.logger.plan_reply_logger import PlanReplyLogger
 
 if TYPE_CHECKING:
-    from src.common.data_models.info_data_model import ActionPlannerInfo
-    from src.common.data_models.database_data_model import DatabaseMessages
-    from src.common.data_models.llm_data_model import LLMGenerationDataModel
+    from astrbot.core.maibot.common.data_models.info_data_model import ActionPlannerInfo
+    from astrbot.core.maibot.common.data_models.database_data_model import DatabaseMessages
+    from astrbot.core.maibot.common.data_models.llm_data_model import LLMGenerationDataModel
 
 install(extra_lines=3)
 

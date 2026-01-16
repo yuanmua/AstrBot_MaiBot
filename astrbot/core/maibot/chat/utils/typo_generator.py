@@ -13,7 +13,7 @@ from collections import defaultdict
 from pathlib import Path
 from pypinyin import Style, pinyin
 
-from src.common.logger import get_logger
+from astrbot.core.maibot.common.logger import get_logger
 
 logger = get_logger("typo_gen")
 

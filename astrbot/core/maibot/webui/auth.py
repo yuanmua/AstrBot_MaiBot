@@ -5,8 +5,8 @@ WebUI 认证模块
 
 from typing import Optional
 from fastapi import HTTPException, Cookie, Header, Response, Request
-from src.common.logger import get_logger
-from src.config.config import global_config
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.config.config import global_config
 from .token_manager import get_token_manager
 
 logger = get_logger("webui.auth")

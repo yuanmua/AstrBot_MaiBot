@@ -7,10 +7,10 @@ import json
 from typing import Optional, Set
 from datetime import datetime
 
-from src.common.logger import get_logger
-from src.common.database.database_model import ChatHistory
-from src.chat.utils.utils import parse_keywords_string
-from src.config.config import global_config
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.database.database_model import ChatHistory
+from astrbot.core.maibot.chat.utils.utils import parse_keywords_string
+from astrbot.core.maibot.config.config import global_config
 from .tool_registry import register_memory_retrieval_tool
 
 logger = get_logger("memory_retrieval_tools")
@@ -30,7 +30,7 @@ def _parse_blacklist_to_chat_ids(blacklist: list[str]) -> Set[str]:
         return chat_ids
 
     try:
-        from src.chat.message_receive.chat_stream import get_chat_manager
+        from astrbot.core.maibot.chat.message_receive.chat_stream import get_chat_manager
 
         chat_manager = get_chat_manager()
         for blacklist_item in blacklist:
@@ -112,14 +112,14 @@ async def search_chat_history(
         
         if start_time:
             try:
-                from src.memory_system.memory_utils import parse_datetime_to_timestamp
+                from astrbot.core.maibot.memory_system.memory_utils import parse_datetime_to_timestamp
                 start_timestamp = parse_datetime_to_timestamp(start_time)
             except ValueError as e:
                 return f"开始时间格式错误: {str(e)}，支持格式如：'2025-01-01' 或 '2025-01-01 12:00:00' 或 '2025/01/01'"
         
         if end_time:
             try:
-                from src.memory_system.memory_utils import parse_datetime_to_timestamp
+                from astrbot.core.maibot.memory_system.memory_utils import parse_datetime_to_timestamp
                 end_timestamp = parse_datetime_to_timestamp(end_time)
             except ValueError as e:
                 return f"结束时间格式错误: {str(e)}，支持格式如：'2025-01-01' 或 '2025-01-01 12:00:00' 或 '2025/01/01'"

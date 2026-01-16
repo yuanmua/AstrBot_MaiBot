@@ -1,11 +1,11 @@
 import time
 from typing import Optional
-from src.common.logger import get_module_logger
-from src.chat.message_receive.chat_stream import ChatStream
-from src.chat.message_receive.message import Message, MessageSending
+from astrbot.core.maibot.common.logger import get_module_logger
+from astrbot.core.maibot.chat.message_receive.chat_stream import ChatStream
+from astrbot.core.maibot.chat.message_receive.message import Message, MessageSending
 from maim_message import UserInfo, Seg
-from src.chat.message_receive.storage import MessageStorage
-from src.config.config import global_config
+from astrbot.core.maibot.chat.message_receive.storage import MessageStorage
+from astrbot.core.maibot.config.config import global_config
 from rich.traceback import install
 
 install(extra_lines=3)
@@ -65,7 +65,7 @@ class DirectMessageSender:
             await message.process()
 
             # 发送消息（直接调用底层 API）
-            from src.chat.message_receive.uni_message_sender import _send_message
+            from astrbot.core.maibot.chat.message_receive.uni_message_sender import _send_message
             
             sent = await _send_message(message, show_log=True)
             

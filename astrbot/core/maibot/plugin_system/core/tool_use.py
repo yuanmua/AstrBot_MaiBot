@@ -1,14 +1,14 @@
 import time
 from typing import List, Dict, Tuple, Optional, Any
-from src.plugin_system.apis.tool_api import get_llm_available_tool_definitions, get_tool_instance
-from src.plugin_system.base.base_tool import BaseTool
-from src.plugin_system.core.global_announcement_manager import global_announcement_manager
-from src.llm_models.utils_model import LLMRequest
-from src.llm_models.payload_content import ToolCall
-from src.config.config import global_config, model_config
-from src.chat.utils.prompt_builder import Prompt, global_prompt_manager
-from src.chat.message_receive.chat_stream import get_chat_manager
-from src.common.logger import get_logger
+from astrbot.core.maibot.plugin_system.apis.tool_api import get_llm_available_tool_definitions, get_tool_instance
+from astrbot.core.maibot.plugin_system.base.base_tool import BaseTool
+from astrbot.core.maibot.plugin_system.core.global_announcement_manager import global_announcement_manager
+from astrbot.core.maibot.llm_models.utils_model import LLMRequest
+from astrbot.core.maibot.llm_models.payload_content import ToolCall
+from astrbot.core.maibot.config.config import global_config, model_config
+from astrbot.core.maibot.chat.utils.prompt_builder import Prompt, global_prompt_manager
+from astrbot.core.maibot.chat.message_receive.chat_stream import get_chat_manager
+from astrbot.core.maibot.common.logger import get_logger
 
 logger = get_logger("tool_use")
 

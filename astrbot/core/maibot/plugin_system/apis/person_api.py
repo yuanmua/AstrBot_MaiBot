@@ -2,14 +2,14 @@
 
 提供个人信息查询功能，用于插件获取用户相关信息
 使用方式：
-    from src.plugin_system.apis import person_api
+    from astrbot.core.maibot.plugin_system.apis import person_api
     person_id = person_api.get_person_id("qq", 123456)
     value = await person_api.get_person_value(person_id, "nickname")
 """
 
 from typing import Any
-from src.common.logger import get_logger
-from src.person_info.person_info import Person
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.person_info.person_info import Person
 
 logger = get_logger("person_api")
 

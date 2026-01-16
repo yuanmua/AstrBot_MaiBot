@@ -3,10 +3,10 @@ from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any, get_origin
 from pathlib import Path
 import json
-from src.common.logger import get_logger
-from src.common.toml_utils import save_toml_with_format
-from src.config.config import MMC_VERSION
-from src.plugin_system.base.config_types import ConfigField
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.toml_utils import save_toml_with_format
+from astrbot.core.maibot.config.config import MMC_VERSION
+from astrbot.core.maibot.plugin_system.base.config_types import ConfigField
 from .git_mirror_service import get_git_mirror_service, set_update_progress_callback
 from .token_manager import get_token_manager
 from .plugin_progress_ws import update_progress
@@ -150,7 +150,7 @@ def parse_version(version_str: str) -> tuple[int, int, int]:
 
 def _deep_merge(dst: Dict[str, Any], src: Dict[str, Any]) -> None:
     """深度合并两个字典，src 的值会覆盖或合并到 dst 中。"""
-    for k, v in src.items():
+    for k, v in astrbot.core.maibot.items():
         if k in dst and isinstance(dst[k], dict) and isinstance(v, dict):
             _deep_merge(dst[k], v)
         else:
@@ -225,7 +225,7 @@ def find_plugin_instance(plugin_id: str) -> Optional[Any]:
     按 plugin_id 或 plugin_name 查找已加载的插件实例。
     局部导入 plugin_manager 以规避循环依赖。
     """
-    from src.plugin_system.core.plugin_manager import plugin_manager
+    from astrbot.core.maibot.plugin_system.core.plugin_manager import plugin_manager
 
     for loaded_plugin_name in plugin_manager.list_loaded_plugins():
         instance = plugin_manager.get_plugin_instance(loaded_plugin_name)
@@ -1499,7 +1499,7 @@ async def get_plugin_config_schema(
 
     try:
         # 尝试从已加载的插件中获取
-        from src.plugin_system.core.plugin_manager import plugin_manager
+        from astrbot.core.maibot.plugin_system.core.plugin_manager import plugin_manager
 
         # 查找插件实例
         plugin_instance = None

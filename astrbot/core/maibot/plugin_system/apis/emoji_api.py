@@ -3,7 +3,7 @@
 
 提供表情包相关功能，采用标准Python包设计模式
 使用方式：
-    from src.plugin_system.apis import emoji_api
+    from astrbot.core.maibot.plugin_system.apis import emoji_api
     result = await emoji_api.get_by_description("开心")
     count = emoji_api.get_count()
 """
@@ -14,9 +14,9 @@ import os
 import uuid
 
 from typing import Optional, Tuple, List, Dict, Any
-from src.common.logger import get_logger
-from src.chat.emoji_system.emoji_manager import get_emoji_manager, EMOJI_DIR
-from src.chat.utils.utils_image import image_path_to_base64, base64_to_image
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.chat.emoji_system.emoji_manager import get_emoji_manager, EMOJI_DIR
+from astrbot.core.maibot.chat.utils.utils_image import image_path_to_base64, base64_to_image
 
 logger = get_logger("emoji_api")
 

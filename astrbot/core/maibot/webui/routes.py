@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException, Header, Response, Request, Cookie, Depends
 from pydantic import BaseModel, Field
 from typing import Optional
-from src.common.logger import get_logger
+from astrbot.core.maibot.common.logger import get_logger
 from .token_manager import get_token_manager
 from .auth import set_auth_cookie, clear_auth_cookie
 from .rate_limiter import get_rate_limiter, check_auth_rate_limit

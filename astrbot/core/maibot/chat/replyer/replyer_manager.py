@@ -1,9 +1,9 @@
 from typing import Dict, Optional
 
-from src.common.logger import get_logger
-from src.chat.message_receive.chat_stream import ChatStream, get_chat_manager
-from src.chat.replyer.group_generator import DefaultReplyer
-from src.chat.replyer.private_generator import PrivateReplyer
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.chat.message_receive.chat_stream import ChatStream, get_chat_manager
+from astrbot.core.maibot.chat.replyer.group_generator import DefaultReplyer
+from astrbot.core.maibot.chat.replyer.private_generator import PrivateReplyer
 
 logger = get_logger("ReplyerManager")
 

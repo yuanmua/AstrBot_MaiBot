@@ -8,7 +8,7 @@ def list_loaded_plugins() -> List[str]:
     Returns:
         List[str]: 当前加载的插件名称列表。
     """
-    from src.plugin_system.core.plugin_manager import plugin_manager
+    from astrbot.core.maibot.plugin_system.core.plugin_manager import plugin_manager
 
     return plugin_manager.list_loaded_plugins()
 
@@ -20,7 +20,7 @@ def list_registered_plugins() -> List[str]:
     Returns:
         List[str]: 已注册的插件名称列表。
     """
-    from src.plugin_system.core.plugin_manager import plugin_manager
+    from astrbot.core.maibot.plugin_system.core.plugin_manager import plugin_manager
 
     return plugin_manager.list_registered_plugins()
 
@@ -38,7 +38,7 @@ def get_plugin_path(plugin_name: str) -> str:
     Raises:
         ValueError: 如果插件不存在。
     """
-    from src.plugin_system.core.plugin_manager import plugin_manager
+    from astrbot.core.maibot.plugin_system.core.plugin_manager import plugin_manager
 
     if plugin_path := plugin_manager.get_plugin_path(plugin_name):
         return plugin_path
@@ -58,7 +58,7 @@ async def remove_plugin(plugin_name: str) -> bool:
     Returns:
         bool: 卸载是否成功。
     """
-    from src.plugin_system.core.plugin_manager import plugin_manager
+    from astrbot.core.maibot.plugin_system.core.plugin_manager import plugin_manager
 
     return await plugin_manager.remove_registered_plugin(plugin_name)
 
@@ -75,7 +75,7 @@ async def reload_plugin(plugin_name: str) -> bool:
     Returns:
         bool: 重新加载是否成功。
     """
-    from src.plugin_system.core.plugin_manager import plugin_manager
+    from astrbot.core.maibot.plugin_system.core.plugin_manager import plugin_manager
 
     return await plugin_manager.reload_registered_plugin(plugin_name)
 
@@ -90,7 +90,7 @@ def load_plugin(plugin_name: str) -> Tuple[bool, int]:
     Returns:
         Tuple[bool, int]: 加载是否成功，成功或失败个数。
     """
-    from src.plugin_system.core.plugin_manager import plugin_manager
+    from astrbot.core.maibot.plugin_system.core.plugin_manager import plugin_manager
 
     return plugin_manager.load_registered_plugin_classes(plugin_name)
 
@@ -104,7 +104,7 @@ def add_plugin_directory(plugin_directory: str) -> bool:
     Returns:
         bool: 添加是否成功。
     """
-    from src.plugin_system.core.plugin_manager import plugin_manager
+    from astrbot.core.maibot.plugin_system.core.plugin_manager import plugin_manager
 
     return plugin_manager.add_plugin_directory(plugin_directory)
 
@@ -115,6 +115,6 @@ def rescan_plugin_directory() -> Tuple[int, int]:
     Returns:
         Tuple[int, int]: 成功加载的插件数量和失败的插件数量。
     """
-    from src.plugin_system.core.plugin_manager import plugin_manager
+    from astrbot.core.maibot.plugin_system.core.plugin_manager import plugin_manager
 
     return plugin_manager.rescan_plugin_directory()

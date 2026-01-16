@@ -1,14 +1,14 @@
 import time
 from typing import Tuple, Optional  # 增加了 Optional
-from src.common.logger import get_logger
-from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.llm_models.utils_model import LLMRequest
+from astrbot.core.maibot.config.config import global_config
 import random
 from .chat_observer import ChatObserver
 from .pfc_utils import get_items_from_json
 from .observation_info import ObservationInfo
 from .conversation_info import ConversationInfo
-from src.chat.utils.chat_message_builder import build_readable_messages
+from astrbot.core.maibot.chat.utils.chat_message_builder import build_readable_messages
 
 
 logger = get_logger("pfc_action_planner")

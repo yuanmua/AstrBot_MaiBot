@@ -2,14 +2,14 @@
 
 提供了配置读取和用户信息获取等功能
 使用方式：
-    from src.plugin_system.apis import config_api
+    from astrbot.core.maibot.plugin_system.apis import config_api
     value = config_api.get_global_config("section.key")
     platform, user_id = await config_api.get_user_id_by_person_name("用户名")
 """
 
 from typing import Any
-from src.common.logger import get_logger
-from src.config.config import global_config
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.config.config import global_config
 
 logger = get_logger("config_api")
 

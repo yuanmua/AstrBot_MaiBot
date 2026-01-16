@@ -1,12 +1,12 @@
 import time
 import asyncio
 from typing import List, Any
-from src.common.logger import get_logger
-from src.config.config import global_config
-from src.chat.message_receive.chat_stream import get_chat_manager
-from src.chat.utils.chat_message_builder import get_raw_msg_by_timestamp_with_chat_inclusive
-from src.bw_learner.expression_learner import expression_learner_manager
-from src.bw_learner.jargon_miner import miner_manager
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.config.config import global_config
+from astrbot.core.maibot.chat.message_receive.chat_stream import get_chat_manager
+from astrbot.core.maibot.chat.utils.chat_message_builder import get_raw_msg_by_timestamp_with_chat_inclusive
+from astrbot.core.maibot.bw_learner.expression_learner import expression_learner_manager
+from astrbot.core.maibot.bw_learner.jargon_miner import miner_manager
 
 logger = get_logger("bw_learner")
 

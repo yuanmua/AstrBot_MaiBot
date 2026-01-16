@@ -8,13 +8,13 @@
 from typing import List, Tuple, Type
 
 # 导入新插件系统
-from src.plugin_system import BasePlugin, register_plugin, ComponentInfo
-from src.plugin_system.base.config_types import ConfigField
+from astrbot.core.maibot.plugin_system import BasePlugin, register_plugin, ComponentInfo
+from astrbot.core.maibot.plugin_system.base.config_types import ConfigField
 
 # 导入依赖的系统组件
-from src.common.logger import get_logger
+from astrbot.core.maibot.common.logger import get_logger
 
-from src.plugins.built_in.emoji_plugin.emoji import EmojiAction
+from astrbot.core.maibot.plugins.built_in.emoji_plugin.emoji import EmojiAction
 
 logger = get_logger("core_actions")
 

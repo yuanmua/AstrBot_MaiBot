@@ -6,9 +6,9 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from peewee import fn
 
-from src.common.logger import get_logger
-from src.common.database.database_model import LLMUsage, OnlineTime, Messages
-from src.webui.auth import verify_auth_token_from_cookie_or_header
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.database.database_model import LLMUsage, OnlineTime, Messages
+from astrbot.core.maibot.webui.auth import verify_auth_token_from_cookie_or_header
 
 logger = get_logger("webui.statistics")
 

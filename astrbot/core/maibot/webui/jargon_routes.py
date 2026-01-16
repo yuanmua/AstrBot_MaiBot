@@ -6,8 +6,8 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 from peewee import fn
 
-from src.common.logger import get_logger
-from src.common.database.database_model import Jargon, ChatStreams
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.database.database_model import Jargon, ChatStreams
 
 logger = get_logger("webui.jargon")
 

@@ -7,8 +7,8 @@ from .kg_manager import KGManager
 
 # from .lpmmconfig import global_config
 from .utils.dyn_topk import dyn_select_top_k
-from src.chat.utils.utils import get_embedding
-from src.config.config import global_config
+from astrbot.core.maibot.chat.utils.utils import get_embedding
+from astrbot.core.maibot.config.config import global_config
 
 MAX_KNOWLEDGE_LENGTH = 10000  # 最大知识长度
 

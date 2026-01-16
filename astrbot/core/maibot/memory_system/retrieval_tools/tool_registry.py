@@ -4,8 +4,8 @@
 """
 
 from typing import List, Dict, Any, Optional, Callable, Awaitable
-from src.common.logger import get_logger
-from src.llm_models.payload_content.tool_option import ToolParamType
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.llm_models.payload_content.tool_option import ToolParamType
 
 logger = get_logger("memory_retrieval_tools")
 

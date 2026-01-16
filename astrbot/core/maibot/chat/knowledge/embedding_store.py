@@ -25,7 +25,7 @@ from rich.progress import (
     SpinnerColumn,
     TextColumn,
 )
-from src.config.config import global_config
+from astrbot.core.maibot.config.config import global_config
 
 
 install(extra_lines=3)
@@ -140,8 +140,8 @@ class EmbeddingStore:
 
         try:
             # 创建新的LLMRequest实例
-            from src.llm_models.utils_model import LLMRequest
-            from src.config.config import model_config
+            from astrbot.core.maibot.llm_models.utils_model import LLMRequest
+            from astrbot.core.maibot.config.config import model_config
 
             llm = LLMRequest(model_set=model_config.model_task_config.embedding, request_type="embedding")
 
@@ -196,8 +196,8 @@ class EmbeddingStore:
             chunk_results = []
 
             # 为每个线程创建独立的LLMRequest实例
-            from src.llm_models.utils_model import LLMRequest
-            from src.config.config import model_config
+            from astrbot.core.maibot.llm_models.utils_model import LLMRequest
+            from astrbot.core.maibot.config.config import model_config
 
             try:
                 # 创建线程专用的LLM实例

@@ -1,6 +1,6 @@
-from src.common.logger import get_logger
-from src.chat.heart_flow.frequency_control import frequency_control_manager
-from src.config.config import global_config
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.chat.heart_flow.frequency_control import frequency_control_manager
+from astrbot.core.maibot.config.config import global_config
 
 logger = get_logger("frequency_api")
 

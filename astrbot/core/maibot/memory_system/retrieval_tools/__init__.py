@@ -16,7 +16,7 @@ from .query_lpmm_knowledge import register_tool as register_lpmm_knowledge
 from .query_person_info import register_tool as register_query_person_info
 from .query_words import register_tool as register_query_words
 from .found_answer import register_tool as register_found_answer
-from src.config.config import global_config
+from astrbot.core.maibot.config.config import global_config
 
 
 def init_all_tools():

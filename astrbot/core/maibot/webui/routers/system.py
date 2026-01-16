@@ -10,9 +10,9 @@ from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends, Cookie, Header
 from pydantic import BaseModel
-from src.config.config import MMC_VERSION
-from src.common.logger import get_logger
-from src.webui.auth import verify_auth_token_from_cookie_or_header
+from astrbot.core.maibot.config.config import MMC_VERSION
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.webui.auth import verify_auth_token_from_cookie_or_header
 
 router = APIRouter(prefix="/system", tags=["system"])
 logger = get_logger("webui_system")

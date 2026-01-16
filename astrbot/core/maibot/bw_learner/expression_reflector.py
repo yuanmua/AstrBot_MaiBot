@@ -2,11 +2,11 @@ import random
 import time
 from typing import Optional, Dict
 
-from src.common.logger import get_logger
-from src.common.database.database_model import Expression
-from src.config.config import global_config
-from src.chat.message_receive.chat_stream import get_chat_manager
-from src.plugin_system.apis import send_api
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.database.database_model import Expression
+from astrbot.core.maibot.config.config import global_config
+from astrbot.core.maibot.chat.message_receive.chat_stream import get_chat_manager
+from astrbot.core.maibot.plugin_system.apis import send_api
 
 logger = get_logger("expression_reflector")
 
@@ -145,7 +145,7 @@ expression_reflector_manager = ExpressionReflectorManager()
 
 async def _check_tracker_exists(operator_config: str) -> bool:
     """检查指定 Operator 是否已有活跃的 Tracker"""
-    from src.bw_learner.reflect_tracker import reflect_tracker_manager
+    from astrbot.core.maibot.bw_learner.reflect_tracker import reflect_tracker_manager
 
     chat_manager = get_chat_manager()
     chat_stream = None
@@ -240,7 +240,7 @@ async def _send_to_operator(operator_config: str, text: str, expr: Expression):
     stream_id = chat_stream.stream_id
 
     # 注册 Tracker
-    from src.bw_learner.reflect_tracker import ReflectTracker, reflect_tracker_manager
+    from astrbot.core.maibot.bw_learner.reflect_tracker import ReflectTracker, reflect_tracker_manager
 
     tracker = ReflectTracker(chat_stream=chat_stream, expression=expr, created_time=time.time())
     reflect_tracker_manager.add_tracker(stream_id, tracker)

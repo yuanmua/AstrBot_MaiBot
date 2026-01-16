@@ -5,8 +5,8 @@
 
 import json
 from datetime import datetime
-from src.common.logger import get_logger
-from src.common.database.database_model import PersonInfo
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.database.database_model import PersonInfo
 from .tool_registry import register_memory_retrieval_tool
 
 logger = get_logger("memory_retrieval_tools")

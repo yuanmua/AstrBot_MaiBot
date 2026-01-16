@@ -4,16 +4,16 @@ import os
 import re
 import asyncio
 from typing import List, Optional, Tuple, Any, Dict
-from src.common.logger import get_logger
-from src.common.database.database_model import Expression
-from src.llm_models.utils_model import LLMRequest
-from src.config.config import model_config, global_config
-from src.chat.utils.chat_message_builder import (
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.database.database_model import Expression
+from astrbot.core.maibot.llm_models.utils_model import LLMRequest
+from astrbot.core.maibot.config.config import model_config, global_config
+from astrbot.core.maibot.chat.utils.chat_message_builder import (
     build_anonymous_messages,
 )
-from src.chat.utils.prompt_builder import Prompt, global_prompt_manager
-from src.chat.message_receive.chat_stream import get_chat_manager
-from src.bw_learner.learner_utils import (
+from astrbot.core.maibot.chat.utils.prompt_builder import Prompt, global_prompt_manager
+from astrbot.core.maibot.chat.message_receive.chat_stream import get_chat_manager
+from astrbot.core.maibot.bw_learner.learner_utils import (
     filter_message_content,
     is_bot_message,
     build_context_paragraph,
@@ -21,8 +21,8 @@ from src.bw_learner.learner_utils import (
     calculate_similarity,
     parse_expression_response,
 )
-from src.bw_learner.jargon_miner import miner_manager
-from src.bw_learner.expression_auto_check_task import (
+from astrbot.core.maibot.bw_learner.jargon_miner import miner_manager
+from astrbot.core.maibot.bw_learner.expression_auto_check_task import (
     single_expression_check,
 )
 

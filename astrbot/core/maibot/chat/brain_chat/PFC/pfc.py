@@ -1,13 +1,13 @@
 from typing import List, Tuple, TYPE_CHECKING
-from src.common.logger import get_module_logger
-from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config
+from astrbot.core.maibot.common.logger import get_module_logger
+from astrbot.core.maibot.llm_models.utils_model import LLMRequest
+from astrbot.core.maibot.config.config import global_config
 import random
 from .chat_observer import ChatObserver
 from .pfc_utils import get_items_from_json
 from .conversation_info import ConversationInfo
 from .observation_info import ObservationInfo
-from src.chat.utils.chat_message_builder import build_readable_messages
+from astrbot.core.maibot.chat.utils.chat_message_builder import build_readable_messages
 from rich.traceback import install
 
 install(extra_lines=3)

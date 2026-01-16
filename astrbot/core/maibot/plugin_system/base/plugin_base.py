@@ -7,17 +7,17 @@ import json
 import shutil
 import datetime
 
-from src.common.logger import get_logger
-from src.plugin_system.base.component_types import (
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.plugin_system.base.component_types import (
     PluginInfo,
     PythonDependency,
 )
-from src.plugin_system.base.config_types import (
+from astrbot.core.maibot.plugin_system.base.config_types import (
     ConfigField,
     ConfigSection,
     ConfigLayout,
 )
-from src.plugin_system.utils.manifest_utils import ManifestValidator
+from astrbot.core.maibot.plugin_system.utils.manifest_utils import ManifestValidator
 
 logger = get_logger("plugin_base")
 
@@ -536,7 +536,7 @@ class PluginBase(ABC):
 
     def _check_dependencies(self) -> bool:
         """检查插件依赖"""
-        from src.plugin_system.core.component_registry import component_registry
+        from astrbot.core.maibot.plugin_system.core.component_registry import component_registry
 
         if not self.dependencies:
             return True

@@ -2,15 +2,15 @@ import asyncio
 import contextlib
 from typing import List, Dict, Optional, Type, Tuple, TYPE_CHECKING
 
-from src.chat.message_receive.message import MessageRecv, MessageSending
-from src.chat.message_receive.chat_stream import get_chat_manager
-from src.common.logger import get_logger
-from src.plugin_system.base.component_types import EventType, EventHandlerInfo, MaiMessages, CustomEventHandlerResult
-from src.plugin_system.base.base_events_handler import BaseEventHandler
+from astrbot.core.maibot.chat.message_receive.message import MessageRecv, MessageSending
+from astrbot.core.maibot.chat.message_receive.chat_stream import get_chat_manager
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.plugin_system.base.component_types import EventType, EventHandlerInfo, MaiMessages, CustomEventHandlerResult
+from astrbot.core.maibot.plugin_system.base.base_events_handler import BaseEventHandler
 from .global_announcement_manager import global_announcement_manager
 
 if TYPE_CHECKING:
-    from src.common.data_models.llm_data_model import LLMGenerationDataModel
+    from astrbot.core.maibot.common.data_models.llm_data_model import LLMGenerationDataModel
 
 logger = get_logger("events_manager")
 
@@ -75,7 +75,7 @@ class EventsManager:
         """
         处理所有事件，根据事件类型分发给订阅的处理器。
         """
-        from src.plugin_system.core import component_registry
+        from astrbot.core.maibot.plugin_system.core import component_registry
 
         continue_flag = True
 

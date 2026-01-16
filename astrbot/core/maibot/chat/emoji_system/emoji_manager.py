@@ -13,12 +13,12 @@ from typing import Optional, Tuple, List, Any
 from PIL import Image
 from rich.traceback import install
 
-from src.common.database.database_model import Emoji, EmojiDescriptionCache
-from src.common.database.database import db as peewee_db
-from src.common.logger import get_logger
-from src.config.config import global_config, model_config
-from src.chat.utils.utils_image import image_path_to_base64, get_image_manager
-from src.llm_models.utils_model import LLMRequest
+from astrbot.core.maibot.common.database.database_model import Emoji, EmojiDescriptionCache
+from astrbot.core.maibot.common.database.database import db as peewee_db
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.config.config import global_config, model_config
+from astrbot.core.maibot.chat.utils.utils_image import image_path_to_base64, get_image_manager
+from astrbot.core.maibot.llm_models.utils_model import LLMRequest
 
 install(extra_lines=3)
 

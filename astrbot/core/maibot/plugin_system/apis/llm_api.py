@@ -2,19 +2,19 @@
 
 提供了与LLM模型交互的功能
 使用方式：
-    from src.plugin_system.apis import llm_api
+    from astrbot.core.maibot.plugin_system.apis import llm_api
     models = llm_api.get_available_models()
     success, response, reasoning, model_name = await llm_api.generate_with_model(prompt, model_config)
 """
 
 from typing import Tuple, Dict, List, Any, Optional, Callable
-from src.common.logger import get_logger
-from src.llm_models.payload_content.tool_option import ToolCall
-from src.llm_models.payload_content.message import Message
-from src.llm_models.model_client.base_client import BaseClient
-from src.llm_models.utils_model import LLMRequest
-from src.config.config import model_config
-from src.config.api_ada_configs import TaskConfig
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.llm_models.payload_content.tool_option import ToolCall
+from astrbot.core.maibot.llm_models.payload_content.message import Message
+from astrbot.core.maibot.llm_models.model_client.base_client import BaseClient
+from astrbot.core.maibot.llm_models.utils_model import LLMRequest
+from astrbot.core.maibot.config.config import model_config
+from astrbot.core.maibot.config.api_ada_configs import TaskConfig
 
 logger = get_logger("llm_api")
 

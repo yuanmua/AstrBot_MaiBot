@@ -6,7 +6,7 @@ from rich.traceback import install
 from contextlib import asynccontextmanager
 from typing import Dict, Any, Optional, List, Union
 
-from src.common.logger import get_logger
+from astrbot.core.maibot.common.logger import get_logger
 
 install(extra_lines=3)
 

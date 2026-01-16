@@ -7,7 +7,7 @@ from dataclasses import fields, MISSING
 from typing import Any, get_origin, get_args, Literal, Optional
 from enum import Enum
 
-from src.config.config_base import ConfigBase
+from astrbot.core.maibot.config.config_base import ConfigBase
 
 
 class FieldType(str, Enum):

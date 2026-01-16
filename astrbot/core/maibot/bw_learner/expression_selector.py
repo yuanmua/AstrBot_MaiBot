@@ -4,13 +4,13 @@ import time
 from typing import List, Dict, Optional, Any, Tuple
 from json_repair import repair_json
 
-from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config, model_config
-from src.common.logger import get_logger
-from src.common.database.database_model import Expression
-from src.chat.utils.prompt_builder import Prompt, global_prompt_manager
-from src.bw_learner.learner_utils import weighted_sample
-from src.chat.message_receive.chat_stream import get_chat_manager
+from astrbot.core.maibot.llm_models.utils_model import LLMRequest
+from astrbot.core.maibot.config.config import global_config, model_config
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.database.database_model import Expression
+from astrbot.core.maibot.chat.utils.prompt_builder import Prompt, global_prompt_manager
+from astrbot.core.maibot.bw_learner.learner_utils import weighted_sample
+from astrbot.core.maibot.chat.message_receive.chat_stream import get_chat_manager
 
 logger = get_logger("expression_selector")
 

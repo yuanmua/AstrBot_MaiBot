@@ -1,5 +1,5 @@
-from src.common.logger import get_logger
-from src.common.database.database_model import ChatHistory
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.database.database_model import ChatHistory
 
 logger = get_logger("dream_agent")
 

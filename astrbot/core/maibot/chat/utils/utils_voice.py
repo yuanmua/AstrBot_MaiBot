@@ -1,7 +1,7 @@
-from src.config.config import global_config, model_config
-from src.llm_models.utils_model import LLMRequest
+from astrbot.core.maibot.config.config import global_config, model_config
+from astrbot.core.maibot.llm_models.utils_model import LLMRequest
 
-from src.common.logger import get_logger
+from astrbot.core.maibot.common.logger import get_logger
 from rich.traceback import install
 
 install(extra_lines=3)

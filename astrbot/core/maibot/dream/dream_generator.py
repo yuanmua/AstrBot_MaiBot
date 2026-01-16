@@ -1,13 +1,13 @@
 import random
 from typing import List, Optional
 
-from src.common.logger import get_logger
-from src.config.config import global_config, model_config
-from src.chat.utils.prompt_builder import Prompt
-from src.llm_models.payload_content.message import RoleType, Message
-from src.llm_models.utils_model import LLMRequest
-from src.chat.message_receive.chat_stream import get_chat_manager
-from src.plugin_system.apis import send_api
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.config.config import global_config, model_config
+from astrbot.core.maibot.chat.utils.prompt_builder import Prompt
+from astrbot.core.maibot.llm_models.payload_content.message import RoleType, Message
+from astrbot.core.maibot.llm_models.utils_model import LLMRequest
+from astrbot.core.maibot.chat.message_receive.chat_stream import get_chat_manager
+from astrbot.core.maibot.plugin_system.apis import send_api
 
 logger = get_logger("dream_generator")
 
@@ -75,7 +75,7 @@ async def generate_dream_summary(
     """生成梦境总结，输出到日志，并根据配置可选地推送给指定用户"""
     try:
         import json
-        from src.chat.utils.prompt_builder import global_prompt_manager
+        from astrbot.core.maibot.chat.utils.prompt_builder import global_prompt_manager
 
         # 第一步：建立工具调用结果映射 (call_id -> result)
         tool_results_map: dict[str, str] = {}

@@ -1,9 +1,9 @@
 from typing import Dict, Any
 
-from src.common.logger import get_logger
-from src.config.config import global_config
-from src.chat.knowledge import qa_manager
-from src.plugin_system import BaseTool, ToolParamType
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.config.config import global_config
+from astrbot.core.maibot.chat.knowledge import qa_manager
+from astrbot.core.maibot.plugin_system import BaseTool, ToolParamType
 
 logger = get_logger("lpmm_get_knowledge_tool")
 

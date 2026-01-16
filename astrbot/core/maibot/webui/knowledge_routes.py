@@ -4,7 +4,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Query, Depends, Cookie, Header
 from pydantic import BaseModel
 import logging
-from src.webui.auth import verify_auth_token_from_cookie_or_header
+from astrbot.core.maibot.webui.auth import verify_auth_token_from_cookie_or_header
 
 logger = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ class KnowledgeStats(BaseModel):
 def _load_kg_manager():
     """延迟加载 KGManager"""
     try:
-        from src.chat.knowledge.kg_manager import KGManager
+        from astrbot.core.maibot.chat.knowledge.kg_manager import KGManager
 
         kg_manager = KGManager()
         kg_manager.load_from_file()

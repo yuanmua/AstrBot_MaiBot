@@ -13,12 +13,12 @@ import json
 import random
 from typing import List
 
-from src.common.database.database_model import Expression
-from src.common.logger import get_logger
-from src.config.config import global_config
-from src.config.config import model_config
-from src.llm_models.utils_model import LLMRequest
-from src.manager.async_task_manager import AsyncTask
+from astrbot.core.maibot.common.database.database_model import Expression
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.config.config import global_config
+from astrbot.core.maibot.config.config import model_config
+from astrbot.core.maibot.llm_models.utils_model import LLMRequest
+from astrbot.core.maibot.manager.async_task_manager import AsyncTask
 
 logger = get_logger("expression_auto_check_task")
 

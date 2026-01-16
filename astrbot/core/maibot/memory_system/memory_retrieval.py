@@ -2,16 +2,16 @@ import time
 import json
 import asyncio
 from typing import List, Dict, Any, Optional, Tuple
-from src.common.logger import get_logger
-from src.config.config import global_config, model_config
-from src.chat.utils.prompt_builder import Prompt, global_prompt_manager
-from src.plugin_system.apis import llm_api
-from src.common.database.database_model import ThinkingBack
-from src.memory_system.retrieval_tools import get_tool_registry, init_all_tools
-from src.memory_system.memory_utils import parse_questions_json
-from src.llm_models.payload_content.message import MessageBuilder, RoleType, Message
-from src.chat.message_receive.chat_stream import get_chat_manager
-from src.bw_learner.jargon_explainer import retrieve_concepts_with_jargon
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.config.config import global_config, model_config
+from astrbot.core.maibot.chat.utils.prompt_builder import Prompt, global_prompt_manager
+from astrbot.core.maibot.plugin_system.apis import llm_api
+from astrbot.core.maibot.common.database.database_model import ThinkingBack
+from astrbot.core.maibot.memory_system.retrieval_tools import get_tool_registry, init_all_tools
+from astrbot.core.maibot.memory_system.memory_utils import parse_questions_json
+from astrbot.core.maibot.llm_models.payload_content.message import MessageBuilder, RoleType, Message
+from astrbot.core.maibot.chat.message_receive.chat_stream import get_chat_manager
+from astrbot.core.maibot.bw_learner.jargon_explainer import retrieve_concepts_with_jargon
 
 logger = get_logger("memory_retrieval")
 

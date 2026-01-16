@@ -1,6 +1,6 @@
-from src.chat.emoji_system.emoji_manager import get_emoji_manager
-from src.chat.message_receive.chat_stream import get_chat_manager
-from src.chat.message_receive.storage import MessageStorage
+from astrbot.core.maibot.chat.emoji_system.emoji_manager import get_emoji_manager
+from astrbot.core.maibot.chat.message_receive.chat_stream import get_chat_manager
+from astrbot.core.maibot.chat.message_receive.storage import MessageStorage
 
 
 __all__ = [

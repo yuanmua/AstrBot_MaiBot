@@ -8,8 +8,8 @@ from fastapi import APIRouter, Cookie, Header
 from typing import Optional
 import secrets
 import time
-from src.common.logger import get_logger
-from src.webui.token_manager import get_token_manager
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.webui.token_manager import get_token_manager
 
 logger = get_logger("webui.ws_auth")
 router = APIRouter()

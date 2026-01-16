@@ -2,7 +2,7 @@ import time
 import asyncio
 import traceback
 from typing import Optional, Dict, Any, List
-from src.common.logger import get_module_logger
+from astrbot.core.maibot.common.logger import get_module_logger
 from maim_message import UserInfo
 from ...config.config import global_config
 from .chat_states import NotificationManager, create_new_message_notification, create_cold_chat_notification

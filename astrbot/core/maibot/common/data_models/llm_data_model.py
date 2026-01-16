@@ -4,8 +4,8 @@ from typing import Optional, List, TYPE_CHECKING, Dict, Any
 from . import BaseDataModel
 
 if TYPE_CHECKING:
-    from src.common.data_models.message_data_model import ReplySetModel
-    from src.llm_models.payload_content.tool_option import ToolCall
+    from astrbot.core.maibot.common.data_models.message_data_model import ReplySetModel
+    from astrbot.core.maibot.llm_models.payload_content.tool_option import ToolCall
 
 
 @dataclass

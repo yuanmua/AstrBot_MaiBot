@@ -6,10 +6,10 @@ from importlib.util import spec_from_file_location, module_from_spec
 from pathlib import Path
 
 
-from src.common.logger import get_logger
-from src.plugin_system.base.plugin_base import PluginBase
-from src.plugin_system.base.component_types import ComponentType
-from src.plugin_system.utils.manifest_utils import VersionComparator
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.plugin_system.base.plugin_base import PluginBase
+from astrbot.core.maibot.plugin_system.base.component_types import ComponentType
+from astrbot.core.maibot.plugin_system.utils.manifest_utils import VersionComparator
 from .component_registry import component_registry
 
 logger = get_logger("plugin_manager")

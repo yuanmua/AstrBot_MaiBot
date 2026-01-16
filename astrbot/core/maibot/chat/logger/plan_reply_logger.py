@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
-from src.config.config import global_config
+from astrbot.core.maibot.config.config import global_config
 
 
 class PlanReplyLogger:

@@ -6,13 +6,13 @@ from typing import List, Dict, Optional, Callable
 from json_repair import repair_json
 from peewee import fn
 
-from src.common.logger import get_logger
-from src.common.database.database_model import Jargon
-from src.llm_models.utils_model import LLMRequest
-from src.config.config import model_config, global_config
-from src.chat.message_receive.chat_stream import get_chat_manager
-from src.chat.utils.prompt_builder import Prompt, global_prompt_manager
-from src.bw_learner.learner_utils import (
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.database.database_model import Jargon
+from astrbot.core.maibot.llm_models.utils_model import LLMRequest
+from astrbot.core.maibot.config.config import model_config, global_config
+from astrbot.core.maibot.chat.message_receive.chat_stream import get_chat_manager
+from astrbot.core.maibot.chat.utils.prompt_builder import Prompt, global_prompt_manager
+from astrbot.core.maibot.bw_learner.learner_utils import (
     parse_chat_id_list,
     chat_id_list_contains,
     update_chat_id_list,

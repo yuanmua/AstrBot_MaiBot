@@ -3,8 +3,8 @@ import json
 import traceback
 from typing import Union
 
-from src.common.database.database_model import Messages, Images
-from src.common.logger import get_logger
+from astrbot.core.maibot.common.database.database_model import Messages, Images
+from astrbot.core.maibot.common.logger import get_logger
 from .chat_stream import ChatStream
 from .message import MessageSending, MessageRecv
 

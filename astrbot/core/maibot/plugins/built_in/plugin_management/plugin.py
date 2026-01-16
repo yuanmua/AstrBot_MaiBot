@@ -1,7 +1,7 @@
 import asyncio
 
 from typing import List, Tuple, Type
-from src.plugin_system import (
+from astrbot.core.maibot.plugin_system import (
     BasePlugin,
     BaseCommand,
     CommandInfo,

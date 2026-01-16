@@ -60,14 +60,14 @@ from .apis import (
     get_logger,
 )
 
-from src.common.data_models.database_data_model import (
+from astrbot.core.maibot.common.data_models.database_data_model import (
     DatabaseMessages,
     DatabaseUserInfo,
     DatabaseGroupInfo,
     DatabaseChatInfo,
 )
-from src.common.data_models.info_data_model import TargetPersonInfo, ActionPlannerInfo
-from src.common.data_models.llm_data_model import LLMGenerationDataModel
+from astrbot.core.maibot.common.data_models.info_data_model import TargetPersonInfo, ActionPlannerInfo
+from astrbot.core.maibot.common.data_models.llm_data_model import LLMGenerationDataModel
 
 
 __version__ = "2.0.0"

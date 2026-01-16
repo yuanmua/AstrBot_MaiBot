@@ -9,7 +9,7 @@ import subprocess
 import shutil
 from pathlib import Path
 from datetime import datetime
-from src.common.logger import get_logger
+from astrbot.core.maibot.common.logger import get_logger
 
 logger = get_logger("webui.git_mirror")
 

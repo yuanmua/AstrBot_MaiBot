@@ -2,16 +2,16 @@ import random
 from typing import Tuple
 
 # 导入新插件系统
-from src.plugin_system import BaseAction, ActionActivationType
+from astrbot.core.maibot.plugin_system import BaseAction, ActionActivationType
 
 # 导入依赖的系统组件
-from src.common.logger import get_logger
+from astrbot.core.maibot.common.logger import get_logger
 
 # 导入API模块 - 标准Python包方式
-from src.plugin_system.apis import emoji_api, llm_api, message_api
+from astrbot.core.maibot.plugin_system.apis import emoji_api, llm_api, message_api
 
 # NoReplyAction已集成到heartFC_chat.py中，不再需要导入
-from src.config.config import global_config
+from astrbot.core.maibot.config.config import global_config
 
 
 logger = get_logger("emoji")

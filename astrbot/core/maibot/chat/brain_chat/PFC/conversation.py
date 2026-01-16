@@ -3,22 +3,22 @@ import asyncio
 import datetime
 
 # from .message_storage import MongoDBMessageStorage
-from src.chat.utils.chat_message_builder import build_readable_messages, get_raw_msg_before_timestamp_with_chat
+from astrbot.core.maibot.chat.utils.chat_message_builder import build_readable_messages, get_raw_msg_before_timestamp_with_chat
 
-# from src.config.config import global_config
+# from astrbot.core.maibot.config.config import global_config
 from typing import Dict, Any, Optional
-from src.chat.message_receive.message import Message
+from astrbot.core.maibot.chat.message_receive.message import Message
 from .pfc_types import ConversationState
 from .pfc import ChatObserver, GoalAnalyzer
 from .message_sender import DirectMessageSender
-from src.common.logger import get_logger
+from astrbot.core.maibot.common.logger import get_logger
 from .action_planner import ActionPlanner
 from .observation_info import ObservationInfo
 from .conversation_info import ConversationInfo  # 确保导入 ConversationInfo
 from .reply_generator import ReplyGenerator
-from src.chat.message_receive.chat_stream import ChatStream
+from astrbot.core.maibot.chat.message_receive.chat_stream import ChatStream
 from maim_message import UserInfo
-from src.chat.message_receive.chat_stream import get_chat_manager
+from astrbot.core.maibot.chat.message_receive.chat_stream import get_chat_manager
 from .pfc_KnowledgeFetcher import KnowledgeFetcher
 from .waiter import Waiter
 

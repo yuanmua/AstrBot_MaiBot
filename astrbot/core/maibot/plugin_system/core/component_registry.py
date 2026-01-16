@@ -2,8 +2,8 @@ import re
 
 from typing import Dict, List, Optional, Any, Pattern, Tuple, Union, Type
 
-from src.common.logger import get_logger
-from src.plugin_system.base.component_types import (
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.plugin_system.base.component_types import (
     ComponentInfo,
     ActionInfo,
     ToolInfo,
@@ -12,10 +12,10 @@ from src.plugin_system.base.component_types import (
     PluginInfo,
     ComponentType,
 )
-from src.plugin_system.base.base_command import BaseCommand
-from src.plugin_system.base.base_action import BaseAction
-from src.plugin_system.base.base_tool import BaseTool
-from src.plugin_system.base.base_events_handler import BaseEventHandler
+from astrbot.core.maibot.plugin_system.base.base_command import BaseCommand
+from astrbot.core.maibot.plugin_system.base.base_action import BaseAction
+from astrbot.core.maibot.plugin_system.base.base_tool import BaseTool
+from astrbot.core.maibot.plugin_system.base.base_events_handler import BaseEventHandler
 
 logger = get_logger("component_registry")
 
@@ -582,7 +582,7 @@ class ComponentRegistry:
             Optional[dict]: 插件配置字典或None
         """
         # 从插件管理器获取插件实例的配置
-        from src.plugin_system.core.plugin_manager import plugin_manager
+        from astrbot.core.maibot.plugin_system.core.plugin_manager import plugin_manager
 
         plugin_instance = plugin_manager.get_plugin_instance(plugin_name)
         return plugin_instance.config if plugin_instance else None

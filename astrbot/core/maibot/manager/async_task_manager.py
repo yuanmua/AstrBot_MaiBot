@@ -4,7 +4,7 @@ import asyncio
 from asyncio import Task, Event, Lock
 from typing import Callable, Dict
 
-from src.common.logger import get_logger
+from astrbot.core.maibot.common.logger import get_logger
 
 logger = get_logger("async_task_manager")
 

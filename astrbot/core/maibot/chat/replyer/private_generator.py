@@ -6,37 +6,37 @@ import re
 
 from typing import List, Optional, Dict, Any, Tuple
 from datetime import datetime
-from src.common.logger import get_logger
-from src.common.data_models.database_data_model import DatabaseMessages
-from src.common.data_models.info_data_model import ActionPlannerInfo
-from src.common.data_models.llm_data_model import LLMGenerationDataModel
-from src.config.config import global_config, model_config
-from src.llm_models.utils_model import LLMRequest
-from src.chat.message_receive.message import UserInfo, Seg, MessageRecv, MessageSending
-from src.chat.message_receive.chat_stream import ChatStream
-from src.chat.message_receive.uni_message_sender import UniversalMessageSender
-from src.chat.utils.timer_calculator import Timer  # <--- Import Timer
-from src.chat.utils.utils import get_chat_type_and_target_info, is_bot_self
-from src.chat.utils.prompt_builder import global_prompt_manager
-from src.chat.utils.chat_message_builder import (
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.data_models.database_data_model import DatabaseMessages
+from astrbot.core.maibot.common.data_models.info_data_model import ActionPlannerInfo
+from astrbot.core.maibot.common.data_models.llm_data_model import LLMGenerationDataModel
+from astrbot.core.maibot.config.config import global_config, model_config
+from astrbot.core.maibot.llm_models.utils_model import LLMRequest
+from astrbot.core.maibot.chat.message_receive.message import UserInfo, Seg, MessageRecv, MessageSending
+from astrbot.core.maibot.chat.message_receive.chat_stream import ChatStream
+from astrbot.core.maibot.chat.message_receive.uni_message_sender import UniversalMessageSender
+from astrbot.core.maibot.chat.utils.timer_calculator import Timer  # <--- Import Timer
+from astrbot.core.maibot.chat.utils.utils import get_chat_type_and_target_info, is_bot_self
+from astrbot.core.maibot.chat.utils.prompt_builder import global_prompt_manager
+from astrbot.core.maibot.chat.utils.chat_message_builder import (
     build_readable_messages,
     get_raw_msg_before_timestamp_with_chat,
     replace_user_references,
 )
-from src.bw_learner.expression_selector import expression_selector
-from src.plugin_system.apis.message_api import translate_pid_to_description
+from astrbot.core.maibot.bw_learner.expression_selector import expression_selector
+from astrbot.core.maibot.plugin_system.apis.message_api import translate_pid_to_description
 
-# from src.memory_system.memory_activator import MemoryActivator
+# from astrbot.core.maibot.memory_system.memory_activator import MemoryActivator
 
-from src.person_info.person_info import Person, is_person_known
-from src.plugin_system.base.component_types import ActionInfo, EventType
-from src.plugin_system.apis import llm_api
+from astrbot.core.maibot.person_info.person_info import Person, is_person_known
+from astrbot.core.maibot.plugin_system.base.component_types import ActionInfo, EventType
+from astrbot.core.maibot.plugin_system.apis import llm_api
 
-from src.chat.replyer.prompt.lpmm_prompt import init_lpmm_prompt
-from src.chat.replyer.prompt.replyer_private_prompt import init_replyer_private_prompt
-from src.chat.replyer.prompt.rewrite_prompt import init_rewrite_prompt
-from src.memory_system.memory_retrieval import init_memory_retrieval_prompt, build_memory_retrieval_prompt
-from src.bw_learner.jargon_explainer import explain_jargon_in_context
+from astrbot.core.maibot.chat.replyer.prompt.lpmm_prompt import init_lpmm_prompt
+from astrbot.core.maibot.chat.replyer.prompt.replyer_private_prompt import init_replyer_private_prompt
+from astrbot.core.maibot.chat.replyer.prompt.rewrite_prompt import init_rewrite_prompt
+from astrbot.core.maibot.memory_system.memory_retrieval import init_memory_retrieval_prompt, build_memory_retrieval_prompt
+from astrbot.core.maibot.bw_learner.jargon_explainer import explain_jargon_in_context
 
 init_lpmm_prompt()
 init_replyer_private_prompt()
@@ -59,7 +59,7 @@ class PrivateReplyer:
         self.heart_fc_sender = UniversalMessageSender()
         # self.memory_activator = MemoryActivator()
 
-        from src.plugin_system.core.tool_use import ToolExecutor  # 延迟导入ToolExecutor，不然会循环依赖
+        from astrbot.core.maibot.plugin_system.core.tool_use import ToolExecutor  # 延迟导入ToolExecutor，不然会循环依赖
 
         self.tool_executor = ToolExecutor(chat_id=self.chat_stream.stream_id, enable_cache=True, cache_ttl=3)
 
@@ -118,7 +118,7 @@ class PrivateReplyer:
             if not prompt:
                 logger.warning("构建prompt失败，跳过回复生成")
                 return False, llm_response
-            from src.plugin_system.core.events_manager import events_manager
+            from astrbot.core.maibot.plugin_system.core.events_manager import events_manager
 
             if not from_plugin:
                 continue_flag, modified_message = await events_manager.handle_mai_events(
@@ -558,7 +558,7 @@ class PrivateReplyer:
             is_group = stream_type == "group"
 
             # 使用 ChatManager 提供的接口生成 chat_id，避免在此重复实现逻辑
-            from src.chat.message_receive.chat_stream import get_chat_manager
+            from astrbot.core.maibot.chat.message_receive.chat_stream import get_chat_manager
 
             chat_id = get_chat_manager().get_stream_id(platform, str(id_str), is_group=is_group)
             return chat_id, prompt_content
@@ -1029,7 +1029,7 @@ class PrivateReplyer:
     async def get_prompt_info(self, message: str, sender: str, target: str):
         related_info = ""
         start_time = time.time()
-        from src.plugins.built_in.knowledge.lpmm_get_knowledge import SearchKnowledgeFromLPMMTool
+        from astrbot.core.maibot.plugins.built_in.knowledge.lpmm_get_knowledge import SearchKnowledgeFromLPMMTool
 
         logger.debug(f"获取知识库内容，元消息：{message[:30]}...，消息长度: {len(message)}")
         # 从LPMM知识库获取知识

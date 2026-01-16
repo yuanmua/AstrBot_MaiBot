@@ -12,7 +12,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse
 
-from src.common.logger import get_logger
+from astrbot.core.maibot.common.logger import get_logger
 
 logger = get_logger("webui.anti_crawler")
 
@@ -236,7 +236,7 @@ def _convert_wildcard_to_regex(wildcard_pattern: str) -> Optional[str]:
 # 从配置读取防爬虫设置（延迟导入避免循环依赖）
 def _get_anti_crawler_config():
     """获取防爬虫配置"""
-    from src.config.config import global_config
+    from astrbot.core.maibot.config.config import global_config
     return {
         'mode': global_config.webui.anti_crawler_mode,
         'allowed_ips': _parse_allowed_ips(global_config.webui.allowed_ips),

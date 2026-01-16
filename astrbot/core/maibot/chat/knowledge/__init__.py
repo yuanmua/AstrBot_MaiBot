@@ -1,8 +1,8 @@
-from src.chat.knowledge.embedding_store import EmbeddingManager
-from src.chat.knowledge.qa_manager import QAManager
-from src.chat.knowledge.kg_manager import KGManager
-from src.chat.knowledge.global_logger import logger
-from src.config.config import global_config
+from astrbot.core.maibot.chat.knowledge.embedding_store import EmbeddingManager
+from astrbot.core.maibot.chat.knowledge.qa_manager import QAManager
+from astrbot.core.maibot.chat.knowledge.kg_manager import KGManager
+from astrbot.core.maibot.chat.knowledge.global_logger import logger
+from astrbot.core.maibot.config.config import global_config
 import os
 
 INVALID_ENTITY = [

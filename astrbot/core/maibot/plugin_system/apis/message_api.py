@@ -3,17 +3,17 @@
 
 提供消息查询和构建成字符串的功能，采用标准Python包设计模式
 使用方式：
-    from src.plugin_system.apis import message_api
+    from astrbot.core.maibot.plugin_system.apis import message_api
     messages = message_api.get_messages_by_time_in_chat(chat_id, start_time, end_time)
     readable_text = message_api.build_readable_messages(messages)
 """
 
 import time
 from typing import List, Dict, Any, Tuple, Optional
-from src.common.data_models.database_data_model import DatabaseMessages
-from src.common.database.database_model import Images
-from src.chat.utils.utils import is_bot_self
-from src.chat.utils.chat_message_builder import (
+from astrbot.core.maibot.common.data_models.database_data_model import DatabaseMessages
+from astrbot.core.maibot.common.database.database_model import Images
+from astrbot.core.maibot.chat.utils.utils import is_bot_self
+from astrbot.core.maibot.chat.utils.chat_message_builder import (
     get_raw_msg_by_timestamp,
     get_raw_msg_by_timestamp_with_chat,
     get_raw_msg_by_timestamp_with_chat_inclusive,

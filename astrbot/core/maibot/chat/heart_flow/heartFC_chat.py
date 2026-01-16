@@ -5,36 +5,36 @@ import random
 from typing import List, Optional, Dict, Any, Tuple, TYPE_CHECKING
 from rich.traceback import install
 
-from src.config.config import global_config
-from src.common.logger import get_logger
-from src.common.data_models.info_data_model import ActionPlannerInfo
-from src.common.data_models.message_data_model import ReplyContentType
-from src.chat.message_receive.chat_stream import ChatStream, get_chat_manager
-from src.chat.utils.prompt_builder import global_prompt_manager
-from src.chat.utils.timer_calculator import Timer
-from src.chat.planner_actions.planner import ActionPlanner
-from src.chat.planner_actions.action_modifier import ActionModifier
-from src.chat.planner_actions.action_manager import ActionManager
-from src.chat.heart_flow.hfc_utils import CycleDetail
-from src.bw_learner.expression_learner import expression_learner_manager
-from src.chat.heart_flow.frequency_control import frequency_control_manager
-from src.bw_learner.reflect_tracker import reflect_tracker_manager
-from src.bw_learner.expression_reflector import expression_reflector_manager
-from src.bw_learner.message_recorder import extract_and_distribute_messages
-from src.person_info.person_info import Person
-from src.plugin_system.base.component_types import EventType, ActionInfo
-from src.plugin_system.core import events_manager
-from src.plugin_system.apis import generator_api, send_api, message_api, database_api
-from src.chat.utils.chat_message_builder import (
+from astrbot.core.maibot.config.config import global_config
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.data_models.info_data_model import ActionPlannerInfo
+from astrbot.core.maibot.common.data_models.message_data_model import ReplyContentType
+from astrbot.core.maibot.chat.message_receive.chat_stream import ChatStream, get_chat_manager
+from astrbot.core.maibot.chat.utils.prompt_builder import global_prompt_manager
+from astrbot.core.maibot.chat.utils.timer_calculator import Timer
+from astrbot.core.maibot.chat.planner_actions.planner import ActionPlanner
+from astrbot.core.maibot.chat.planner_actions.action_modifier import ActionModifier
+from astrbot.core.maibot.chat.planner_actions.action_manager import ActionManager
+from astrbot.core.maibot.chat.heart_flow.hfc_utils import CycleDetail
+from astrbot.core.maibot.bw_learner.expression_learner import expression_learner_manager
+from astrbot.core.maibot.chat.heart_flow.frequency_control import frequency_control_manager
+from astrbot.core.maibot.bw_learner.reflect_tracker import reflect_tracker_manager
+from astrbot.core.maibot.bw_learner.expression_reflector import expression_reflector_manager
+from astrbot.core.maibot.bw_learner.message_recorder import extract_and_distribute_messages
+from astrbot.core.maibot.person_info.person_info import Person
+from astrbot.core.maibot.plugin_system.base.component_types import EventType, ActionInfo
+from astrbot.core.maibot.plugin_system.core import events_manager
+from astrbot.core.maibot.plugin_system.apis import generator_api, send_api, message_api, database_api
+from astrbot.core.maibot.chat.utils.chat_message_builder import (
     build_readable_messages_with_id,
     get_raw_msg_before_timestamp_with_chat,
 )
-from src.chat.utils.utils import record_replyer_action_temp
-from src.memory_system.chat_history_summarizer import ChatHistorySummarizer
+from astrbot.core.maibot.chat.utils.utils import record_replyer_action_temp
+from astrbot.core.maibot.memory_system.chat_history_summarizer import ChatHistorySummarizer
 
 if TYPE_CHECKING:
-    from src.common.data_models.database_data_model import DatabaseMessages
-    from src.common.data_models.message_data_model import ReplySetModel
+    from astrbot.core.maibot.common.data_models.database_data_model import DatabaseMessages
+    from astrbot.core.maibot.common.data_models.message_data_model import ReplySetModel
 
 
 ERROR_LOOP_INFO = {

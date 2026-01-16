@@ -4,8 +4,8 @@ from fastapi import APIRouter, HTTPException, Header, Query, UploadFile, File, F
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from typing import Optional, List, Annotated
-from src.common.logger import get_logger
-from src.common.database.database_model import Emoji
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.database.database_model import Emoji
 from .token_manager import get_token_manager
 from .auth import verify_auth_token_from_cookie_or_header
 import time

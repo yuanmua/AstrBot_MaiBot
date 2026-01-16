@@ -3,14 +3,14 @@ import traceback
 
 from typing import TYPE_CHECKING
 
-from src.chat.message_receive.message import MessageRecv
-from src.chat.message_receive.storage import MessageStorage
-from src.chat.heart_flow.heartflow import heartflow
-from src.chat.utils.utils import is_mentioned_bot_in_message
-from src.chat.utils.chat_message_builder import replace_user_references
-from src.common.logger import get_logger
-from src.person_info.person_info import Person
-from src.common.database.database_model import Images
+from astrbot.core.maibot.chat.message_receive.message import MessageRecv
+from astrbot.core.maibot.chat.message_receive.storage import MessageStorage
+from astrbot.core.maibot.chat.heart_flow.heartflow import heartflow
+from astrbot.core.maibot.chat.utils.utils import is_mentioned_bot_in_message
+from astrbot.core.maibot.chat.utils.chat_message_builder import replace_user_references
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.person_info.person_info import Person
+from astrbot.core.maibot.common.database.database_model import Images
 
 if TYPE_CHECKING:
     pass

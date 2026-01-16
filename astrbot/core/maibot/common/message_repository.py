@@ -3,10 +3,10 @@ import traceback
 from typing import List, Any, Optional
 from peewee import Model  # 添加 Peewee Model 导入
 
-from src.config.config import global_config
-from src.common.data_models.database_data_model import DatabaseMessages
-from src.common.database.database_model import Messages
-from src.common.logger import get_logger
+from astrbot.core.maibot.config.config import global_config
+from astrbot.core.maibot.common.data_models.database_data_model import DatabaseMessages
+from astrbot.core.maibot.common.database.database_model import Messages
+from astrbot.core.maibot.common.logger import get_logger
 
 logger = get_logger(__name__)
 

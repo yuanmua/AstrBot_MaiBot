@@ -7,11 +7,11 @@ import tomlkit
 from fastapi import APIRouter, HTTPException, Body, Depends, Cookie, Header
 from typing import Any, Annotated, Optional
 
-from src.common.logger import get_logger
-from src.webui.auth import verify_auth_token_from_cookie_or_header
-from src.common.toml_utils import save_toml_with_format, _update_toml_doc
-from src.config.config import Config, APIAdapterConfig, CONFIG_DIR, PROJECT_ROOT
-from src.config.official_configs import (
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.webui.auth import verify_auth_token_from_cookie_or_header
+from astrbot.core.maibot.common.toml_utils import save_toml_with_format, _update_toml_doc
+from astrbot.core.maibot.config.config import Config, APIAdapterConfig, CONFIG_DIR, PROJECT_ROOT
+from astrbot.core.maibot.config.official_configs import (
     BotConfig,
     PersonalityConfig,
     RelationshipConfig,
@@ -32,12 +32,12 @@ from src.config.official_configs import (
     DebugConfig,
     VoiceConfig,
 )
-from src.config.api_ada_configs import (
+from astrbot.core.maibot.config.api_ada_configs import (
     ModelTaskConfig,
     ModelInfo,
     APIProvider,
 )
-from src.webui.config_schema import ConfigSchemaGenerator
+from astrbot.core.maibot.webui.config_schema import ConfigSchemaGenerator
 
 logger = get_logger("webui")
 

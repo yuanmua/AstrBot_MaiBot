@@ -10,9 +10,9 @@ from fastapi import APIRouter, HTTPException, Query, Depends, Cookie, Header
 from typing import Optional
 import tomlkit
 
-from src.common.logger import get_logger
-from src.config.config import CONFIG_DIR
-from src.webui.auth import verify_auth_token_from_cookie_or_header
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.config.config import CONFIG_DIR
+from astrbot.core.maibot.webui.auth import verify_auth_token_from_cookie_or_header
 
 logger = get_logger("webui")
 

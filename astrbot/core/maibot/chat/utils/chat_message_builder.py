@@ -5,15 +5,15 @@ import re
 from typing import List, Dict, Any, Tuple, Optional, Callable
 from rich.traceback import install
 
-from src.config.config import global_config
-from src.common.logger import get_logger
-from src.common.message_repository import find_messages, count_messages
-from src.common.data_models.database_data_model import DatabaseMessages, DatabaseActionRecords
-from src.common.data_models.message_data_model import MessageAndActionModel
-from src.common.database.database_model import ActionRecords
-from src.common.database.database_model import Images
-from src.person_info.person_info import Person, get_person_id
-from src.chat.utils.utils import translate_timestamp_to_human_readable, assign_message_ids, is_bot_self
+from astrbot.core.maibot.config.config import global_config
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.message_repository import find_messages, count_messages
+from astrbot.core.maibot.common.data_models.database_data_model import DatabaseMessages, DatabaseActionRecords
+from astrbot.core.maibot.common.data_models.message_data_model import MessageAndActionModel
+from astrbot.core.maibot.common.database.database_model import ActionRecords
+from astrbot.core.maibot.common.database.database_model import Images
+from astrbot.core.maibot.person_info.person_info import Person, get_person_id
+from astrbot.core.maibot.chat.utils.utils import translate_timestamp_to_human_readable, assign_message_ids, is_bot_self
 
 install(extra_lines=3)
 logger = get_logger("chat_message_builder")

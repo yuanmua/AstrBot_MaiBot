@@ -1,11 +1,11 @@
 from typing import Optional, Type, TYPE_CHECKING
-from src.plugin_system.base.base_tool import BaseTool
-from src.plugin_system.base.component_types import ComponentType
+from astrbot.core.maibot.plugin_system.base.base_tool import BaseTool
+from astrbot.core.maibot.plugin_system.base.component_types import ComponentType
 
-from src.common.logger import get_logger
+from astrbot.core.maibot.common.logger import get_logger
 
 if TYPE_CHECKING:
-    from src.chat.message_receive.chat_stream import ChatStream
+    from astrbot.core.maibot.chat.message_receive.chat_stream import ChatStream
 
 logger = get_logger("tool_api")
 
@@ -20,7 +20,7 @@ def get_tool_instance(tool_name: str, chat_stream: Optional["ChatStream"] = None
     Returns:
         Optional[BaseTool]: 工具实例，如果未找到则返回None
     """
-    from src.plugin_system.core import component_registry
+    from astrbot.core.maibot.plugin_system.core import component_registry
 
     # 获取插件配置
     tool_info = component_registry.get_component_info(tool_name, ComponentType.TOOL)
@@ -39,7 +39,7 @@ def get_llm_available_tool_definitions():
     Returns:
         List[Tuple[str, Dict[str, Any]]]: 工具定义列表，为[("tool_name", 定义)]
     """
-    from src.plugin_system.core import component_registry
+    from astrbot.core.maibot.plugin_system.core import component_registry
 
     llm_available_tools = component_registry.get_llm_available_tools()
     return [(name, tool_class.get_tool_definition()) for name, tool_class in llm_available_tools.items()]

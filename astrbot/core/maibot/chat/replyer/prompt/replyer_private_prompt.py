@@ -1,4 +1,4 @@
-from src.chat.utils.prompt_builder import Prompt
+from astrbot.core.maibot.chat.utils.prompt_builder import Prompt
 
 
 def init_replyer_private_prompt():

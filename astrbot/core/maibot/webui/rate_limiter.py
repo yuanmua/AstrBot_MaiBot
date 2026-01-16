@@ -7,7 +7,7 @@ import time
 from collections import defaultdict
 from typing import Dict, Tuple, Optional
 from fastapi import Request, HTTPException
-from src.common.logger import get_logger
+from astrbot.core.maibot.common.logger import get_logger
 
 logger = get_logger("webui.rate_limiter")
 

@@ -1,15 +1,15 @@
 from abc import ABC, abstractmethod
 from typing import Tuple, Optional, Dict, List, TYPE_CHECKING
 
-from src.common.logger import get_logger
-from src.common.data_models.message_data_model import ReplyContentType, ReplySetModel, ReplyContent, ForwardNode
-from src.plugin_system.apis import send_api
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.data_models.message_data_model import ReplyContentType, ReplySetModel, ReplyContent, ForwardNode
+from astrbot.core.maibot.plugin_system.apis import send_api
 from .component_types import MaiMessages, EventType, EventHandlerInfo, ComponentType, CustomEventHandlerResult
 
 logger = get_logger("base_event_handler")
 
 if TYPE_CHECKING:
-    from src.common.data_models.database_data_model import DatabaseMessages
+    from astrbot.core.maibot.common.data_models.database_data_model import DatabaseMessages
 
 
 class BaseEventHandler(ABC):

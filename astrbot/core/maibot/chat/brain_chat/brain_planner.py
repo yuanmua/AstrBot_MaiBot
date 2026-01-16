@@ -8,27 +8,27 @@ from rich.traceback import install
 from datetime import datetime
 from json_repair import repair_json
 
-from src.llm_models.utils_model import LLMRequest
-from src.config.config import global_config, model_config
-from src.common.logger import get_logger
-from src.chat.logger.plan_reply_logger import PlanReplyLogger
-from src.common.data_models.info_data_model import ActionPlannerInfo
-from src.chat.utils.prompt_builder import Prompt, global_prompt_manager
-from src.chat.utils.chat_message_builder import (
+from astrbot.core.maibot.llm_models.utils_model import LLMRequest
+from astrbot.core.maibot.config.config import global_config, model_config
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.chat.logger.plan_reply_logger import PlanReplyLogger
+from astrbot.core.maibot.common.data_models.info_data_model import ActionPlannerInfo
+from astrbot.core.maibot.chat.utils.prompt_builder import Prompt, global_prompt_manager
+from astrbot.core.maibot.chat.utils.chat_message_builder import (
     build_readable_actions,
     get_actions_by_timestamp_with_chat,
     build_readable_messages_with_id,
     get_raw_msg_before_timestamp_with_chat,
 )
-from src.chat.utils.utils import get_chat_type_and_target_info
-from src.chat.planner_actions.action_manager import ActionManager
-from src.chat.message_receive.chat_stream import get_chat_manager
-from src.plugin_system.base.component_types import ActionInfo, ComponentType, ActionActivationType
-from src.plugin_system.core.component_registry import component_registry
+from astrbot.core.maibot.chat.utils.utils import get_chat_type_and_target_info
+from astrbot.core.maibot.chat.planner_actions.action_manager import ActionManager
+from astrbot.core.maibot.chat.message_receive.chat_stream import get_chat_manager
+from astrbot.core.maibot.plugin_system.base.component_types import ActionInfo, ComponentType, ActionActivationType
+from astrbot.core.maibot.plugin_system.core.component_registry import component_registry
 
 if TYPE_CHECKING:
-    from src.common.data_models.info_data_model import TargetPersonInfo
-    from src.common.data_models.database_data_model import DatabaseMessages
+    from astrbot.core.maibot.common.data_models.info_data_model import TargetPersonInfo
+    from astrbot.core.maibot.common.data_models.database_data_model import DatabaseMessages
 
 logger = get_logger("planner")
 

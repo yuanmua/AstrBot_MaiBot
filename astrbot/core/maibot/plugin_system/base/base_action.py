@@ -4,14 +4,14 @@ import asyncio
 from abc import ABC, abstractmethod
 from typing import Tuple, Optional, TYPE_CHECKING, Dict, List
 
-from src.common.logger import get_logger
-from src.common.data_models.message_data_model import ReplyContentType, ReplyContent, ReplySetModel, ForwardNode
-from src.chat.message_receive.chat_stream import ChatStream
-from src.plugin_system.base.component_types import ActionActivationType, ActionInfo, ComponentType
-from src.plugin_system.apis import send_api, database_api, message_api
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.data_models.message_data_model import ReplyContentType, ReplyContent, ReplySetModel, ForwardNode
+from astrbot.core.maibot.chat.message_receive.chat_stream import ChatStream
+from astrbot.core.maibot.plugin_system.base.component_types import ActionActivationType, ActionInfo, ComponentType
+from astrbot.core.maibot.plugin_system.apis import send_api, database_api, message_api
 
 if TYPE_CHECKING:
-    from src.common.data_models.database_data_model import DatabaseMessages
+    from astrbot.core.maibot.common.data_models.database_data_model import DatabaseMessages
 
 logger = get_logger("base_action")
 

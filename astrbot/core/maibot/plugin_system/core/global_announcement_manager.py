@@ -1,6 +1,6 @@
 from typing import List, Dict
 
-from src.common.logger import get_logger
+from astrbot.core.maibot.common.logger import get_logger
 
 logger = get_logger("global_announcement_manager")
 

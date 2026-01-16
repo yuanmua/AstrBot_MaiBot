@@ -6,8 +6,8 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 from peewee import fn
 
-from src.common.logger import get_logger
-from src.common.database.database_model import (
+from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.common.database.database_model import (
     LLMUsage,
     OnlineTime,
     Messages,
@@ -18,7 +18,7 @@ from src.common.database.database_model import (
     ActionRecords,
     Jargon,
 )
-from src.webui.auth import verify_auth_token_from_cookie_or_header
+from astrbot.core.maibot.webui.auth import verify_auth_token_from_cookie_or_header
 
 logger = get_logger("webui.annual_report")
 
@@ -234,7 +234,7 @@ async def get_time_footprint(year: int = 2025) -> TimeFootprintData:
 
 async def get_social_network(year: int = 2025) -> SocialNetworkData:
     """获取社交网络数据"""
-    from src.config.config import global_config
+    from astrbot.core.maibot.config.config import global_config
     
     data = SocialNetworkData()
     start_ts, end_ts = get_year_time_range(year)
@@ -536,7 +536,7 @@ async def get_brain_power(year: int = 2025) -> BrainPowerData:
 
 async def get_expression_vibe(year: int = 2025) -> ExpressionVibeData:
     """获取个性与表达数据"""
-    from src.config.config import global_config
+    from astrbot.core.maibot.config.config import global_config
     
     data = ExpressionVibeData()
     start_ts, end_ts = get_year_time_range(year)
@@ -855,7 +855,7 @@ async def get_full_annual_report(year: int = 2025, _auth: bool = Depends(require
         完整的年度报告数据
     """
     try:
-        from src.config.config import global_config
+        from astrbot.core.maibot.config.config import global_config
         
         logger.info(f"开始生成 {year} 年度报告...")
         
