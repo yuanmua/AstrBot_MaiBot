@@ -100,12 +100,15 @@ class MaiBotCore:
         # 5. 创建MainSystem实例
         from astrbot.core.maibot.main import MainSystem
 
+        logger.info("正在创建 MainSystem...")
         self.main_system = MainSystem()
 
-        # 6. 初始化组件
+        logger.info("正在初始化 MainSystem...")
         await self.main_system.initialize()
+        logger.info("MainSystem 初始化完成")
 
-        # 7. 注册 AstrBot 平台适配器
+        # 6. 注册 AstrBot 平台适配器
+        logger.info("正在注册 AstrBot 适配器...")
         await self._register_astrbot_adapter()
 
         self.initialized = True
@@ -115,7 +118,7 @@ class MaiBotCore:
         """注册 AstrBot 平台适配器，拦截消息发送"""
         try:
             from astrbot.core.maibot.common.message.api import get_global_api
-            from astrbot.core.maibot_adapter.platform_adapter import get_astrbot_adapter
+            from astrbot.core.maibot_adapter.platform_adapter import get_astrbot_adapter, parse_astrbot_platform
 
             # 获取 MaiBot 的消息服务器
             message_server = get_global_api()
@@ -130,12 +133,19 @@ class MaiBotCore:
             async def wrapped_send_message(message):
                 """包装 send_message，拦截 AstrBot 平台的消息"""
                 try:
-                    # 检查是否是发送到 AstrBot 平台
+                    # 获取消息的 platform 属性
                     platform = getattr(message.message_info, 'platform', None)
 
-                    if platform == 'AstrBot':
+                    # 解析是否为 AstrBot 平台（astr:{stream_id} 格式）
+                    stream_id = parse_astrbot_platform(platform)
+
+                    if stream_id:
                         # 使用 AstrBot 适配器处理
-                        logger.debug(f"[AstrBot 适配器] 拦截消息: {getattr(message, 'processed_plain_text', '')[:50]}")
+                        logger.debug(f"[AstrBot 适配器] 拦截消息 -> stream_id: {stream_id[:16]}..., 内容: {getattr(message, 'processed_plain_text', '')[:50]}")
+                        return await astrbot_adapter.send_message(message)
+                    elif platform and platform.startswith('AstrBot'):
+                        # 旧格式兼容
+                        logger.debug(f"[AstrBot 适配器] 拦截消息(旧格式): {platform}, 内容: {getattr(message, 'processed_plain_text', '')[:50]}")
                         return await astrbot_adapter.send_message(message)
                     else:
                         # 其他平台使用原始方法

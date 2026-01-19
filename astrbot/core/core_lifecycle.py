@@ -197,10 +197,15 @@ class AstrBotCoreLifecycle:
 
             self.maibot_core = get_maibot_core()
             await self.maibot_core.initialize(self.maibot_data_dir)
-            logger.info("✅ MaiBot 集成初始化成功")
+            if self.maibot_core.initialized:
+                logger.info("✅ MaiBot 集成初始化成功")
+            else:
+                logger.warning("⚠️ MaiBot 初始化未完成，将跳过 MaiBot 功能")
+                self.maibot_core = None
         except Exception as e:
             logger.warning(f"⚠️  MaiBot 初始化失败: {e}")
             logger.warning("AstrBot 将继续运行，但 MaiBot 功能不可用")
+            self.maibot_core = None
 
     def _load(self) -> None:
         """加载事件总线和任务并初始化."""

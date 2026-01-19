@@ -2,8 +2,9 @@
 AstrBot 消息 → MaiBot 消息格式转换器
 """
 
+import hashlib
 import time
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from astrbot.core.platform.astr_message_event import AstrMessageEvent
 from astrbot.core.message.components import (
@@ -19,6 +20,16 @@ from astrbot.core.message.components import (
     WechatEmoji,
     ComponentType,
 )
+
+
+def _generate_stream_id(platform: str, user_id: str, group_id: Optional[str] = None) -> str:
+    """生成聊天流唯一ID，与 MaiBot 的 ChatManager._generate_stream_id 保持一致"""
+    if group_id:
+        components = [platform, str(group_id)]
+    else:
+        components = [platform, str(user_id), "private"]
+    key = "_".join(components)
+    return hashlib.md5(key.encode()).hexdigest()
 
 
 def convert_astrbot_to_maibot(event: AstrMessageEvent) -> Dict[str, Any]:
@@ -41,16 +52,22 @@ def convert_astrbot_to_maibot(event: AstrMessageEvent) -> Dict[str, Any]:
             "group_name": message_obj.group.group_name or "",
         }
 
-    # 2. 构建 user_info（平台统一为 AstrBot）
+    # 2. 构建 user_info（使用真实平台）
     sender = message_obj.sender
+    real_platform = event.platform_meta.name  # 真实平台名，如 lark
     user_info = {
-        "platform": "AstrBot",  # 统一平台名称
+        "platform": real_platform,  # 用户所在的真实平台
         "user_id": str(sender.user_id),
         "user_nickname": sender.nickname or "",
         "user_cardname": getattr(sender, "card", None) or "",  # 群昵称
     }
 
-    # 3. 转换消息段（message_segment）
+    # 3. 生成 stream_id（使用与 MaiBot 相同的算法）
+    user_id = str(sender.user_id)
+    group_id = str(message_obj.group.group_id) if message_obj.group else None
+    stream_id = _generate_stream_id(real_platform, user_id, group_id)
+
+    # 4. 转换消息段（message_segment）
     message_segments = []
     for component in message_obj.message:
         seg = _convert_component_to_seg(component)
@@ -67,9 +84,11 @@ def convert_astrbot_to_maibot(event: AstrMessageEvent) -> Dict[str, Any]:
         "data": message_segments
     }
 
-    # 4. 构建 message_info（平台统一设为 AstrBot，由 AstrBot 负责路由到实际平台）
+    # 5. 构建 message_info
+    # 使用 stream_id 作为平台标识（以 "astr:" 前缀区分，便于识别这是 AstrBot 转发的消息）
+    astrbot_platform = f"astr:{stream_id}"
     message_info = {
-        "platform": "AstrBot",  # 统一平台名称，由 AstrBot 适配器处理
+        "platform": astrbot_platform,  # 使用 stream_id 作为平台标识
         "message_id": message_obj.message_id,
         "time": message_obj.timestamp or time.time(),
         "group_info": group_info,
@@ -77,7 +96,7 @@ def convert_astrbot_to_maibot(event: AstrMessageEvent) -> Dict[str, Any]:
         "template_info": None,  # 暂不支持自定义模板
     }
 
-    # 5. 构建完整的 message_data（字典格式，MaiBot 会自己转换为 Seg）
+    # 6. 构建完整的 message_data（字典格式，MaiBot 会自己转换为 Seg）
     message_data = {
         "message_info": message_info,
         "message_segment": message_segment,  # 字典格式，不是 Seg 对象
