@@ -11,7 +11,7 @@ from typing import Optional
 import tomlkit
 
 from astrbot.core.maibot.common.logger import get_logger
-from astrbot.core.maibot.config.config import CONFIG_DIR
+from astrbot.core.maibot.config.context import get_context
 from astrbot.core.maibot.webui.auth import verify_auth_token_from_cookie_or_header
 
 logger = get_logger("webui")
@@ -25,6 +25,12 @@ def require_auth(
 ) -> bool:
     """认证依赖：验证用户是否已登录"""
     return verify_auth_token_from_cookie_or_header(maibot_session, authorization)
+
+
+def _get_config_dir() -> str:
+    """获取配置目录路径"""
+    context = get_context()
+    return context.get_config_dir()
 
 
 # 模型获取器配置
@@ -169,7 +175,7 @@ def _get_provider_config(provider_name: str) -> Optional[dict]:
     Returns:
         提供商配置，如果未找到则返回 None
     """
-    config_path = os.path.join(CONFIG_DIR, "model_config.toml")
+    config_path = os.path.join(_get_config_dir(), "model_config.toml")
     if not os.path.exists(config_path):
         return None
 

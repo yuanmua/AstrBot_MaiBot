@@ -46,9 +46,18 @@ class MainSystem:
 
     def _setup_webui_server(self):
         """设置独立的 WebUI 服务器"""
-        from astrbot.core.maibot.config.config import global_config
+        from astrbot.core.maibot.config.context import get_context
 
-        if not global_config.webui.enabled:
+        # 优先使用 context 中的 enable_webui 配置，其次使用 global_config
+        try:
+            context = get_context()
+            enable_webui = context.enable_webui
+        except RuntimeError:
+            # context 未初始化时回退到 global_config
+            from astrbot.core.maibot.config.config import global_config
+            enable_webui = global_config.webui.enabled
+
+        if not enable_webui:
             logger.info("WebUI 已禁用")
             return
 

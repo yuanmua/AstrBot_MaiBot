@@ -2,6 +2,8 @@ import os
 from peewee import SqliteDatabase
 from rich.traceback import install
 
+from astrbot.core.maibot.config.context import get_context
+
 install(extra_lines=3)
 
 
@@ -10,17 +12,22 @@ _DB_FILE: str | None = None
 db: SqliteDatabase | None = None
 
 
-def initialize_database(data_root: str):
+def initialize_database(db_path: str | None = None):
     """
     初始化数据库
+
     Args:
-        data_root: 数据根目录，例如 'data/maibot'
+        db_path: 数据库文件完整路径，如果为 None 则从 InstanceContext 获取
     """
     global _DB_FILE, db
 
-    # 定义数据库文件路径
-    _DB_DIR = os.path.join(data_root, "data")
-    _DB_FILE = os.path.join(_DB_DIR, "MaiBot.db")
+    # 如果未指定路径，从上下文中获取
+    if db_path is None:
+        context = get_context()
+        db_path = context.get_database_path()
+
+    _DB_FILE = db_path
+    _DB_DIR = os.path.dirname(db_path)
 
     # 确保数据库目录存在
     os.makedirs(_DB_DIR, exist_ok=True)
@@ -39,4 +46,9 @@ def initialize_database(data_root: str):
     )
 
     return db
+
+
+def get_database_path() -> str | None:
+    """获取当前数据库文件路径"""
+    return _DB_FILE
 

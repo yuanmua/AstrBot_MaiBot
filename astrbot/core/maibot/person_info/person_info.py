@@ -25,8 +25,10 @@ relation_selection_model = LLMRequest(
 
 def get_person_id(platform: str, user_id: Union[int, str]) -> str:
     """获取唯一id"""
-    if "-" in platform:
+    if platform and "-" in platform:
         platform = platform.split("-")[1]
+    elif not platform:
+        platform = "unknown"
     components = [platform, str(user_id)]
     key = "_".join(components)
     return hashlib.md5(key.encode()).hexdigest()
@@ -42,7 +44,12 @@ def get_person_id_by_person_name(person_name: str) -> str:
         return ""
 
 
-def is_person_known(person_id: str = None, user_id: str = None, platform: str = None, person_name: str = None) -> bool:  # type: ignore
+def is_person_known(
+    person_id: str = None,
+    user_id: str = None,
+    platform: str = None,
+    person_name: str = None,
+) -> bool:  # type: ignore
     if person_id:
         person = PersonInfo.get_or_none(PersonInfo.person_id == person_id)
         return person.is_known if person else False
@@ -261,13 +268,15 @@ class Person:
         platforms_list = getattr(global_config.bot, "platforms", []) or []
         platform_accounts = {}
         for platform_entry in platforms_list:
-            if ":" in platform_entry:
+            if platform_entry and ":" in platform_entry:
                 platform_name, account = platform_entry.split(":", 1)
                 platform_accounts[platform_name.strip()] = account.strip()
 
         # Telegram 平台
         if platform == "telegram":
-            tg_account = platform_accounts.get("tg", "") or platform_accounts.get("telegram", "")
+            tg_account = platform_accounts.get("tg", "") or platform_accounts.get(
+                "telegram", ""
+            )
             return user_id_str == tg_account if tg_account else False
 
         # 其他平台：尝试从 platforms 配置中查找
@@ -278,7 +287,13 @@ class Person:
         # 默认情况：与主 QQ 账号比较（兼容性）
         return user_id_str == qq_account
 
-    def __init__(self, platform: str = "", user_id: str = "", person_id: str = "", person_name: str = ""):
+    def __init__(
+        self,
+        platform: str = "",
+        user_id: str = "",
+        person_id: str = "",
+        person_name: str = "",
+    ):
         # 使用统一的机器人识别函数（支持多平台，包括 WebUI）
         if self._is_bot_self(platform, user_id):
             self.is_known = True
@@ -299,7 +314,9 @@ class Person:
             self.person_id = get_person_id_by_person_name(person_name)
             if not self.person_id:
                 self.is_known = False
-                logger.warning(f"根据用户名 {person_name} 获取用户ID时，不存在用户{person_name}")
+                logger.warning(
+                    f"根据用户名 {person_name} 获取用户ID时，不存在用户{person_name}"
+                )
                 return
         elif platform and user_id:
             self.person_id = get_person_id(platform, user_id)
@@ -311,7 +328,9 @@ class Person:
 
         if not is_person_known(person_id=self.person_id):
             self.is_known = False
-            logger.debug(f"用户 {platform}:{user_id}:{person_name}:{person_id} 尚未认识")
+            logger.debug(
+                f"用户 {platform}:{user_id}:{person_name}:{person_id} 尚未认识"
+            )
             self.person_name = f"未知用户{self.person_id[:4]}"
             return
             # raise ValueError(f"用户 {platform}:{user_id}:{person_name}:{person_id} 尚未认识")
@@ -326,12 +345,16 @@ class Person:
         self.know_since = None
         self.last_know: Optional[float] = None
         self.memory_points = []
-        self.group_nick_name: list[dict[str, str]] = []  # 群昵称列表，存储 {"group_id": str, "group_nick_name": str}
+        self.group_nick_name: list[
+            dict[str, str]
+        ] = []  # 群昵称列表，存储 {"group_id": str, "group_nick_name": str}
 
         # 从数据库加载数据
         self.load_from_database()
 
-    def del_memory(self, category: str, memory_content: str, similarity_threshold: float = 0.95):
+    def del_memory(
+        self, category: str, memory_content: str, similarity_threshold: float = 0.95
+    ):
         """
         删除指定分类和记忆内容的记忆点
 
@@ -431,13 +454,19 @@ class Person:
                 # 更新现有记录
                 item["group_nick_name"] = group_nick_name
                 self.sync_to_database()
-                logger.debug(f"更新用户 {self.person_id} 在群 {group_id} 的群昵称为 {group_nick_name}")
+                logger.debug(
+                    f"更新用户 {self.person_id} 在群 {group_id} 的群昵称为 {group_nick_name}"
+                )
                 return
 
         # 添加新记录
-        self.group_nick_name.append({"group_id": group_id, "group_nick_name": group_nick_name})
+        self.group_nick_name.append(
+            {"group_id": group_id, "group_nick_name": group_nick_name}
+        )
         self.sync_to_database()
-        logger.debug(f"添加用户 {self.person_id} 在群 {group_id} 的群昵称 {group_nick_name}")
+        logger.debug(
+            f"添加用户 {self.person_id} 在群 {group_id} 的群昵称 {group_nick_name}"
+        )
 
     def load_from_database(self):
         """从数据库加载个人信息数据"""
@@ -460,11 +489,15 @@ class Person:
                         loaded_points = json.loads(record.memory_points)
                         # 过滤掉None值，确保数据质量
                         if isinstance(loaded_points, list):
-                            self.memory_points = [point for point in loaded_points if point is not None]
+                            self.memory_points = [
+                                point for point in loaded_points if point is not None
+                            ]
                         else:
                             self.memory_points = []
                     except (json.JSONDecodeError, TypeError):
-                        logger.warning(f"解析用户 {self.person_id} 的points字段失败，使用默认值")
+                        logger.warning(
+                            f"解析用户 {self.person_id} 的points字段失败，使用默认值"
+                        )
                         self.memory_points = []
                 else:
                     self.memory_points = []
@@ -479,7 +512,9 @@ class Person:
                         else:
                             self.group_nick_name = []
                     except (json.JSONDecodeError, TypeError):
-                        logger.warning(f"解析用户 {self.person_id} 的group_nick_name字段失败，使用默认值")
+                        logger.warning(
+                            f"解析用户 {self.person_id} 的group_nick_name字段失败，使用默认值"
+                        )
                         self.group_nick_name = []
                 else:
                     self.group_nick_name = []
@@ -511,7 +546,8 @@ class Person:
                 "know_since": self.know_since,
                 "last_know": self.last_know,
                 "memory_points": json.dumps(
-                    [point for point in self.memory_points if point is not None], ensure_ascii=False
+                    [point for point in self.memory_points if point is not None],
+                    ensure_ascii=False,
                 )
                 if self.memory_points
                 else json.dumps([], ensure_ascii=False),
@@ -572,7 +608,10 @@ class Person:
                     random_memory = self.get_random_memory_by_category(category, 2)
                     if random_memory:
                         random_memory_str = "\n".join(
-                            [get_memory_content_from_memory(memory) for memory in random_memory]
+                            [
+                                get_memory_content_from_memory(memory)
+                                for memory in random_memory
+                            ]
                         )
                         points_text = f"有关 {category} 的内容：{random_memory_str}"
                         break
@@ -594,7 +633,10 @@ class Person:
                     random_memory = self.get_random_memory_by_category(category, 3)
                     if random_memory:
                         random_memory_str = "\n".join(
-                            [get_memory_content_from_memory(memory) for memory in random_memory]
+                            [
+                                get_memory_content_from_memory(memory)
+                                for memory in random_memory
+                            ]
                         )
                         points_text = f"有关 {category} 的内容：{random_memory_str}"
                         break
@@ -619,7 +661,10 @@ class Person:
 class PersonInfoManager:
     def __init__(self):
         self.person_name_list = {}
-        self.qv_name_llm = LLMRequest(model_set=model_config.model_task_config.utils, request_type="relation.qv_name")
+        self.qv_name_llm = LLMRequest(
+            model_set=model_config.model_task_config.utils,
+            request_type="relation.qv_name",
+        )
         try:
             db.connect(reuse_if_open=True)
             # 设置连接池参数
@@ -634,9 +679,9 @@ class PersonInfoManager:
 
         # 初始化时读取所有person_name
         try:
-            for record in PersonInfo.select(PersonInfo.person_id, PersonInfo.person_name).where(
-                PersonInfo.person_name.is_null(False)
-            ):
+            for record in PersonInfo.select(
+                PersonInfo.person_id, PersonInfo.person_name
+            ).where(PersonInfo.person_name.is_null(False)):
                 if record.person_name:
                     self.person_name_list[record.person_id] = record.person_name
             logger.debug(f"已加载 {len(self.person_name_list)} 个用户名称 (Peewee)")
@@ -685,7 +730,12 @@ class PersonInfoManager:
             counter += 1
 
     async def qv_person_name(
-        self, person_id: str, user_nickname: str, user_cardname: str, user_avatar: str, request: str = ""
+        self,
+        person_id: str,
+        user_nickname: str,
+        user_cardname: str,
+        user_avatar: str,
+        request: str = "",
     ):
         """给某个用户取名"""
         if not person_id:
@@ -704,8 +754,12 @@ class PersonInfoManager:
         while current_try < max_retries:
             bot_name = global_config.bot.nickname
 
-            qv_name_prompt = f"你是{bot_name}，一个伪装成人类的AI，你不能让别人发现这一点，"
-            qv_name_prompt += f"现在你想给一个用户取一个昵称，用户的qq昵称是{user_nickname}，"
+            qv_name_prompt = (
+                f"你是{bot_name}，一个伪装成人类的AI，你不能让别人发现这一点，"
+            )
+            qv_name_prompt += (
+                f"现在你想给一个用户取一个昵称，用户的qq昵称是{user_nickname}，"
+            )
             qv_name_prompt += f"用户的qq群昵称名是{user_cardname}，"
             if user_avatar:
                 qv_name_prompt += f"用户的qq头像是{user_avatar}，"
@@ -719,7 +773,9 @@ class PersonInfoManager:
                 qv_name_prompt += f"\n请注意，以下名称已被你尝试过或已知存在，请避免：{existing_names_str}。\n"
 
             if len(current_name_set) < 50 and current_name_set:
-                qv_name_prompt += f"已知的其他昵称有: {', '.join(list(current_name_set)[:10])}等。\n"
+                qv_name_prompt += (
+                    f"已知的其他昵称有: {', '.join(list(current_name_set)[:10])}等。\n"
+                )
 
             qv_name_prompt += "请用json给出你的想法，并给出理由，示例如下："
             qv_name_prompt += """{
@@ -740,13 +796,21 @@ class PersonInfoManager:
             is_duplicate = False
             if generated_nickname in current_name_set:
                 is_duplicate = True
-                logger.info(f"尝试给用户{user_nickname} {person_id} 取名，但是 {generated_nickname} 已存在，重试中...")
+                logger.info(
+                    f"尝试给用户{user_nickname} {person_id} 取名，但是 {generated_nickname} 已存在，重试中..."
+                )
             else:
 
                 def _db_check_name_exists_sync(name_to_check):
-                    return PersonInfo.select().where(PersonInfo.person_name == name_to_check).exists()
+                    return (
+                        PersonInfo.select()
+                        .where(PersonInfo.person_name == name_to_check)
+                        .exists()
+                    )
 
-                if await asyncio.to_thread(_db_check_name_exists_sync, generated_nickname):
+                if await asyncio.to_thread(
+                    _db_check_name_exists_sync, generated_nickname
+                ):
                     is_duplicate = True
                     current_name_set.add(generated_nickname)
 
@@ -770,7 +834,9 @@ class PersonInfoManager:
 
         # 如果多次尝试后仍未成功，使用唯一的 user_nickname 作为默认值
         unique_nickname = await self._generate_unique_person_name(user_nickname)
-        logger.warning(f"在{max_retries}次尝试后未能生成唯一昵称，使用默认昵称 {unique_nickname}")
+        logger.warning(
+            f"在{max_retries}次尝试后未能生成唯一昵称，使用默认昵称 {unique_nickname}"
+        )
         person.person_name = unique_nickname
         person.name_reason = "使用用户原始昵称作为默认值"
         person.sync_to_database()
@@ -781,7 +847,9 @@ class PersonInfoManager:
 person_info_manager = PersonInfoManager()
 
 
-async def store_person_memory_from_answer(person_name: str, memory_content: str, chat_id: str) -> None:
+async def store_person_memory_from_answer(
+    person_name: str, memory_content: str, chat_id: str
+) -> None:
     """将人物信息存入person_info的memory_points
 
     Args:
@@ -808,14 +876,18 @@ async def store_person_memory_from_answer(person_name: str, memory_content: str,
                 user_id = chat_stream.user_info.user_id
                 person_id = get_person_id(platform, user_id)
             else:
-                logger.warning(f"无法确定person_id for person_name: {person_name}, chat_id: {chat_id}")
+                logger.warning(
+                    f"无法确定person_id for person_name: {person_name}, chat_id: {chat_id}"
+                )
                 return
 
         # 创建或获取Person对象
         person = Person(person_id=person_id)
 
         if not person.is_known:
-            logger.warning(f"用户 {person_name} (person_id: {person_id}) 尚未认识，无法存储记忆")
+            logger.warning(
+                f"用户 {person_name} (person_id: {person_id}) 尚未认识，无法存储记忆"
+            )
             return
 
         # 确定记忆分类（可以根据memory_content判断，这里使用通用分类）
@@ -848,7 +920,9 @@ async def store_person_memory_from_answer(person_name: str, memory_content: str,
         if not is_duplicate:
             person.memory_points.append(memory_point)
             person.sync_to_database()
-            logger.info(f"成功添加记忆点到 {person_name} (person_id: {person_id}): {memory_point}")
+            logger.info(
+                f"成功添加记忆点到 {person_name} (person_id: {person_id}): {memory_point}"
+            )
         else:
             logger.debug(f"记忆点已存在，跳过: {memory_point}")
 

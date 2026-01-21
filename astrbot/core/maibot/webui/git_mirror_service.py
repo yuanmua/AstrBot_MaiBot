@@ -1,5 +1,6 @@
 """Git 镜像源服务 - 支持多镜像源、错误重试、Git 克隆和 Raw 文件获取"""
 
+import os
 from typing import Optional, List, Dict, Any
 from enum import Enum
 import httpx
@@ -10,11 +11,22 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.config.context import get_context
 
 logger = get_logger("webui.git_mirror")
 
 # 导入进度更新函数（避免循环导入）
 _update_progress = None
+
+
+def _get_webui_config_path() -> Path:
+    """获取 webui.json 配置文件路径"""
+    try:
+        context = get_context()
+        return Path(context.get_webui_config_path())
+    except RuntimeError:
+        # 如果上下文未初始化，使用默认路径
+        return Path("data/webui.json")
 
 
 def set_update_progress_callback(callback):
@@ -39,7 +51,7 @@ class GitMirrorConfig:
     """Git 镜像源配置管理"""
 
     # 配置文件路径
-    CONFIG_FILE = Path("data/webui.json")
+    # CONFIG_FILE = Path("data/webui.json")
 
     # 默认镜像源配置
     DEFAULT_MIRRORS = [
@@ -101,7 +113,7 @@ class GitMirrorConfig:
 
     def __init__(self):
         """初始化配置管理器"""
-        self.config_file = self.CONFIG_FILE
+        self.config_file = _get_webui_config_path()
         self.mirrors: List[Dict[str, Any]] = []
         self._load_config()
 
@@ -282,7 +294,12 @@ class GitMirrorConfig:
 class GitMirrorService:
     """Git 镜像源服务"""
 
-    def __init__(self, max_retries: int = 3, timeout: int = 30, config: Optional[GitMirrorConfig] = None):
+    def __init__(
+        self,
+        max_retries: int = 3,
+        timeout: int = 30,
+        config: Optional[GitMirrorConfig] = None,
+    ):
         """
         初始化 Git 镜像源服务
 
@@ -294,7 +311,9 @@ class GitMirrorService:
         self.max_retries = max_retries
         self.timeout = timeout
         self.config = config or GitMirrorConfig()
-        logger.info(f"Git镜像源服务初始化完成，已加载 {len(self.config.get_enabled_mirrors())} 个启用的镜像源")
+        logger.info(
+            f"Git镜像源服务初始化完成，已加载 {len(self.config.get_enabled_mirrors())} 个启用的镜像源"
+        )
 
     def get_mirror_config(self) -> GitMirrorConfig:
         """获取镜像源配置管理器"""
@@ -324,7 +343,9 @@ class GitMirrorService:
                 return {"installed": False, "error": "系统中未找到 Git，请先安装 Git"}
 
             # 获取 Git 版本
-            result = subprocess.run(["git", "--version"], capture_output=True, text=True, timeout=5)
+            result = subprocess.run(
+                ["git", "--version"], capture_output=True, text=True, timeout=5
+            )
 
             if result.returncode == 0:
                 version = result.stdout.strip()
@@ -332,7 +353,10 @@ class GitMirrorService:
                 return {"installed": True, "version": version, "path": git_path}
             else:
                 logger.warning(f"Git 命令执行失败: {result.stderr}")
-                return {"installed": False, "error": f"Git 命令执行失败: {result.stderr}"}
+                return {
+                    "installed": False,
+                    "error": f"Git 命令执行失败: {result.stderr}",
+                }
 
         except subprocess.TimeoutExpired:
             logger.error("Git 版本检测超时")
@@ -380,7 +404,12 @@ class GitMirrorService:
             # 使用指定的镜像源
             mirror = self.config.get_mirror_by_id(mirror_id)
             if not mirror:
-                return {"success": False, "error": f"未找到镜像源: {mirror_id}", "mirror_used": None, "attempts": 0}
+                return {
+                    "success": False,
+                    "error": f"未找到镜像源: {mirror_id}",
+                    "mirror_used": None,
+                    "attempts": 0,
+                }
             mirrors_to_try = [mirror]
         else:
             # 使用所有启用的镜像源
@@ -404,7 +433,9 @@ class GitMirrorService:
                 except Exception as e:
                     logger.warning(f"推送进度失败: {e}")
 
-            result = await self._fetch_raw_from_mirror(owner, repo, branch, file_path, mirror)
+            result = await self._fetch_raw_from_mirror(
+                owner, repo, branch, file_path, mirror
+            )
 
             if result["success"]:
                 # 成功，推送进度
@@ -437,7 +468,12 @@ class GitMirrorService:
                     logger.warning(f"推送进度失败: {e}")
 
         # 所有镜像源都失败
-        return {"success": False, "error": "所有镜像源均失败", "mirror_used": None, "attempts": len(mirrors_to_try)}
+        return {
+            "success": False,
+            "error": "所有镜像源均失败",
+            "mirror_used": None,
+            "attempts": len(mirrors_to_try),
+        }
 
     async def _fetch_raw_from_mirror(
         self, owner: str, repo: str, branch: str, file_path: str, mirror: Dict[str, Any]
@@ -472,15 +508,27 @@ class GitMirrorService:
                     }
             except httpx.HTTPStatusError as e:
                 last_error = f"HTTP {e.response.status_code}: {e}"
-                logger.warning(f"HTTP 错误 (尝试 {attempt + 1}/{self.max_retries}): {last_error}")
+                logger.warning(
+                    f"HTTP 错误 (尝试 {attempt + 1}/{self.max_retries}): {last_error}"
+                )
             except httpx.TimeoutException as e:
                 last_error = f"请求超时: {e}"
-                logger.warning(f"超时 (尝试 {attempt + 1}/{self.max_retries}): {last_error}")
+                logger.warning(
+                    f"超时 (尝试 {attempt + 1}/{self.max_retries}): {last_error}"
+                )
             except Exception as e:
                 last_error = f"未知错误: {e}"
-                logger.error(f"错误 (尝试 {attempt + 1}/{self.max_retries}): {last_error}")
+                logger.error(
+                    f"错误 (尝试 {attempt + 1}/{self.max_retries}): {last_error}"
+                )
 
-        return {"success": False, "error": last_error, "mirror_used": mirror_type, "attempts": attempts, "url": url}
+        return {
+            "success": False,
+            "error": last_error,
+            "mirror_used": mirror_type,
+            "attempts": attempts,
+            "url": url,
+        }
 
     async def clone_repository(
         self,
@@ -516,14 +564,21 @@ class GitMirrorService:
 
         if custom_url:
             # 使用自定义 URL
-            return await self._clone_with_url(custom_url, target_path, branch, depth, "custom")
+            return await self._clone_with_url(
+                custom_url, target_path, branch, depth, "custom"
+            )
 
         # 确定要使用的镜像源列表
         if mirror_id:
             # 使用指定的镜像源
             mirror = self.config.get_mirror_by_id(mirror_id)
             if not mirror:
-                return {"success": False, "error": f"未找到镜像源: {mirror_id}", "mirror_used": None, "attempts": 0}
+                return {
+                    "success": False,
+                    "error": f"未找到镜像源: {mirror_id}",
+                    "mirror_used": None,
+                    "attempts": 0,
+                }
             mirrors_to_try = [mirror]
         else:
             # 使用所有启用的镜像源
@@ -531,13 +586,20 @@ class GitMirrorService:
 
         # 依次尝试每个镜像源
         for mirror in mirrors_to_try:
-            result = await self._clone_from_mirror(owner, repo, target_path, branch, depth, mirror)
+            result = await self._clone_from_mirror(
+                owner, repo, target_path, branch, depth, mirror
+            )
             if result["success"]:
                 return result
             logger.warning(f"镜像源 {mirror['id']} 克隆失败: {result.get('error')}")
 
         # 所有镜像源都失败
-        return {"success": False, "error": "所有镜像源克隆均失败", "mirror_used": None, "attempts": len(mirrors_to_try)}
+        return {
+            "success": False,
+            "error": "所有镜像源克隆均失败",
+            "mirror_used": None,
+            "attempts": len(mirrors_to_try),
+        }
 
     async def _clone_from_mirror(
         self,
@@ -556,7 +618,12 @@ class GitMirrorService:
         return await self._clone_with_url(url, target_path, branch, depth, mirror["id"])
 
     async def _clone_with_url(
-        self, url: str, target_path: Path, branch: Optional[str], depth: Optional[int], mirror_type: str
+        self,
+        url: str,
+        target_path: Path,
+        branch: Optional[str],
+        depth: Optional[int],
+        mirror_type: str,
     ) -> Dict[str, Any]:
         """使用指定 URL 克隆仓库，支持重试"""
         attempts = 0
@@ -624,7 +691,9 @@ class GitMirrorService:
                     }
                 else:
                     last_error = f"Git 克隆失败: {process.stderr}"
-                    logger.warning(f"克隆失败 (尝试 {attempt + 1}/{self.max_retries}): {last_error}")
+                    logger.warning(
+                        f"克隆失败 (尝试 {attempt + 1}/{self.max_retries}): {last_error}"
+                    )
 
             except subprocess.TimeoutExpired:
                 last_error = "克隆超时（超过 5 分钟）"
@@ -641,13 +710,21 @@ class GitMirrorService:
 
             except Exception as e:
                 last_error = f"未知错误: {e}"
-                logger.error(f"克隆错误 (尝试 {attempt + 1}/{self.max_retries}): {last_error}")
+                logger.error(
+                    f"克隆错误 (尝试 {attempt + 1}/{self.max_retries}): {last_error}"
+                )
 
                 # 清理可能的部分克隆
                 if target_path.exists():
                     shutil.rmtree(target_path, ignore_errors=True)
 
-        return {"success": False, "error": last_error, "mirror_used": mirror_type, "attempts": attempts, "url": url}
+        return {
+            "success": False,
+            "error": last_error,
+            "mirror_used": mirror_type,
+            "attempts": attempts,
+            "url": url,
+        }
 
 
 # 全局服务实例

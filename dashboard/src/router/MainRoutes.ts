@@ -86,9 +86,29 @@ const MainRoutes = {
       ]
     },
     {
-      name: 'MaiBot',
+      name: 'MaiBotInstances',
       path: '/maibot',
-      component: () => import('@/views/MaiBotPage.vue')
+      component: () => import('@/views/maibot/InstancesPage.vue'),
+      meta: { title: '麦麦实例' }
+    },
+    {
+      name: 'MaiBotInstanceDetail',
+      path: '/maibot/instances/:id',
+      component: () => import('@/views/maibot/InstanceDetailPage.vue'),
+      meta: { title: '实例详情' },
+      props: true
+    },
+    {
+      name: 'MaiBotLogs',
+      path: '/maibot/logs',
+      component: () => import('@/views/maibot/LogsPage.vue'),
+      meta: { title: '实例日志' }
+    },
+    {
+      name: 'MaiBotRouting',
+      path: '/maibot/routing',
+      component: () => import('@/views/MaiBotPage.vue'),
+      meta: { title: '路由管理' }
     },
 
     // 旧版本的知识库路由

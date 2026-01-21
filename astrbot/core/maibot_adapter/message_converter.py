@@ -86,7 +86,17 @@ def convert_astrbot_to_maibot(event: AstrMessageEvent) -> Dict[str, Any]:
 
     # 5. 构建 message_info
     # 使用 stream_id 作为平台标识（以 "astr:" 前缀区分，便于识别这是 AstrBot 转发的消息）
+    # 格式：astr:{instance_id}:{stream_id}
+    # 支持多实例路由，实例ID由消息路由器确定
     astrbot_platform = f"astr:{stream_id}"
+
+    # 添加 chat_id 用于消息路由（格式：platform:user_id:type）
+    chat_id = f"{real_platform}:{user_id}"
+    if group_id:
+        chat_id += f":group"
+    else:
+        chat_id += ":private"
+
     message_info = {
         "platform": astrbot_platform,  # 使用 stream_id 作为平台标识
         "message_id": message_obj.message_id,
@@ -94,6 +104,7 @@ def convert_astrbot_to_maibot(event: AstrMessageEvent) -> Dict[str, Any]:
         "group_info": group_info,
         "user_info": user_info,
         "template_info": None,  # 暂不支持自定义模板
+        "chat_id": chat_id,  # 用于消息路由的 chat_id
     }
 
     # 6. 构建完整的 message_data（字典格式，MaiBot 会自己转换为 Seg）

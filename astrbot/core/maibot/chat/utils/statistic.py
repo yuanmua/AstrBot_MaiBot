@@ -10,7 +10,7 @@ from astrbot.core.maibot.common.logger import get_logger
 from astrbot.core.maibot.common.database.database import db
 from astrbot.core.maibot.common.database.database_model import OnlineTime, LLMUsage, Messages, ActionRecords
 from astrbot.core.maibot.manager.async_task_manager import AsyncTask
-from astrbot.core.maibot.manager.local_store_manager import local_storage
+from astrbot.core.maibot.manager.local_store_manager import get_local_storage
 from astrbot.core.maibot.config.config import global_config
 
 logger = get_logger("maibot_statistic")
@@ -189,13 +189,13 @@ class StatisticOutputTask(AsyncTask):
         """
 
         now = datetime.now()
-        if "deploy_time" in local_storage:
+        if "deploy_time" in get_local_storage():
             # 如果存在部署时间，则使用该时间作为全量统计的起始时间
-            deploy_time = datetime.fromtimestamp(local_storage["deploy_time"])  # type: ignore
+            deploy_time = datetime.fromtimestamp(get_local_storage()["deploy_time"])  # type: ignore
         else:
             # 否则，使用最大时间范围，并记录部署时间为当前时间
             deploy_time = datetime(2000, 1, 1)
-            local_storage["deploy_time"] = now.timestamp()
+            get_local_storage()["deploy_time"] = now.timestamp()
 
         self.stat_period: List[Tuple[str, timedelta, str]] = [
             ("all_time", now - deploy_time, "自部署以来"),  # 必须保留"all_time"
@@ -577,9 +577,9 @@ class StatisticOutputTask(AsyncTask):
         last_all_time_stat = None
 
         try:
-            if "last_full_statistics" in local_storage:
+            if "last_full_statistics" in get_local_storage():
                 # 如果存在上次完整统计数据，则使用该数据进行增量统计
-                last_stat: Dict[str, Any] = local_storage["last_full_statistics"]  # 上次完整统计数据 # type: ignore
+                last_stat: Dict[str, Any] = get_local_storage()["last_full_statistics"]  # 上次完整统计数据 # type: ignore
 
                 # 修复 name_mapping 数据类型不匹配问题
                 # JSON 中存储为列表，但代码期望为元组
@@ -658,7 +658,7 @@ class StatisticOutputTask(AsyncTask):
         for chat_id, (chat_name, timestamp) in self.name_mapping.items():
             json_safe_name_mapping[chat_id] = [chat_name, timestamp]
 
-        local_storage["last_full_statistics"] = {
+        get_local_storage()["last_full_statistics"] = {
             "name_mapping": json_safe_name_mapping,
             "stat_data": clean_stat_data,
             "timestamp": now.timestamp(),
@@ -1307,7 +1307,7 @@ class StatisticOutputTask(AsyncTask):
         ]
 
         tab_content_list.append(
-            _format_stat_data(stat["all_time"], "all_time", datetime.fromtimestamp(local_storage["deploy_time"]))  # type: ignore
+            _format_stat_data(stat["all_time"], "all_time", datetime.fromtimestamp(get_local_storage()["deploy_time"]))  # type: ignore
         )
 
         # 不再添加版本对比内容

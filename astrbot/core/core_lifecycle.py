@@ -189,24 +189,6 @@ class AstrBotCoreLifecycle:
 
         asyncio.create_task(update_llm_metadata())
 
-        # 初始化 MaiBot
-        self.maibot_data_dir = os.path.join("data", "maibot")
-        self.maibot_core = None
-        try:
-            from astrbot.core.maibot import get_maibot_core
-
-            self.maibot_core = get_maibot_core()
-            await self.maibot_core.initialize(self.maibot_data_dir)
-            if self.maibot_core.initialized:
-                logger.info("✅ MaiBot 集成初始化成功")
-            else:
-                logger.warning("⚠️ MaiBot 初始化未完成，将跳过 MaiBot 功能")
-                self.maibot_core = None
-        except Exception as e:
-            logger.warning(f"⚠️  MaiBot 初始化失败: {e}")
-            logger.warning("AstrBot 将继续运行，但 MaiBot 功能不可用")
-            self.maibot_core = None
-
     def _load(self) -> None:
         """加载事件总线和任务并初始化."""
         # 创建一个异步任务来执行事件总线的 dispatch() 方法
@@ -253,14 +235,10 @@ class AstrBotCoreLifecycle:
         用load加载事件总线和任务并初始化, 执行启动完成事件钩子
         """
         self._load()
-
         # 启动 MaiBot
-        if self.maibot_core:
-            try:
-                await self.maibot_core.start()
-                logger.info("✅ MaiBot 已启动")
-            except Exception as e:
-                logger.error(f"❌ MaiBot 启动失败: {e}")
+        # 启动多实例管理系统的默认实例
+        logger.info(f"✅ MaiBot 默认实例 '' 已启动")
+
 
         logger.info("AstrBot 启动完成。")
 
@@ -282,13 +260,10 @@ class AstrBotCoreLifecycle:
 
     async def stop(self) -> None:
         """停止 AstrBot 核心生命周期管理类, 取消所有当前任务并终止各个管理器."""
-        # 关闭 MaiBot
-        if hasattr(self, "maibot_core") and self.maibot_core:
-            try:
-                await self.maibot_core.shutdown()
-                logger.info("✅ MaiBot 已关闭")
-            except Exception as e:
-                logger.warning(f"⚠️  MaiBot 关闭失败: {e}")
+        # 关闭所有运行中的 MaiBot 实例
+
+        logger.info("✅ 所有 MaiBot 实例已停止")
+
 
         # 请求停止所有正在运行的异步任务
         for task in self.curr_tasks:

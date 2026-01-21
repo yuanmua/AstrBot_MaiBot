@@ -52,7 +52,14 @@ class WebUIServer:
                 "http://127.0.0.1:8001",
             ],
             allow_credentials=True,  # 允许携带 Cookie
-            allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],  # 明确指定允许的方法
+            allow_methods=[
+                "GET",
+                "POST",
+                "PUT",
+                "DELETE",
+                "PATCH",
+                "OPTIONS",
+            ],  # 明确指定允许的方法
             allow_headers=[
                 "Content-Type",
                 "Authorization",
@@ -85,29 +92,40 @@ class WebUIServer:
         mimetypes.add_type("text/css", ".css")
         mimetypes.add_type("application/json", ".json")
 
-        # 从环境变量获取静态文件目录，默认为 MaiBot 项目路径
-        static_path = os.environ.get("MAIBOT_WEBUI_DIST")
+        # 从 context 获取静态文件目录（优先级最高）
+        static_path = None
+        try:
+            from astrbot.core.maibot.config.context import get_context
+
+            context = get_context()
+            static_path = context.get_webui_dist_path()
+        except (RuntimeError, ImportError):
+            pass
+
+        # 回退到环境变量
         if not static_path:
-            # 回退到相对路径（从 MaiBot 项目目录查找）
+            static_path = os.environ.get("MAIBOT_WEBUI_DIST")
+
+        # 回退到 MAIBOT_PATH 环境变量
+        if not static_path:
             maibot_path = os.environ.get("MAIBOT_PATH")
             if maibot_path:
                 static_path = os.path.join(maibot_path, "webui", "dist")
-            else:
-                # TODO: 后续统一到 data 目录，当前先指向 MaiBot 原始路径
-                static_path = os.path.join(
-                    os.path.dirname(
-                        os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-                    ),
-                    "..",
-                    "..",
-                    "..",
-                    "MaiBot",
-                    "webui",
-                    "dist",
-                )
-                static_path = os.path.normpath(static_path)
 
-        static_path = Path(static_path) if isinstance(static_path, str) else static_path
+        # 最后回退到通过代码路径计算
+        if not static_path:
+            static_path = os.path.join(
+                os.path.dirname(
+                    os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+                ),
+                "..",
+                "..",
+                "..",
+                "MaiBot",
+                "webui",
+                "dist",
+            )
+            static_path = os.path.normpath(static_path)
 
         static_path = Path(static_path) if isinstance(static_path, str) else static_path
 
@@ -127,7 +145,9 @@ class WebUIServer:
             """服务单页应用 - 只处理非 API 请求"""
             # 如果是根路径，直接返回 index.html
             if not full_path or full_path == "/":
-                response = FileResponse(static_path / "index.html", media_type="text/html")
+                response = FileResponse(
+                    static_path / "index.html", media_type="text/html"
+                )
                 response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
                 return response
 
@@ -162,7 +182,12 @@ class WebUIServer:
             # 我们需要在CORS之前注册，这样防爬虫检查会在CORS之前执行
             self.app.add_middleware(AntiCrawlerMiddleware, mode=anti_crawler_mode)
 
-            mode_descriptions = {"false": "已禁用", "strict": "严格模式", "loose": "宽松模式", "basic": "基础模式"}
+            mode_descriptions = {
+                "false": "已禁用",
+                "strict": "严格模式",
+                "loose": "宽松模式",
+                "basic": "基础模式",
+            }
             mode_desc = mode_descriptions.get(anti_crawler_mode, "基础模式")
             logger.info(f"🛡️ 防爬虫中间件已配置: {mode_desc}")
         except Exception as e:
@@ -171,7 +196,9 @@ class WebUIServer:
     def _setup_robots_txt(self):
         """设置robots.txt路由"""
         try:
-            from astrbot.core.maibot.webui.anti_crawler import create_robots_txt_response
+            from astrbot.core.maibot.webui.anti_crawler import (
+                create_robots_txt_response,
+            )
 
             @self.app.get("/robots.txt", include_in_schema=False)
             async def robots_txt():
@@ -188,7 +215,9 @@ class WebUIServer:
             # 导入所有 WebUI 路由
             from astrbot.core.maibot.webui.routes import router as webui_router
             from astrbot.core.maibot.webui.logs_ws import router as logs_router
-            from astrbot.core.maibot.webui.knowledge_routes import router as knowledge_router
+            from astrbot.core.maibot.webui.knowledge_routes import (
+                router as knowledge_router,
+            )
 
             # 导入本地聊天室路由
             from astrbot.core.maibot.webui.chat_routes import router as chat_router
@@ -219,7 +248,9 @@ class WebUIServer:
             logger.error(error_msg)
             logger.error(f"💡 请检查是否有其他程序正在使用端口 {self.port}")
             logger.error("💡 可以在 .env 文件中修改 WEBUI_PORT 来更改 WebUI 端口")
-            logger.error(f"💡 Windows 用户可以运行: netstat -ano | findstr :{self.port}")
+            logger.error(
+                f"💡 Windows 用户可以运行: netstat -ano | findstr :{self.port}"
+            )
             logger.error(f"💡 Linux/Mac 用户可以运行: lsof -i :{self.port}")
             raise OSError(f"端口 {self.port} 已被占用，无法启动 WebUI 服务器")
 
@@ -235,7 +266,7 @@ class WebUIServer:
         logger.info("🌐 WebUI 服务器启动中...")
 
         # 根据地址类型显示正确的访问地址
-        if ':' in self.host:
+        if ":" in self.host:
             # IPv6 地址需要用方括号包裹
             logger.info(f"🌐 访问地址: http://[{self.host}]:{self.port}")
             if self.host == "::":
@@ -247,13 +278,18 @@ class WebUIServer:
             # IPv4 地址
             logger.info(f"🌐 访问地址: http://{self.host}:{self.port}")
             if self.host == "0.0.0.0":
-                logger.info(f"💡 本机访问: http://localhost:{self.port} 或 http://127.0.0.1:{self.port}")
+                logger.info(
+                    f"💡 本机访问: http://localhost:{self.port} 或 http://127.0.0.1:{self.port}"
+                )
 
         try:
             await self._server.serve()
         except OSError as e:
             # 处理端口绑定相关的错误
-            if "address already in use" in str(e).lower() or e.errno in (98, 10048):  # 98: Linux, 10048: Windows
+            if "address already in use" in str(e).lower() or e.errno in (
+                98,
+                10048,
+            ):  # 98: Linux, 10048: Windows
                 logger.error(f"❌ WebUI 服务器启动失败: 端口 {self.port} 已被占用")
                 logger.error(f"💡 请检查是否有其他程序正在使用端口 {self.port}")
                 logger.error("💡 可以在 .env 文件中修改 WEBUI_PORT 来更改 WebUI 端口")
@@ -269,7 +305,7 @@ class WebUIServer:
         import socket
 
         # 判断使用 IPv4 还是 IPv6
-        if ':' in self.host:
+        if ":" in self.host:
             # IPv6 地址
             family = socket.AF_INET6
             test_host = self.host if self.host != "::" else "::1"
@@ -303,17 +339,19 @@ class WebUIServer:
                 self._server = None
 
 
-# 全局 WebUI 服务器实例
-_webui_server = None
-
-
 def get_webui_server() -> WebUIServer:
-    """获取全局 WebUI 服务器实例"""
-    global _webui_server
-    if _webui_server is None:
-        # 从环境变量读取
-        import os
-        host = os.getenv("WEBUI_HOST", "127.0.0.1")
-        port = int(os.getenv("WEBUI_PORT", "8001"))
-        _webui_server = WebUIServer(host=host, port=port)
-    return _webui_server
+    """获取 WebUI 服务器实例（每次从 context 读取配置创建新实例）"""
+    # 从 context 读取配置
+    host = "127.0.0.1"
+    port = 8001
+    try:
+        from astrbot.core.maibot.config.context import get_context
+
+        context = get_context()
+        host = context.web_host
+        port = context.web_port
+    except RuntimeError:
+        # context 未初始化时使用默认值
+        pass
+
+    return WebUIServer(host=host, port=port)

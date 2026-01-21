@@ -4,100 +4,122 @@ MaiBot集成模块
 """
 
 import asyncio
-from typing import Optional
+import os
+from typing import Optional, Dict, Any
 
+from astrbot.core.maibot.config.context import InstanceContext, set_context, get_context
 from astrbot.core.maibot.common.logger import get_logger
 
 logger = get_logger("maibot_init")
 
 
 class MaiBotCore:
-    """MaiBot核心管理类"""
+    """MaiBot核心管理类
 
-    def __init__(self):
+    支持外部传入配置参数，实现独立启动
+    """
+
+    def __init__(
+        self,
+        instance_id: str = "default",
+        config: Optional[Dict[str, Any]] = None,
+    ):
+        """
+        初始化MaiBot核心
+
+        Args:
+            instance_id: 实例ID
+            config: 可选的配置字典，包含以下字段:
+                - data_root: 数据根目录
+                - host: 服务监听地址
+                - port: 服务端口
+                - web_host: WebUI监听地址
+                - web_port: WebUI端口
+                - enable_webui: 是否启用WebUI
+                - enable_socket: 是否启用Socket
+        """
+        self.instance_id = instance_id
+        self.config = config or {}
         self.main_system = None
         self.initialized = False
         self._schedule_task = None
 
-    async def initialize(self, data_root: str):
+    def _get_config_value(self, key: str, default: Any = None) -> Any:
+        """从配置字典获取值，优先使用传入的配置"""
+        return self.config.get(key, default)
+
+    async def initialize(self, data_root: Optional[str] = None):
         """
         初始化MaiBot
+
         Args:
             data_root: 数据根目录，例如 'data/maibot'
+                       如果在构造函数中传入 config，则此参数可省略
+
+        Raises:
+            SystemExit: 当配置文件不存在时，MaiBot 内部会调用 sys.exit(0)，
+                        此异常会传播到调用方处理
         """
         if self.initialized:
             logger.warning("MaiBot已经初始化过了")
             return
 
-        logger.info("正在初始化 MaiBot...")
+        logger.info(f"正在初始化 MaiBot (实例: {self.instance_id})...")
 
-        # 1. 加载环境变量
-        import os
+        # 1. 确定数据目录
         import shutil
-        from pathlib import Path
-        from dotenv import load_dotenv
 
-        # 确保data_root目录存在
+        # 优先使用传入的 config.data_root，其次使用参数，最后使用默认值
+        data_root = self._get_config_value("data_root", data_root) or os.path.join(
+            "data", "maibot"
+        )
         os.makedirs(data_root, exist_ok=True)
 
-        # 查找.env文件
-        env_path = Path(data_root) / ".env"
-        template_env_path = Path(__file__).parent / "template" / "template.env"
+        # 设置实例日志系统
+        # set_instance_id(self.instance_id)
 
-        if not env_path.exists():
-            if template_env_path.exists():
-                shutil.copyfile(template_env_path, env_path)
-                logger.info(f"已从模板创建 .env 文件: {env_path}")
-            else:
-                logger.warning(f"未找到 .env 模板文件: {template_env_path}")
-                # 创建默认的.env文件
-                env_path.write_text(
-                    "# MaiBot主程序配置\n"
-                    "HOST=127.0.0.1\n"
-                    "PORT=8000\n"
-                    "\n"
-                    "# WebUI 服务器配置\n"
-                    "WEBUI_HOST=127.0.0.1\n"
-                    "WEBUI_PORT=8001\n",
-                    encoding="utf-8",
-                )
-                logger.info(f"已创建默认 .env 文件: {env_path}")
+        # 2. 从配置中获取端口等参数
+        host = self._get_config_value("host", "127.0.0.1")
+        port = self._get_config_value("port", 8000)
+        web_host = self._get_config_value("web_host", "127.0.0.1")
+        web_port = self._get_config_value("web_port", 8001)
+        enable_webui = self._get_config_value("enable_webui", False)
+        enable_socket = self._get_config_value("enable_socket", False)
 
-        # 加载.env文件到环境变量
-        load_dotenv(str(env_path), override=True)
-        logger.info(
-            f"已加载环境变量: HOST={os.getenv('HOST')}, PORT={os.getenv('PORT')}"
+        # 3. 创建并设置实例上下文（所有配置通过 context 管理）
+        context = InstanceContext(
+            data_root=data_root,
+            instance_id=self.instance_id,
+            host=host,
+            port=port,
+            web_host=web_host,
+            web_port=web_port,
+            enable_webui=enable_webui,
+            enable_socket=enable_socket,
         )
+        set_context(context)
 
-        # 设置 MaiBot 路径（用于 WebUI 静态文件）
-        maiabot_project_path = os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        )
-        maiabot_project_path = os.path.join(maiabot_project_path, "MaiBot")
-        maiabot_project_path = os.path.normpath(maiabot_project_path)
-        os.environ.setdefault("MAIBOT_PATH", maiabot_project_path)
-        logger.info(f"MAIBOT_PATH: {maiabot_project_path}")
+        # 4. 设置 MaiBot 路径环境变量（用于 WebUI 静态文件）
+        os.environ.setdefault("MAIBOT_PATH", context.get_maiabot_path())
+        logger.info(f"MAIBOT_PATH: {context.get_maiabot_path()}")
 
-        # 2. 初始化路径配置
-        from astrbot.core.maibot.config.config import initialize_paths, load_configs
+        # 5. 初始化配置
+        from astrbot.core.maibot.config.config import initialize_with_context
 
-        # 设置 depends-data 目录环境变量
-        depends_data_dir = os.path.join(data_root, "depends-data")
-        os.environ.setdefault("MAIBOT_DEPENDS_DATA_DIR", depends_data_dir)
-        logger.info(f"MAIBOT_DEPENDS_DATA_DIR: {depends_data_dir}")
+        initialize_with_context(context)
 
-        initialize_paths(data_root)
-
-        # 3. 初始化数据库
+        # 6. 初始化数据库
         from astrbot.core.maibot.common.database.database import initialize_database
 
-        initialize_database(data_root)
-        logger.info(f"数据库已初始化")
+        initialize_database(context.get_database_path())
+        logger.info(f"数据库已初始化: {context.get_database_path()}")
 
-        # 4. 加载配置文件
-        load_configs()
+        # 7. 加载配置文件（可能抛出 SystemExit）
+        from astrbot.core.maibot.config.config import load_configs
 
-        # 5. 创建MainSystem实例
+        load_configs(context)
+
+        # 8. 创建 MainSystem 实例
         from astrbot.core.maibot.main import MainSystem
 
         logger.info("正在创建 MainSystem...")
@@ -107,7 +129,7 @@ class MaiBotCore:
         await self.main_system.initialize()
         logger.info("MainSystem 初始化完成")
 
-        # 6. 注册 AstrBot 平台适配器
+        # 9. 注册 AstrBot 平台适配器
         logger.info("正在注册 AstrBot 适配器...")
         await self._register_astrbot_adapter()
 
@@ -118,7 +140,10 @@ class MaiBotCore:
         """注册 AstrBot 平台适配器，拦截消息发送"""
         try:
             from astrbot.core.maibot.common.message.api import get_global_api
-            from astrbot.core.maibot_adapter.platform_adapter import get_astrbot_adapter, parse_astrbot_platform
+            from astrbot.core.maibot_adapter.platform_adapter import (
+                get_astrbot_adapter,
+                parse_astrbot_platform,
+            )
 
             # 获取 MaiBot 的消息服务器
             message_server = get_global_api()
@@ -134,18 +159,22 @@ class MaiBotCore:
                 """包装 send_message，拦截 AstrBot 平台的消息"""
                 try:
                     # 获取消息的 platform 属性
-                    platform = getattr(message.message_info, 'platform', None)
+                    platform = getattr(message.message_info, "platform", None)
 
                     # 解析是否为 AstrBot 平台（astr:{stream_id} 格式）
                     stream_id = parse_astrbot_platform(platform)
 
                     if stream_id:
                         # 使用 AstrBot 适配器处理
-                        logger.debug(f"[AstrBot 适配器] 拦截消息 -> stream_id: {stream_id[:16]}..., 内容: {getattr(message, 'processed_plain_text', '')[:50]}")
+                        logger.debug(
+                            f"[AstrBot 适配器] 拦截消息 -> stream_id: {stream_id[:16]}..., 内容: {getattr(message, 'processed_plain_text', '')[:50]}"
+                        )
                         return await astrbot_adapter.send_message(message)
-                    elif platform and platform.startswith('AstrBot'):
+                    elif platform and platform.startswith("AstrBot"):
                         # 旧格式兼容
-                        logger.debug(f"[AstrBot 适配器] 拦截消息(旧格式): {platform}, 内容: {getattr(message, 'processed_plain_text', '')[:50]}")
+                        logger.debug(
+                            f"[AstrBot 适配器] 拦截消息(旧格式): {platform}, 内容: {getattr(message, 'processed_plain_text', '')[:50]}"
+                        )
                         return await astrbot_adapter.send_message(message)
                     else:
                         # 其他平台使用原始方法
@@ -181,7 +210,7 @@ class MaiBotCore:
         if not self.initialized:
             return
 
-        logger.info("正在关闭 MaiBot...")
+        logger.info(f"正在关闭 MaiBot (实例: {self.instance_id})...")
 
         # 取消定时任务
         if self._schedule_task:
@@ -206,4 +235,57 @@ def get_maibot_core() -> MaiBotCore:
     return _maibot_core
 
 
-__all__ = ["MaiBotCore", "get_maibot_core"]
+async def create_maibot(
+    instance_id: str = "default",
+    data_root: str = "data/maibot",
+    host: str = "127.0.0.1",
+    port: int = 8000,
+    web_host: str = "127.0.0.1",
+    web_port: int = 8001,
+    enable_webui: bool = False,
+    enable_socket: bool = False,
+) -> MaiBotCore:
+    """
+    创建并初始化独立的 MaiBot 实例
+
+    这是一个便捷函数，可以直接启动一个独立的 MaiBot 实例
+
+    Args:
+        instance_id: 实例ID
+        data_root: 数据根目录
+        host: 服务监听地址
+        port: 服务端口
+        web_host: WebUI监听地址
+        web_port: WebUI端口
+        enable_webui: 是否启用WebUI
+        enable_socket: 是否启用Socket
+
+    Returns:
+        初始化完成的 MaiBotCore 实例
+
+    Example:
+        ```python
+        maibot = await create_maibot(
+            instance_id="test",
+            data_root="data/maibot",
+            port=8002,
+        )
+        await maibot.start()
+        ```
+    """
+    config = {
+        "data_root": data_root,
+        "host": host,
+        "port": port,
+        "web_host": web_host,
+        "web_port": web_port,
+        "enable_webui": enable_webui,
+        "enable_socket": enable_socket,
+    }
+
+    maibot = MaiBotCore(instance_id=instance_id, config=config)
+    await maibot.initialize()
+    return maibot
+
+
+__all__ = ["MaiBotCore", "get_maibot_core", "create_maibot"]

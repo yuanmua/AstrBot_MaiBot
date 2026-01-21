@@ -1,5 +1,10 @@
 # 使用基于时间戳的文件处理器，简单的轮转份数限制
 
+# 临时禁用 MaiBot 日志，让 AstrBot 日志系统统一处理
+# import logging
+#
+# logging.disable(logging.CRITICAL)  # 禁止所有 DEBUG/INFO/WARNING/ERROR
+
 import logging
 import json
 import threading

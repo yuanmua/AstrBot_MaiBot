@@ -4,13 +4,26 @@ WebUI Token 管理模块
 """
 
 import json
+import os
 import secrets
 from pathlib import Path
 from typing import Optional
 
 from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.maibot.config.context import get_context
 
 logger = get_logger("webui")
+
+
+def _get_webui_config_path() -> Path:
+    """获取 webui.json 配置文件路径"""
+    try:
+        context = get_context()
+        return Path(context.get_webui_config_path())
+    except RuntimeError:
+        # 如果上下文未初始化，使用默认路径
+        project_root = Path(__file__).parent.parent.parent
+        return project_root / "data" / "webui.json"
 
 
 class TokenManager:
@@ -24,9 +37,7 @@ class TokenManager:
             config_path: 配置文件路径，默认为项目根目录的 data/webui.json
         """
         if config_path is None:
-            # 获取项目根目录 (src/webui -> src -> 根目录)
-            project_root = Path(__file__).parent.parent.parent
-            config_path = project_root / "data" / "webui.json"
+            config_path = _get_webui_config_path()  # ← 修改
 
         self.config_path = config_path
         self.config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -172,8 +183,12 @@ class TokenManager:
 
         # 加载现有配置，保留 first_setup_completed 状态
         config = self._load_config()
-        old_token = config.get("access_token", "")[:8] if config.get("access_token") else "无"
-        first_setup_completed = config.get("first_setup_completed", True)  # 默认为 True，表示已完成配置
+        old_token = (
+            config.get("access_token", "")[:8] if config.get("access_token") else "无"
+        )
+        first_setup_completed = config.get(
+            "first_setup_completed", True
+        )  # 默认为 True，表示已完成配置
 
         config["access_token"] = new_token
         config["updated_at"] = self._get_current_timestamp()

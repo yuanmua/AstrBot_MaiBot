@@ -19,13 +19,52 @@ def parse_astrbot_platform(platform: str) -> Optional[str]:
     """解析 AstrBot 平台标识，返回 stream_id
 
     Args:
-        platform: 平台标识，如 "astr:{stream_id}"
+        platform: 平台标识，如 "astr:{stream_id}" 或 "astr:{instance_id}:{stream_id}"
 
     Returns:
         stream_id 字符串，如果无法解析则返回 None
     """
-    if platform and platform.startswith("astr:"):
-        return platform[5:]  # 去掉 "astr:" 前缀
+    if not platform or not platform.startswith("astr:"):
+        return None
+
+    # 移除 "astr:" 前缀
+    parts = platform[5:].split(":", 1)
+
+    # 可能的格式：
+    # 1. astr:{stream_id} - 旧格式（向后兼容）
+    # 2. astr:{instance_id}:{stream_id} - 新格式（多实例支持）
+    if len(parts) == 1:
+        # 旧格式：astr:{stream_id}
+        return parts[0]
+    elif len(parts) == 2:
+        # 新格式：astr:{instance_id}:{stream_id}
+        return parts[1]
+
+    return None
+
+
+def parse_astrbot_instance_id(platform: str) -> Optional[str]:
+    """解析 AstrBot 平台标识中的实例ID
+
+    Args:
+        platform: 平台标识，如 "astr:{stream_id}" 或 "astr:{instance_id}:{stream_id}"
+
+    Returns:
+        实例ID，如果是旧格式则返回 "default"，如果无法解析则返回 None
+    """
+    if not platform or not platform.startswith("astr:"):
+        return None
+
+    # 移除 "astr:" 前缀
+    parts = platform[5:].split(":", 1)
+
+    if len(parts) == 1:
+        # 旧格式：astr:{stream_id}，默认使用 "default" 实例
+        return "default"
+    elif len(parts) == 2:
+        # 新格式：astr:{instance_id}:{stream_id}
+        return parts[0]
+
     return None
 
 
@@ -110,3 +149,11 @@ def get_astrbot_adapter() -> AstrBotPlatformAdapter:
     if _global_adapter is None:
         _global_adapter = AstrBotPlatformAdapter()
     return _global_adapter
+
+
+__all__ = [
+    "parse_astrbot_platform",
+    "parse_astrbot_instance_id",
+    "AstrBotPlatformAdapter",
+    "get_astrbot_adapter",
+]

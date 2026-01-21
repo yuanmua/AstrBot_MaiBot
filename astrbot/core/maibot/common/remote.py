@@ -7,7 +7,7 @@ from astrbot.core.maibot.common.logger import get_logger
 from astrbot.core.maibot.common.tcp_connector import get_tcp_connector
 from astrbot.core.maibot.config.config import global_config
 from astrbot.core.maibot.manager.async_task_manager import AsyncTask
-from astrbot.core.maibot.manager.local_store_manager import local_storage
+from astrbot.core.maibot.manager.local_store_manager import get_local_storage
 
 logger = get_logger("remote")
 
@@ -23,7 +23,7 @@ class TelemetryHeartBeatTask(AsyncTask):
         self.server_url = TELEMETRY_SERVER_URL
         """遥测服务地址"""
 
-        self.client_uuid: str | None = local_storage["mmc_uuid"] if "mmc_uuid" in local_storage else None  # type: ignore
+        self.client_uuid: str | None = get_local_storage()["mmc_uuid"] if "mmc_uuid" in get_local_storage() else None  # type: ignore
         """客户端UUID"""
 
         self.info_dict = self._get_sys_info()
@@ -55,7 +55,7 @@ class TelemetryHeartBeatTask(AsyncTask):
         向服务端请求UUID（不应在已存在UUID的情况下调用，会覆盖原有的UUID）
         """
 
-        if "deploy_time" not in local_storage:
+        if "deploy_time" not in get_local_storage():
             logger.error("本地存储中缺少部署时间，无法请求UUID")
             return False
 
@@ -68,18 +68,18 @@ class TelemetryHeartBeatTask(AsyncTask):
                 async with aiohttp.ClientSession(connector=await get_tcp_connector()) as session:
                     async with session.post(
                         f"{TELEMETRY_SERVER_URL}/stat/reg_client",
-                        json={"deploy_time": local_storage["deploy_time"]},
+                        json={"deploy_time": get_local_storage()["deploy_time"]},
                         timeout=aiohttp.ClientTimeout(total=5),  # 设置超时时间为5秒
                     ) as response:
                         logger.debug(f"{TELEMETRY_SERVER_URL}/stat/reg_client")
-                        logger.debug(local_storage["deploy_time"])  # type: ignore
+                        logger.debug(get_local_storage()["deploy_time"])  # type: ignore
                         logger.debug(f"Response status: {response.status}")
 
                         if response.status == 200:
                             data = await response.json()
                             if client_id := data.get("mmc_uuid"):
                                 # 将UUID存储到本地
-                                local_storage["mmc_uuid"] = client_id
+                                get_local_storage()["mmc_uuid"] = client_id
                                 self.client_uuid = client_id
                                 logger.info(f"成功获取UUID: {self.client_uuid}")
                                 return True  # 成功获取UUID，返回True
@@ -141,7 +141,7 @@ class TelemetryHeartBeatTask(AsyncTask):
                             "处理措施：重置UUID，下次发送心跳时将尝试重新注册。"
                         )
                         self.client_uuid = None
-                        del local_storage["mmc_uuid"]  # 删除本地存储的UUID
+                        del get_local_storage()["mmc_uuid"]  # 删除本地存储的UUID
                     else:
                         # 其他错误
                         response_text = await response.text()

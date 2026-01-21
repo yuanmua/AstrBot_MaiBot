@@ -5,6 +5,7 @@
 
 import asyncio
 import json
+import os
 import time
 import re
 import difflib
@@ -16,6 +17,7 @@ from json_repair import repair_json
 from astrbot.core.maibot.common.logger import get_logger
 from astrbot.core.maibot.common.data_models.database_data_model import DatabaseMessages
 from astrbot.core.maibot.config.config import model_config
+from astrbot.core.maibot.config.context import get_context
 from astrbot.core.maibot.llm_models.utils_model import LLMRequest
 from astrbot.core.maibot.plugin_system.apis import message_api
 from astrbot.core.maibot.chat.utils.chat_message_builder import build_readable_messages
@@ -26,7 +28,18 @@ from astrbot.core.maibot.chat.utils.prompt_builder import Prompt, global_prompt_
 
 logger = get_logger("chat_history_summarizer")
 
-HIPPO_CACHE_DIR = Path(__file__).resolve().parents[2] / "data" / "hippo_memorizer"
+
+def _get_hippo_cache_dir() -> Path:
+    """获取 hippo_memorizer 缓存目录"""
+    try:
+        context = get_context()
+        return Path(context.get_instance_data_path("hippo_memorizer"))
+    except RuntimeError:
+        # 如果上下文未初始化，使用默认路径
+        return Path(__file__).resolve().parents[2] / "data" / "hippo_memorizer"
+
+
+HIPPO_CACHE_DIR = _get_hippo_cache_dir()
 
 
 def init_prompt():

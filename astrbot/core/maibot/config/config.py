@@ -10,6 +10,7 @@ from dataclasses import field, dataclass
 from rich.traceback import install
 from typing import List, Optional
 
+from .context import InstanceContext, get_context
 from astrbot.core.maibot.common.logger import get_logger
 from astrbot.core.maibot.common.toml_utils import format_toml_string
 from astrbot.core.maibot.config.config_base import ConfigBase
@@ -50,36 +51,22 @@ install(extra_lines=3)
 # 配置主程序日志格式
 logger = get_logger("config")
 
-# 全局路径变量，由外部初始化
-PROJECT_ROOT: str | None = None
-CONFIG_DIR: str | None = None
-TEMPLATE_DIR: str | None = None
-
 # 考虑到，实际上配置文件中的mai_version是不会自动更新的,所以采用硬编码
 # 对该字段的更新，请严格参照语义化版本规范：https://semver.org/lang/zh-CN/
 MMC_VERSION = "0.12.2"
 
 
-def initialize_paths(data_root: str):
+def initialize_with_context(context: InstanceContext):
     """
-    初始化MaiBot路径配置
+    使用 InstanceContext 初始化 MaiBot 路径配置
+
     Args:
-        data_root: 数据根目录，例如 'data/maibot'
+        context: 实例上下文
     """
-    global PROJECT_ROOT, CONFIG_DIR, TEMPLATE_DIR
+    # 记录日志
+    context.log_info()
 
-    PROJECT_ROOT = os.path.abspath(data_root)
-    CONFIG_DIR = os.path.join(PROJECT_ROOT, "config")
-    TEMPLATE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "template"))
-
-    # 创建必要的目录
-    os.makedirs(CONFIG_DIR, exist_ok=True)
-    os.makedirs(TEMPLATE_DIR, exist_ok=True)
-
-    logger.info(f"MaiBot路径已初始化:")
-    logger.info(f"  PROJECT_ROOT: {PROJECT_ROOT}")
-    logger.info(f"  CONFIG_DIR: {CONFIG_DIR}")
-    logger.info(f"  TEMPLATE_DIR: {TEMPLATE_DIR}")
+    logger.info(f"MaiCore当前版本: {MMC_VERSION}")
 
 
 def get_key_comment(toml_table, key):
@@ -205,22 +192,26 @@ def _update_dict(target: TOMLDocument | dict | Table, source: TOMLDocument | dic
                     target[key] = value
 
 
-def _update_config_generic(config_name: str, template_name: str):
+def _update_config_generic(config_name: str, template_name: str, config_path: str):
     """
     通用的配置文件更新函数
 
     Args:
         config_name: 配置文件名（不含扩展名），如 'bot_config' 或 'model_config'
         template_name: 模板文件名（不含扩展名），如 'bot_config_template' 或 'model_config_template'
+        config_path: 完整的配置文件路径
     """
+    # 从上下文中获取路径
+    context = get_context()
+    config_dir = context.get_config_dir()
+    template_dir = context.get_template_dir()
+
     # 获取根目录路径
-    old_config_dir = os.path.join(CONFIG_DIR, "old")
-    compare_dir = os.path.join(TEMPLATE_DIR, "compare")
+    old_config_dir = os.path.join(config_dir, "old")
+    compare_dir = os.path.join(template_dir, "compare")
 
     # 定义文件路径
-    template_path = os.path.join(TEMPLATE_DIR, f"{template_name}.toml")
-    old_config_path = os.path.join(CONFIG_DIR, f"{config_name}.toml")
-    new_config_path = os.path.join(CONFIG_DIR, f"{config_name}.toml")
+    template_path = os.path.join(template_dir, f"{template_name}.toml")
     compare_path = os.path.join(compare_dir, f"{template_name}.toml")
 
     # 创建compare目录（如果不存在）
@@ -230,11 +221,11 @@ def _update_config_generic(config_name: str, template_name: str):
     compare_version = _get_version_from_toml(compare_path)
 
     # 检查配置文件是否存在
-    if not os.path.exists(old_config_path):
+    if not os.path.exists(config_path):
         logger.info(f"{config_name}.toml配置文件不存在，从模板创建新配置")
-        os.makedirs(CONFIG_DIR, exist_ok=True)  # 创建文件夹
-        shutil.copy2(template_path, old_config_path)  # 复制模板文件
-        logger.info(f"已创建新{config_name}配置文件，请填写后重新运行: {old_config_path}")
+        os.makedirs(os.path.dirname(config_path), exist_ok=True)  # 创建文件夹
+        shutil.copy2(template_path, config_path)  # 复制模板文件
+        logger.info(f"已创建新{config_name}配置文件，请填写后重新运行: {config_path}")
         # 新创建配置文件，退出
         sys.exit(0)
 
@@ -254,7 +245,7 @@ def _update_config_generic(config_name: str, template_name: str):
     # 检查默认值变化并处理（只有 compare_config 存在时才做）
     if compare_config:
         # 读取旧配置
-        with open(old_config_path, "r", encoding="utf-8") as f:
+        with open(config_path, "r", encoding="utf-8") as f:
             old_config = tomlkit.load(f)
         logs, changes = compare_default_values(new_config, compare_config)
         if logs:
@@ -274,7 +265,7 @@ def _update_config_generic(config_name: str, template_name: str):
 
             # 如果配置有更新，立即保存到文件
             if config_updated:
-                with open(old_config_path, "w", encoding="utf-8") as f:
+                with open(config_path, "w", encoding="utf-8") as f:
                     f.write(format_toml_string(old_config))
                 logger.info(f"已保存更新后的{config_name}配置文件")
         else:
@@ -292,7 +283,7 @@ def _update_config_generic(config_name: str, template_name: str):
 
     # 读取旧配置文件和模板文件（如果前面没读过 old_config，这里再读一次）
     if old_config is None:
-        with open(old_config_path, "r", encoding="utf-8") as f:
+        with open(config_path, "r", encoding="utf-8") as f:
             old_config = tomlkit.load(f)
     # new_config 已经读取
 
@@ -316,7 +307,7 @@ def _update_config_generic(config_name: str, template_name: str):
     old_backup_path = os.path.join(old_config_dir, f"{config_name}_{timestamp}.toml")
 
     # 移动旧配置文件到old目录
-    shutil.move(old_config_path, old_backup_path)
+    shutil.move(config_path, old_backup_path)
     logger.info(f"已备份旧{config_name}配置文件到: {old_backup_path}")
 
     # 复制模板文件到配置目录
@@ -342,14 +333,14 @@ def _update_config_generic(config_name: str, template_name: str):
     logger.info(f"{config_name}配置文件更新完成，建议检查新配置文件中的内容，以免丢失重要信息")
 
 
-def update_config():
+def update_config(config_path: str):
     """更新bot_config.toml配置文件"""
-    _update_config_generic("bot_config", "bot_config_template")
+    _update_config_generic("bot_config", "bot_config_template", config_path)
 
 
-def update_model_config():
+def update_model_config(config_path: str):
     """更新model_config.toml配置文件"""
-    _update_config_generic("model_config", "model_config_template")
+    _update_config_generic("model_config", "model_config_template", config_path)
 
 
 @dataclass
@@ -481,21 +472,27 @@ global_config: Config | None = None
 model_config: APIAdapterConfig | None = None
 
 
-def load_configs():
+def load_configs(context: InstanceContext):
     """
     加载配置文件
-    必须在initialize_paths()之后调用
+
+    Args:
+        context: 实例上下文
     """
     global global_config, model_config
 
-    if CONFIG_DIR is None:
-        raise RuntimeError("必须先调用initialize_paths()初始化路径")
-
-    logger.info(f"MaiCore当前版本: {MMC_VERSION}")
-    update_config()
-    update_model_config()
-
     logger.info("正在品鉴配置文件...")
-    global_config = load_config(config_path=os.path.join(CONFIG_DIR, "bot_config.toml"))
-    model_config = api_ada_load_config(config_path=os.path.join(CONFIG_DIR, "model_config.toml"))
+
+    # 获取路径
+    config_dir = context.get_config_dir()
+    bot_config_path = context.get_instance_config_path()  # 实例独立配置
+    model_config_path = context.get_model_config_path()  # 公共模型配置
+
+    # 更新配置文件（传入正确的路径）
+    update_config(bot_config_path)
+    update_model_config(model_config_path)
+
+    # 加载配置
+    global_config = load_config(config_path=bot_config_path)
+    model_config = api_ada_load_config(config_path=model_config_path)
     logger.info("非常的新鲜，非常的美味！")

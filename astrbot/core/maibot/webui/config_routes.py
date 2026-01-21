@@ -9,8 +9,12 @@ from typing import Any, Annotated, Optional
 
 from astrbot.core.maibot.common.logger import get_logger
 from astrbot.core.maibot.webui.auth import verify_auth_token_from_cookie_or_header
-from astrbot.core.maibot.common.toml_utils import save_toml_with_format, _update_toml_doc
-from astrbot.core.maibot.config.config import Config, APIAdapterConfig, CONFIG_DIR, PROJECT_ROOT
+from astrbot.core.maibot.common.toml_utils import (
+    save_toml_with_format,
+    _update_toml_doc,
+)
+from astrbot.core.maibot.config.config import Config, APIAdapterConfig
+from astrbot.core.maibot.config.context import get_context
 from astrbot.core.maibot.config.official_configs import (
     BotConfig,
     PersonalityConfig,
@@ -41,6 +45,31 @@ from astrbot.core.maibot.webui.config_schema import ConfigSchemaGenerator
 
 logger = get_logger("webui")
 
+
+def _get_config_dir() -> str:
+    """获取配置目录路径"""
+    context = get_context()
+    return context.get_config_dir()
+
+
+def _get_bot_config_path() -> str:
+    """获取 bot_config.toml 路径（实例独立配置）"""
+    context = get_context()
+    return context.get_instance_config_path()
+
+
+def _get_project_root() -> str:
+    """获取项目根目录路径"""
+    context = get_context()
+    return context.get_project_root()
+
+
+def _get_webui_config_path() -> str:
+    """获取 webui.json 配置文件路径"""
+    context = get_context()
+    return context.get_webui_config_path()
+
+
 # 模块级别的类型别名（解决 B008 ruff 错误）
 ConfigBody = Annotated[dict[str, Any], Body()]
 SectionBody = Annotated[Any, Body()]
@@ -70,7 +99,9 @@ async def get_bot_config_schema(_auth: bool = Depends(require_auth)):
         return {"success": True, "schema": schema}
     except Exception as e:
         logger.error(f"获取配置架构失败: {e}")
-        raise HTTPException(status_code=500, detail=f"获取配置架构失败: {str(e)}") from e
+        raise HTTPException(
+            status_code=500, detail=f"获取配置架构失败: {str(e)}"
+        ) from e
 
 
 @router.get("/schema/model")
@@ -81,14 +112,18 @@ async def get_model_config_schema(_auth: bool = Depends(require_auth)):
         return {"success": True, "schema": schema}
     except Exception as e:
         logger.error(f"获取模型配置架构失败: {e}")
-        raise HTTPException(status_code=500, detail=f"获取模型配置架构失败: {str(e)}") from e
+        raise HTTPException(
+            status_code=500, detail=f"获取模型配置架构失败: {str(e)}"
+        ) from e
 
 
 # ===== 子配置架构获取接口 =====
 
 
 @router.get("/schema/section/{section_name}")
-async def get_config_section_schema(section_name: str, _auth: bool = Depends(require_auth)):
+async def get_config_section_schema(
+    section_name: str, _auth: bool = Depends(require_auth)
+):
     """
     获取指定配置节的架构
 
@@ -147,11 +182,15 @@ async def get_config_section_schema(section_name: str, _auth: bool = Depends(req
 
     try:
         config_class = section_map[section_name]
-        schema = ConfigSchemaGenerator.generate_schema(config_class, include_nested=False)
+        schema = ConfigSchemaGenerator.generate_schema(
+            config_class, include_nested=False
+        )
         return {"success": True, "schema": schema}
     except Exception as e:
         logger.error(f"获取配置节架构失败: {e}")
-        raise HTTPException(status_code=500, detail=f"获取配置节架构失败: {str(e)}") from e
+        raise HTTPException(
+            status_code=500, detail=f"获取配置节架构失败: {str(e)}"
+        ) from e
 
 
 # ===== 配置读取接口 =====
@@ -161,7 +200,7 @@ async def get_config_section_schema(section_name: str, _auth: bool = Depends(req
 async def get_bot_config(_auth: bool = Depends(require_auth)):
     """获取麦麦主程序配置"""
     try:
-        config_path = os.path.join(CONFIG_DIR, "bot_config.toml")
+        config_path = _get_bot_config_path()
         if not os.path.exists(config_path):
             raise HTTPException(status_code=404, detail="配置文件不存在")
 
@@ -173,14 +212,16 @@ async def get_bot_config(_auth: bool = Depends(require_auth)):
         raise
     except Exception as e:
         logger.error(f"读取配置文件失败: {e}")
-        raise HTTPException(status_code=500, detail=f"读取配置文件失败: {str(e)}") from e
+        raise HTTPException(
+            status_code=500, detail=f"读取配置文件失败: {str(e)}"
+        ) from e
 
 
 @router.get("/model")
 async def get_model_config(_auth: bool = Depends(require_auth)):
     """获取模型配置（包含提供商和模型任务配置）"""
     try:
-        config_path = os.path.join(CONFIG_DIR, "model_config.toml")
+        config_path = os.path.join(_get_config_dir(), "model_config.toml")
         if not os.path.exists(config_path):
             raise HTTPException(status_code=404, detail="配置文件不存在")
 
@@ -192,24 +233,30 @@ async def get_model_config(_auth: bool = Depends(require_auth)):
         raise
     except Exception as e:
         logger.error(f"读取配置文件失败: {e}")
-        raise HTTPException(status_code=500, detail=f"读取配置文件失败: {str(e)}") from e
+        raise HTTPException(
+            status_code=500, detail=f"读取配置文件失败: {str(e)}"
+        ) from e
 
 
 # ===== 配置更新接口 =====
 
 
 @router.post("/bot")
-async def update_bot_config(config_data: ConfigBody, _auth: bool = Depends(require_auth)):
+async def update_bot_config(
+    config_data: ConfigBody, _auth: bool = Depends(require_auth)
+):
     """更新麦麦主程序配置"""
     try:
         # 验证配置数据
         try:
             Config.from_dict(config_data)
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"配置数据验证失败: {str(e)}") from e
+            raise HTTPException(
+                status_code=400, detail=f"配置数据验证失败: {str(e)}"
+            ) from e
 
         # 保存配置文件（自动保留注释和格式）
-        config_path = os.path.join(CONFIG_DIR, "bot_config.toml")
+        config_path = _get_bot_config_path()
         save_toml_with_format(config_data, config_path)
 
         logger.info("麦麦主程序配置已更新")
@@ -218,21 +265,27 @@ async def update_bot_config(config_data: ConfigBody, _auth: bool = Depends(requi
         raise
     except Exception as e:
         logger.error(f"保存配置文件失败: {e}")
-        raise HTTPException(status_code=500, detail=f"保存配置文件失败: {str(e)}") from e
+        raise HTTPException(
+            status_code=500, detail=f"保存配置文件失败: {str(e)}"
+        ) from e
 
 
 @router.post("/model")
-async def update_model_config(config_data: ConfigBody, _auth: bool = Depends(require_auth)):
+async def update_model_config(
+    config_data: ConfigBody, _auth: bool = Depends(require_auth)
+):
     """更新模型配置"""
     try:
         # 验证配置数据
         try:
             APIAdapterConfig.from_dict(config_data)
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"配置数据验证失败: {str(e)}") from e
+            raise HTTPException(
+                status_code=400, detail=f"配置数据验证失败: {str(e)}"
+            ) from e
 
         # 保存配置文件（自动保留注释和格式）
-        config_path = os.path.join(CONFIG_DIR, "model_config.toml")
+        config_path = os.path.join(_get_config_dir(), "model_config.toml")
         save_toml_with_format(config_data, config_path)
 
         logger.info("模型配置已更新")
@@ -241,18 +294,22 @@ async def update_model_config(config_data: ConfigBody, _auth: bool = Depends(req
         raise
     except Exception as e:
         logger.error(f"保存配置文件失败: {e}")
-        raise HTTPException(status_code=500, detail=f"保存配置文件失败: {str(e)}") from e
+        raise HTTPException(
+            status_code=500, detail=f"保存配置文件失败: {str(e)}"
+        ) from e
 
 
 # ===== 配置节更新接口 =====
 
 
 @router.post("/bot/section/{section_name}")
-async def update_bot_config_section(section_name: str, section_data: SectionBody, _auth: bool = Depends(require_auth)):
+async def update_bot_config_section(
+    section_name: str, section_data: SectionBody, _auth: bool = Depends(require_auth)
+):
     """更新麦麦主程序配置的指定节（保留注释和格式）"""
     try:
         # 读取现有配置
-        config_path = os.path.join(CONFIG_DIR, "bot_config.toml")
+        config_path = _get_bot_config_path()
         if not os.path.exists(config_path):
             raise HTTPException(status_code=404, detail="配置文件不存在")
 
@@ -261,14 +318,18 @@ async def update_bot_config_section(section_name: str, section_data: SectionBody
 
         # 更新指定节
         if section_name not in config_data:
-            raise HTTPException(status_code=404, detail=f"配置节 '{section_name}' 不存在")
+            raise HTTPException(
+                status_code=404, detail=f"配置节 '{section_name}' 不存在"
+            )
 
         # 使用递归合并保留注释（对于字典类型）
         # 对于数组类型（如 platforms, aliases），直接替换
         if isinstance(section_data, list):
             # 列表直接替换
             config_data[section_name] = section_data
-        elif isinstance(section_data, dict) and isinstance(config_data[section_name], dict):
+        elif isinstance(section_data, dict) and isinstance(
+            config_data[section_name], dict
+        ):
             # 字典递归合并
             _update_toml_doc(config_data[section_name], section_data)
         else:
@@ -279,7 +340,9 @@ async def update_bot_config_section(section_name: str, section_data: SectionBody
         try:
             Config.from_dict(config_data)
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"配置数据验证失败: {str(e)}") from e
+            raise HTTPException(
+                status_code=400, detail=f"配置数据验证失败: {str(e)}"
+            ) from e
 
         # 保存配置（格式化数组为多行，保留注释）
         save_toml_with_format(config_data, config_path)
@@ -300,7 +363,7 @@ async def update_bot_config_section(section_name: str, section_data: SectionBody
 async def get_bot_config_raw(_auth: bool = Depends(require_auth)):
     """获取麦麦主程序配置的原始 TOML 内容"""
     try:
-        config_path = os.path.join(CONFIG_DIR, "bot_config.toml")
+        config_path = _get_bot_config_path()
         if not os.path.exists(config_path):
             raise HTTPException(status_code=404, detail="配置文件不存在")
 
@@ -312,27 +375,35 @@ async def get_bot_config_raw(_auth: bool = Depends(require_auth)):
         raise
     except Exception as e:
         logger.error(f"读取配置文件失败: {e}")
-        raise HTTPException(status_code=500, detail=f"读取配置文件失败: {str(e)}") from e
+        raise HTTPException(
+            status_code=500, detail=f"读取配置文件失败: {str(e)}"
+        ) from e
 
 
 @router.post("/bot/raw")
-async def update_bot_config_raw(raw_content: RawContentBody, _auth: bool = Depends(require_auth)):
+async def update_bot_config_raw(
+    raw_content: RawContentBody, _auth: bool = Depends(require_auth)
+):
     """更新麦麦主程序配置（直接保存原始 TOML 内容，会先验证格式）"""
     try:
         # 验证 TOML 格式
         try:
             config_data = tomlkit.loads(raw_content)
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"TOML 格式错误: {str(e)}") from e
+            raise HTTPException(
+                status_code=400, detail=f"TOML 格式错误: {str(e)}"
+            ) from e
 
         # 验证配置数据结构
         try:
             Config.from_dict(config_data)
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"配置数据验证失败: {str(e)}") from e
+            raise HTTPException(
+                status_code=400, detail=f"配置数据验证失败: {str(e)}"
+            ) from e
 
         # 保存配置文件
-        config_path = os.path.join(CONFIG_DIR, "bot_config.toml")
+        config_path = _get_bot_config_path()
         with open(config_path, "w", encoding="utf-8") as f:
             f.write(raw_content)
 
@@ -342,7 +413,9 @@ async def update_bot_config_raw(raw_content: RawContentBody, _auth: bool = Depen
         raise
     except Exception as e:
         logger.error(f"保存配置文件失败: {e}")
-        raise HTTPException(status_code=500, detail=f"保存配置文件失败: {str(e)}") from e
+        raise HTTPException(
+            status_code=500, detail=f"保存配置文件失败: {str(e)}"
+        ) from e
 
 
 @router.post("/model/section/{section_name}")
@@ -352,7 +425,7 @@ async def update_model_config_section(
     """更新模型配置的指定节（保留注释和格式）"""
     try:
         # 读取现有配置
-        config_path = os.path.join(CONFIG_DIR, "model_config.toml")
+        config_path = os.path.join(_get_config_dir(), "model_config.toml")
         if not os.path.exists(config_path):
             raise HTTPException(status_code=404, detail="配置文件不存在")
 
@@ -361,14 +434,18 @@ async def update_model_config_section(
 
         # 更新指定节
         if section_name not in config_data:
-            raise HTTPException(status_code=404, detail=f"配置节 '{section_name}' 不存在")
+            raise HTTPException(
+                status_code=404, detail=f"配置节 '{section_name}' 不存在"
+            )
 
         # 使用递归合并保留注释（对于字典类型）
         # 对于数组表（如 [[models]], [[api_providers]]），直接替换
         if isinstance(section_data, list):
             # 列表直接替换
             config_data[section_name] = section_data
-        elif isinstance(section_data, dict) and isinstance(config_data[section_name], dict):
+        elif isinstance(section_data, dict) and isinstance(
+            config_data[section_name], dict
+        ):
             # 字典递归合并
             _update_toml_doc(config_data[section_name], section_data)
         else:
@@ -382,15 +459,22 @@ async def update_model_config_section(
             logger.error(f"配置数据验证失败，详细错误: {str(e)}")
             # 特殊处理：如果是更新 api_providers，检查是否有模型引用了已删除的provider
             if section_name == "api_providers" and "api_provider" in str(e):
-                provider_names = {p.get("name") for p in section_data if isinstance(p, dict)}
+                provider_names = {
+                    p.get("name") for p in section_data if isinstance(p, dict)
+                }
                 models = config_data.get("models", [])
                 orphaned_models = [
-                    m.get("name") for m in models if isinstance(m, dict) and m.get("api_provider") not in provider_names
+                    m.get("name")
+                    for m in models
+                    if isinstance(m, dict)
+                    and m.get("api_provider") not in provider_names
                 ]
                 if orphaned_models:
                     error_msg = f"以下模型引用了已删除的提供商: {', '.join(orphaned_models)}。请先在模型管理页面删除这些模型，或重新分配它们的提供商。"
                     raise HTTPException(status_code=400, detail=error_msg) from e
-            raise HTTPException(status_code=400, detail=f"配置数据验证失败: {str(e)}") from e
+            raise HTTPException(
+                status_code=400, detail=f"配置数据验证失败: {str(e)}"
+            ) from e
 
         # 保存配置（格式化数组为多行，保留注释）
         save_toml_with_format(config_data, config_path)
@@ -417,7 +501,7 @@ def _normalize_adapter_path(path: str) -> str:
         return path
 
     # 相对路径，转换为相对于项目根目录的绝对路径
-    return os.path.normpath(os.path.join(PROJECT_ROOT, path))
+    return os.path.normpath(os.path.join(_get_project_root(), path))
 
 
 def _to_relative_path(path: str) -> str:
@@ -427,7 +511,7 @@ def _to_relative_path(path: str) -> str:
 
     try:
         # 尝试获取相对路径
-        rel_path = os.path.relpath(path, PROJECT_ROOT)
+        rel_path = os.path.relpath(path, _get_project_root())
         # 如果相对路径不是以 .. 开头（说明文件在项目目录内），则返回相对路径
         if not rel_path.startswith(".."):
             return rel_path
@@ -444,7 +528,7 @@ async def get_adapter_config_path(_auth: bool = Depends(require_auth)):
     """获取保存的适配器配置文件路径"""
     try:
         # 从 data/webui.json 读取路径偏好
-        webui_data_path = os.path.join("data", "webui.json")
+        webui_data_path = _get_webui_config_path()
         if not os.path.exists(webui_data_path):
             return {"success": True, "path": None}
 
@@ -468,14 +552,20 @@ async def get_adapter_config_path(_auth: bool = Depends(require_auth)):
             last_modified = datetime.datetime.fromtimestamp(mtime).isoformat()
             # 返回相对路径（如果可能）
             display_path = _to_relative_path(abs_path)
-            return {"success": True, "path": display_path, "lastModified": last_modified}
+            return {
+                "success": True,
+                "path": display_path,
+                "lastModified": last_modified,
+            }
         else:
             # 文件不存在，返回原路径
             return {"success": True, "path": adapter_config_path, "lastModified": None}
 
     except Exception as e:
         logger.error(f"获取适配器配置路径失败: {e}")
-        raise HTTPException(status_code=500, detail=f"获取配置路径失败: {str(e)}") from e
+        raise HTTPException(
+            status_code=500, detail=f"获取配置路径失败: {str(e)}"
+        ) from e
 
 
 @router.post("/adapter-config/path")
@@ -487,7 +577,7 @@ async def save_adapter_config_path(data: PathBody, _auth: bool = Depends(require
             raise HTTPException(status_code=400, detail="路径不能为空")
 
         # 保存到 data/webui.json
-        webui_data_path = os.path.join("data", "webui.json")
+        webui_data_path = _get_webui_config_path()
         import json
 
         # 读取现有数据
@@ -576,7 +666,9 @@ async def save_adapter_config(data: PathBody, _auth: bool = Depends(require_auth
         try:
             tomlkit.loads(content)
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"TOML 格式错误: {str(e)}") from e
+            raise HTTPException(
+                status_code=400, detail=f"TOML 格式错误: {str(e)}"
+            ) from e
 
         # 确保目录存在
         dir_path = os.path.dirname(abs_path)

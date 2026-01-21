@@ -41,18 +41,31 @@ class MaiBotProcessSubStage(Stage):
         Returns:
             如果消息被 MaiBot 处理，返回 True；否则返回 None
         """
-        # 动态检查 MaiBot 是否已初始化
+        # 动态检查 MaiBot 多实例管理器是否已初始化
+        instance_manager = None
+        message_router = None
+
         try:
-            from astrbot.core.maibot import get_maibot_core
+            # 尝试从 core_lifecycle 中获取实例管理器
+            # 注：MaiBot 已由多实例管理器接管，不再使用全局 maibot_core
+            from astrbot.core.core_lifecycle import core
 
-            maibot_core = get_maibot_core()
+            instance_manager = getattr(core, 'instance_manager', None)
+            message_router = getattr(core, 'message_router', None)
 
-            # 检查 MaiBot 核心是否存在且已初始化
-            if not maibot_core or not maibot_core.initialized:
-                logger.debug(f"[MaiBot] MaiBot 未初始化，跳过")
+            # 检查多实例管理器是否已初始化
+            if not instance_manager or not message_router:
+                logger.debug(f"[MaiBot] 多实例管理器未初始化，跳过")
                 return None
+
+            # 检查是否有运行中的实例
+            running_instances = instance_manager.get_running_instances()
+            if not running_instances:
+                logger.debug(f"[MaiBot] 没有运行中的实例，跳过")
+                return None
+
         except Exception as e:
-            logger.debug(f"[MaiBot] 无法加载 MaiBot 核心: {e}")
+            logger.debug(f"[MaiBot] 无法加载多实例管理器: {e}")
             return None
 
         # 从当前配置中读取麦麦处理开关

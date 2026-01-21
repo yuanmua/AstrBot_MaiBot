@@ -40,13 +40,15 @@ def parse_platform_accounts(platforms: list[str]) -> dict[str, str]:
     """
     result = {}
     for platform_entry in platforms:
-        if ":" in platform_entry:
+        if platform_entry and ":" in platform_entry:
             platform_name, account = platform_entry.split(":", 1)
             result[platform_name.strip()] = account.strip()
     return result
 
 
-def get_current_platform_account(platform: str, platform_accounts: dict[str, str], qq_account: str) -> str:
+def get_current_platform_account(
+    platform: str, platform_accounts: dict[str, str], qq_account: str
+) -> str:
     """根据当前平台获取对应的账号
 
     Args:
@@ -102,7 +104,9 @@ def is_bot_self(platform: str, user_id: str) -> bool:
 
     # Telegram 平台
     if platform == "telegram":
-        tg_account = platform_accounts.get("tg", "") or platform_accounts.get("telegram", "")
+        tg_account = platform_accounts.get("tg", "") or platform_accounts.get(
+            "telegram", ""
+        )
         return user_id_str == tg_account if tg_account else False
 
     # 其他平台：尝试从 platforms 配置中查找
@@ -125,7 +129,9 @@ def is_mentioned_bot_in_message(message: MessageRecv) -> tuple[bool, bool, float
     qq_account = str(getattr(global_config.bot, "qq_account", "") or "")
 
     # 获取当前平台对应的账号
-    current_account = get_current_platform_account(platform, platform_accounts, qq_account)
+    current_account = get_current_platform_account(
+        platform, platform_accounts, qq_account
+    )
 
     nickname = str(global_config.bot.nickname or "")
     alias_names = list(getattr(global_config.bot, "alias_names", []) or [])
@@ -179,21 +185,28 @@ def is_mentioned_bot_in_message(message: MessageRecv) -> tuple[bool, bool, float
                 is_mentioned = True
         else:
             # 其他平台格式: @username 或 @account
-            if re.search(rf"@{re.escape(current_account)}(\b|$)", text, flags=re.IGNORECASE):
+            if re.search(
+                rf"@{re.escape(current_account)}(\b|$)", text, flags=re.IGNORECASE
+            ):
                 is_at = True
                 is_mentioned = True
 
     # 5) 统一的回复检测逻辑
     if not is_mentioned:
         # 通用回复格式：包含 "(你)" 或 "（你）"
-        if re.search(r"\[回复 .*?\(你\)：", text) or re.search(r"\[回复 .*?（你）：", text):
+        if re.search(r"\[回复 .*?\(你\)：", text) or re.search(
+            r"\[回复 .*?（你）：", text
+        ):
             is_mentioned = True
         # ID 形式的回复检测
         elif current_account:
-            if re.search(rf"\[回复 (.+?)\({re.escape(current_account)}\)：(.+?)\]，说：", text):
+            if re.search(
+                rf"\[回复 (.+?)\({re.escape(current_account)}\)：(.+?)\]，说：", text
+            ):
                 is_mentioned = True
             elif re.search(
-                rf"\[回复<(.+?)(?=:{re.escape(current_account)}>)\:{re.escape(current_account)}>：(.+?)\]，说：", text
+                rf"\[回复<(.+?)(?=:{re.escape(current_account)}>)\:{re.escape(current_account)}>：(.+?)\]，说：",
+                text,
             ):
                 is_mentioned = True
 
@@ -203,8 +216,12 @@ def is_mentioned_bot_in_message(message: MessageRecv) -> tuple[bool, bool, float
         # 去除各种 @ 与 回复标记，避免误判
         msg_content = re.sub(r"@(.+?)（(\d+)）", "", msg_content)
         msg_content = re.sub(r"@<(.+?)(?=:(\d+))\:(\d+)>", "", msg_content)
-        msg_content = re.sub(r"\[回复 (.+?)\(((\d+)|未知id|你)\)：(.+?)\]，说：", "", msg_content)
-        msg_content = re.sub(r"\[回复<(.+?)(?=:(\d+))\:(\d+)>：(.+?)\]，说：", "", msg_content)
+        msg_content = re.sub(
+            r"\[回复 (.+?)\(((\d+)|未知id|你)\)：(.+?)\]，说：", "", msg_content
+        )
+        msg_content = re.sub(
+            r"\[回复<(.+?)(?=:(\d+))\:(\d+)>：(.+?)\]，说：", "", msg_content
+        )
         for kw in keywords:
             if kw and kw in msg_content:
                 is_mentioned = True
@@ -224,7 +241,9 @@ def is_mentioned_bot_in_message(message: MessageRecv) -> tuple[bool, bool, float
 async def get_embedding(text, request_type="embedding") -> Optional[List[float]]:
     """获取文本的embedding向量"""
     # 每次都创建新的LLMRequest实例以避免事件循环冲突
-    llm = LLMRequest(model_set=model_config.model_task_config.embedding, request_type=request_type)
+    llm = LLMRequest(
+        model_set=model_config.model_task_config.embedding, request_type=request_type
+    )
     try:
         embedding, _ = await llm.get_embedding(text)
     except Exception as e:
@@ -284,7 +303,11 @@ def split_into_sentences_w_remove_punctuation(text: str) -> list[str]:
                 inside_quote[idx] = False
             else:
                 # 只有遇到同一类引号才视为关闭
-                if ch == current_quote_char or ch in {'"', "'"} and current_quote_char in {'"', "'"}:
+                if (
+                    ch == current_quote_char
+                    or ch in {'"', "'"}
+                    and current_quote_char in {'"', "'"}
+                ):
                     in_quote = False
                     current_quote_char = ""
                 inside_quote[idx] = False
@@ -326,8 +349,12 @@ def split_into_sentences_w_remove_punctuation(text: str) -> list[str]:
                         prev_char = text[i - 1]
                         next_char = text[i + 1]
                         # 不分割数字和数字、数字和英文、英文和数字、英文和英文之间的空格
-                        prev_is_alnum = prev_char.isdigit() or is_english_letter(prev_char)
-                        next_is_alnum = next_char.isdigit() or is_english_letter(next_char)
+                        prev_is_alnum = prev_char.isdigit() or is_english_letter(
+                            prev_char
+                        )
+                        next_is_alnum = next_char.isdigit() or is_english_letter(
+                            next_char
+                        )
                         if prev_is_alnum and next_is_alnum:
                             can_split = False
 
@@ -355,7 +382,9 @@ def split_into_sentences_w_remove_punctuation(text: str) -> list[str]:
 
     # 如果分割后为空（例如，输入全是分隔符且不满足保留条件），恢复颜文字并返回
     if not segments:
-        return [text] if text else []  # 如果原始文本非空，则返回原始文本（可能只包含未被分割的字符或颜文字占位符）
+        return (
+            [text] if text else []
+        )  # 如果原始文本非空，则返回原始文本（可能只包含未被分割的字符或颜文字占位符）
 
     # 2. 概率合并
     if len_text < 12:
@@ -374,7 +403,11 @@ def split_into_sentences_w_remove_punctuation(text: str) -> list[str]:
 
         # 检查是否可以与下一段合并
         # 条件：不是最后一段，且随机数小于合并概率，且当前段有内容（避免合并空段）
-        if idx + 1 < len(segments) and random.random() < merge_probability and current_content:
+        if (
+            idx + 1 < len(segments)
+            and random.random() < merge_probability
+            and current_content
+        ):
             next_content, next_sep = segments[idx + 1]
             # 合并: (内容1 + 分隔符1 + 内容2, 分隔符2)
             # 只有当下一段也有内容时才合并文本，否则只传递分隔符
@@ -391,7 +424,9 @@ def split_into_sentences_w_remove_punctuation(text: str) -> list[str]:
             idx += 1
 
     # 提取最终的句子内容
-    final_sentences = [content for content, sep in merged_segments if content]  # 只保留有内容的段
+    final_sentences = [
+        content for content, sep in merged_segments if content
+    ]  # 只保留有内容的段
 
     # 清理可能引入的空字符串和仅包含空白的字符串
     final_sentences = [
@@ -443,7 +478,9 @@ def _get_random_default_reply() -> str:
     return random.choice(default_replies)
 
 
-def process_llm_response(text: str, enable_splitter: bool = True, enable_chinese_typo: bool = True) -> list[str]:
+def process_llm_response(
+    text: str, enable_splitter: bool = True, enable_chinese_typo: bool = True
+) -> list[str]:
     if not global_config.response_post_process.enable_response_post_process:
         return [text]
 
@@ -488,7 +525,9 @@ def process_llm_response(text: str, enable_splitter: bool = True, enable_chinese
     sentences: List[str] = []
     for sentence in split_sentences:
         if global_config.chinese_typo.enable and enable_chinese_typo:
-            typoed_text, typo_corrections = typo_generator.create_typo_sentence(sentence)
+            typoed_text, typo_corrections = typo_generator.create_typo_sentence(
+                sentence
+            )
             if typo_corrections:
                 # 50%概率新增正确字/词，50%概率用正确分句替换错别字分句
                 if random.random() < 0.5:
@@ -643,7 +682,9 @@ def get_western_ratio(paragraph):
     return western_count / len(alnum_chars)
 
 
-def translate_timestamp_to_human_readable(timestamp: float, mode: str = "normal") -> str:
+def translate_timestamp_to_human_readable(
+    timestamp: float, mode: str = "normal"
+) -> str:
     # sourcery skip: merge-comparisons, merge-duplicate-blocks, switch
     """将时间戳转换为人类可读的时间格式
 
@@ -679,7 +720,9 @@ def translate_timestamp_to_human_readable(timestamp: float, mode: str = "normal"
         return time.strftime("%H:%M:%S", time.localtime(timestamp))
 
 
-def get_chat_type_and_target_info(chat_id: str) -> Tuple[bool, Optional["TargetPersonInfo"]]:
+def get_chat_type_and_target_info(
+    chat_id: str,
+) -> Tuple[bool, Optional["TargetPersonInfo"]]:
     """
     获取聊天类型（是否群聊）和私聊对象信息。
 
@@ -706,7 +749,9 @@ def get_chat_type_and_target_info(chat_id: str) -> Tuple[bool, Optional["TargetP
                 platform: str = chat_stream.platform
                 user_id: str = user_info.user_id  # type: ignore
 
-                from astrbot.core.maibot.common.data_models.info_data_model import TargetPersonInfo  # 解决循环导入问题
+                from astrbot.core.maibot.common.data_models.info_data_model import (
+                    TargetPersonInfo,
+                )  # 解决循环导入问题
 
                 # Initialize target_info with basic info
                 target_info = TargetPersonInfo(
@@ -772,12 +817,16 @@ def record_replyer_action_temp(chat_id: str, reason: str, think_level: int) -> N
         with open(filepath, "w", encoding="utf-8") as f:
             json.dump(record_data, f, ensure_ascii=False, indent=2)
 
-        logger.debug(f"已记录replyer动作选择: chat_id={chat_id}, think_level={think_level}")
+        logger.debug(
+            f"已记录replyer动作选择: chat_id={chat_id}, think_level={think_level}"
+        )
     except Exception as e:
         logger.warning(f"记录replyer动作选择失败: {e}")
 
 
-def assign_message_ids(messages: List[DatabaseMessages]) -> List[Tuple[str, DatabaseMessages]]:
+def assign_message_ids(
+    messages: List[DatabaseMessages],
+) -> List[Tuple[str, DatabaseMessages]]:
     """
     为消息列表中的每个消息分配唯一的简短随机ID
 
@@ -869,7 +918,9 @@ def parse_keywords_string(keywords_input) -> list[str]:
 
     for separator in separators:
         if separator in keywords_str:
-            keywords_list = [k.strip() for k in keywords_str.split(separator) if k.strip()]
+            keywords_list = [
+                k.strip() for k in keywords_str.split(separator) if k.strip()
+            ]
             if len(keywords_list) > 1:  # 确保分割有效
                 return keywords_list
 

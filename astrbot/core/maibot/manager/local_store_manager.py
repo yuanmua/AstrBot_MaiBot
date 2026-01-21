@@ -2,8 +2,7 @@ import json
 import os
 
 from astrbot.core.maibot.common.logger import get_logger
-
-LOCAL_STORE_FILE_PATH = "data/local_store.json"
+from astrbot.core.maibot.config.context import get_context
 
 logger = get_logger("local_storage")
 
@@ -16,7 +15,11 @@ class LocalStoreManager:
     """本地存储数据"""
 
     def __init__(self, local_store_path: str | None = None):
-        self.file_path = local_store_path or LOCAL_STORE_FILE_PATH
+        # 如果未指定路径，从 context 获取
+        if local_store_path is None:
+            context = get_context()
+            local_store_path = context.get_local_store_path()
+        self.file_path = local_store_path
         self.store = {}
         self.load_local_store()
 
@@ -72,4 +75,13 @@ class LocalStoreManager:
             json.dump(self.store, f, ensure_ascii=False, indent=4)
 
 
-local_storage = LocalStoreManager("data/local_store.json")  # 全局单例化
+# 全局单例，延迟初始化（在 context 初始化后使用）
+local_storage: LocalStoreManager | None = None
+
+
+def get_local_storage() -> LocalStoreManager:
+    """获取本地存储管理器实例（延迟初始化）"""
+    global local_storage
+    if local_storage is None:
+        local_storage = LocalStoreManager()
+    return local_storage

@@ -92,12 +92,18 @@ class Server:
         return self.app
 
 
-global_server = None
-
-
 def get_global_server() -> Server:
-    """获取全局服务器实例"""
-    global global_server
-    if global_server is None:
-        global_server = Server(host=os.environ["HOST"], port=int(os.environ["PORT"]))
-    return global_server
+    """获取服务器实例（每次从 context 读取配置创建新实例）"""
+    host = "127.0.0.1"
+    port = 8080
+
+    try:
+        from astrbot.core.maibot.config.context import get_context
+        context = get_context()
+        host = context.host
+        port = context.port
+    except RuntimeError:
+        # context 未初始化时使用默认值
+        pass
+
+    return Server(host=host, port=port)
