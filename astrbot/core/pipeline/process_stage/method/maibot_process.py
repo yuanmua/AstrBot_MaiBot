@@ -1,20 +1,24 @@
 """
 MaiBot 处理子阶段
-负责将消息路由到 MaiBot 进行处理
+负责将消息路由到 MaiBot 进行处理（IPC 模式）
 
 工作流程：
-1. 生成 stream_id 并将 AstrMessageEvent 存入适配器（按 stream_id 索引）
-2. 调用 MaiBot 的 message_process 触发消息处理
-3. MaiBot 生成回复时，monkey patch 根据 stream_id 找到事件并直接发送
+1. 主进程将消息通过 IPC 发送给子进程
+2. 子进程中的 MaiBot 处理消息并生成回复
+3. 子进程将回复返回给主进程
+4. 主进程通过适配器发送回复
 """
 
+import asyncio
 import hashlib
-from typing import Optional
+import time
+from typing import Dict, Optional
 
 from astrbot.api import logger
 from astrbot.core.platform.astr_message_event import AstrMessageEvent
 from astrbot.core.pipeline.context import PipelineContext
 from astrbot.core.pipeline.stage import Stage
+from astrbot.core.maibot_adapter.response_converter import convert_maibot_to_astrbot
 
 
 def _generate_stream_id(platform: str, user_id: str, group_id: Optional[str] = None) -> str:
@@ -28,7 +32,12 @@ def _generate_stream_id(platform: str, user_id: str, group_id: Optional[str] = N
 
 
 class MaiBotProcessSubStage(Stage):
-    """MaiBot 消息处理子阶段"""
+    """MaiBot 消息处理子阶段（IPC 模式）"""
+
+    def __init__(self):
+        super().__init__()
+        self.maibot_manager = None
+        self.adapter = None
 
     async def initialize(self, ctx: PipelineContext) -> None:
         self.ctx = ctx
@@ -36,55 +45,50 @@ class MaiBotProcessSubStage(Stage):
 
     async def process(self, event: AstrMessageEvent) -> Optional[bool]:
         """
-        处理消息事件，如果开启了麦麦处理，则路由到 MaiBot
+        处理消息事件，如果开启了麦麦处理，则路由到 MaiBot（IPC 模式）
 
         Returns:
             如果消息被 MaiBot 处理，返回 True；否则返回 None
         """
-        # 动态检查 MaiBot 多实例管理器是否已初始化
-        instance_manager = None
-        message_router = None
-
-        try:
-            # 尝试从 core_lifecycle 中获取实例管理器
-            # 注：MaiBot 已由多实例管理器接管，不再使用全局 maibot_core
-            from astrbot.core.core_lifecycle import core
-
-            instance_manager = getattr(core, 'instance_manager', None)
-            message_router = getattr(core, 'message_router', None)
-
-            # 检查多实例管理器是否已初始化
-            if not instance_manager or not message_router:
-                logger.debug(f"[MaiBot] 多实例管理器未初始化，跳过")
-                return None
-
-            # 检查是否有运行中的实例
-            running_instances = instance_manager.get_running_instances()
-            if not running_instances:
-                logger.debug(f"[MaiBot] 没有运行中的实例，跳过")
-                return None
-
-        except Exception as e:
-            logger.debug(f"[MaiBot] 无法加载多实例管理器: {e}")
-            return None
-
         # 从当前配置中读取麦麦处理开关
         maibot_settings = self.config.get("maibot_processing", {})
         enable_flag = maibot_settings.get("enable", False)
 
         if not enable_flag:
-            logger.debug(f"[MaiBot] 麦麦处理未启用，继续 AstrBot 流水线")
+            logger.debug(f"[MaiBot][IPC] 麦麦处理未启用，继续 AstrBot 流水线")
             return None
 
-        logger.info(f"[MaiBot] 开始处理: {event.message_str[:100]}")
+        # 动态检查 MaiBot 多实例管理器是否已初始化
+        try:
+            from astrbot.core.maibot_instance.maibot_instance import get_instance_manager
+            from astrbot.core.maibot_adapter.platform_adapter import get_astrbot_adapter
+
+            self.maibot_manager = get_instance_manager()
+            self.adapter = get_astrbot_adapter()
+
+            if not self.maibot_manager:
+                logger.debug(f"[MaiBot][IPC] MaiBot 管理器未初始化，跳过")
+                return None
+
+            if not self.adapter:
+                logger.debug(f"[MaiBot][IPC] AstrBot 适配器未初始化，跳过")
+                return None
+
+            # 检查是否有运行中的实例
+            running_instances = self.maibot_manager.get_running_instances()
+            if not running_instances:
+                logger.debug(f"[MaiBot][IPC] 没有运行中的实例，跳过")
+                return None
+
+        except Exception as e:
+            logger.debug(f"[MaiBot][IPC] 无法加载 MaiBot 管理器: {e}")
+            return None
+
+        logger.info(f"[MaiBot][IPC] 开始处理: {event.message_str[:100]}")
 
         try:
-            # 获取适配器和转换器
-            from astrbot.core.maibot_adapter.platform_adapter import get_astrbot_adapter
+            # 获取转换器
             from astrbot.core.maibot_adapter import convert_astrbot_to_maibot
-            from astrbot.core.maibot.chat.message_receive.bot import chat_bot
-
-            adapter = get_astrbot_adapter()
 
             # 生成 stream_id（与 MaiBot 算法一致）
             message_obj = event.message_obj
@@ -94,39 +98,99 @@ class MaiBotProcessSubStage(Stage):
             group_id = str(message_obj.group.group_id) if message_obj.group else None
             stream_id = _generate_stream_id(real_platform, user_id, group_id)
 
-            # 步骤1：将当前事件存入适配器（按 stream_id 索引）
-            adapter.set_event(stream_id, event)
-            logger.debug(f"[MaiBot] 已设置事件: stream_id={stream_id[:16]}...")
-
-            # 转换消息格式（使用 stream_id 作为 platform 标识）
+            # 转换消息格式（会添加实例ID到 platform）
             maibot_message_data = convert_astrbot_to_maibot(event)
 
-            # 验证 stream_id 是否正确生成
+            # 从转换后的消息中提取 platform（包含实例ID）
             message_info = maibot_message_data.get("message_info", {})
-            logger.debug(f"[MaiBot] message_info.platform: {message_info.get('platform', 'N/A')}")
+            platform = message_info.get("platform", "")
+            chat_id = message_info.get("chat_id", "")
 
-            # 步骤2：调用 MaiBot 处理消息
-            # 注意：message_process 不会等待回复生成，回复在后台循环中异步生成
-            # 当 MaiBot 生成回复并调用 send_message 时，monkey patch 会根据 stream_id 找到事件并直接发送
-            await chat_bot.message_process(maibot_message_data)
-            logger.debug(f"[MaiBot] message_process 完成")
+            logger.debug(f"[MaiBot][IPC] platform={platform}, chat_id={chat_id[:50]}...")
 
-            # 注意：不要在这里清除事件！
-            # MaiBot 生成回复时会在 monkey patch 中自动清除事件
+            # 解析实例ID
+            from astrbot.core.maibot_adapter.platform_adapter import parse_astrbot_instance_id
+            instance_id = parse_astrbot_instance_id(platform) or "default"
 
-            # 停止事件传播（MaiBot 已经处理）
-            event.stop_event()
+            logger.debug(f"[MaiBot][IPC] 路由到实例: {instance_id}")
 
-            logger.debug(f"[MaiBot] 消息处理完成")
-            return True
+            # 步骤1：将当前事件存入适配器（按 stream_id 索引）
+            self.adapter.set_event(stream_id, event)
+
+            # 步骤2：通过 IPC 队列发送消息给子进程
+            result = await self.maibot_manager.send_message(
+                instance_id=instance_id,
+                message_data=maibot_message_data,
+                stream_id=stream_id,
+                timeout=30.0,
+            )
+
+            if result.get("success"):
+                reply_result = result.get("result", {})
+                reply_status = reply_result.get("status", "")
+
+                if reply_status == "replied" and reply_result.get("reply"):
+                    # 收到子进程的回复，发送回复
+                    reply_data = reply_result["reply"]
+                    await self._send_reply(reply_data, stream_id)
+                elif reply_status == "processed":
+                    # 处理完成但没有回复（MaiBot 可能正在异步生成回复）
+                    logger.debug(f"[MaiBot][IPC] 消息已处理，无同步回复")
+                else:
+                    logger.debug(f"[MaiBot][IPC] 消息处理完成: {reply_status}")
+
+                # 停止事件传播（MaiBot 已经处理）
+                event.stop_event()
+                return True
+            else:
+                error = result.get("error", "未知错误")
+                logger.error(f"[MaiBot][IPC] 发送消息到实例 {instance_id} 失败: {error}")
+                self.adapter.remove_event(stream_id)
+                return None
 
         except Exception as e:
-            logger.error(f"[MaiBot] 处理消息失败: {e}", exc_info=True)
+            logger.error(f"[MaiBot][IPC] 处理消息失败: {e}", exc_info=True)
             # 清除事件，防止泄漏
             try:
                 if 'stream_id' in locals():
-                    adapter.remove_event(stream_id)
+                    self.adapter.remove_event(stream_id)
             except Exception:
                 pass
             # 如果 MaiBot 处理失败，继续由 AstrBot 处理
             return None
+
+    async def _send_reply(self, reply_data: Dict, stream_id: str) -> None:
+        """发送回复消息
+
+        Args:
+            reply_data: 子进程返回的回复数据
+            stream_id: 流ID
+        """
+        try:
+            message_segment = reply_data.get("message_segment")
+            processed_plain_text = reply_data.get("processed_plain_text", "")
+
+            if not message_segment:
+                logger.warning(f"[MaiBot][IPC] 回复没有消息段: stream_id={stream_id[:16]}...")
+                return
+
+            # 转换 MaiBot 消息为 AstrBot MessageChain
+            message_chain = convert_maibot_to_astrbot(message_segment)
+
+            # 获取事件并发送
+            current_event = self.adapter.get_event(stream_id)
+            if current_event:
+                await current_event.send(message_chain)
+                logger.info(
+                    f"[MaiBot][IPC] 发送回复: {processed_plain_text[:50]} -> stream_id={stream_id[:16]}..."
+                )
+                # 清除事件
+                self.adapter.remove_event(stream_id)
+            else:
+                logger.warning(
+                    f"[MaiBot][IPC] 没有找到事件: stream_id={stream_id[:16]}..."
+                )
+
+        except Exception as e:
+            logger.error(f"[MaiBot][IPC] 发送回复失败: {e}", exc_info=True)
+            self.adapter.remove_event(stream_id)

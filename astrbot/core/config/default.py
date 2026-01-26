@@ -193,6 +193,7 @@ DEFAULT_CONFIG = {
     "disable_builtin_commands": False,
     "maibot_processing": {
         "enable": False,  # 是否启用麦麦处理
+        "maibot_instance_id": "",  # 麦麦实例 ID（留空则使用默认实例）
     },
 }
 
@@ -3143,6 +3144,12 @@ CONFIG_METADATA_3 = {
                         "description": "启用麦麦处理",
                         "type": "bool",
                         "hint": "开启后，该机器人的所有消息都将由麦麦处理，不再使用 AstrBot 的插件和 LLM 流水线。",
+                    },
+                    "maibot_processing.maibot_instance_id": {
+                        "description": "选择麦麦实例",
+                        "type": "string",
+                        "hint": "选择处理该机器人消息的麦麦实例。留空则使用默认实例。",
+                        "_special": "maibot_instance_selector",
                     },
                 },
             },

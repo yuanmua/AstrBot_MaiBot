@@ -34,6 +34,9 @@
     <template v-else-if="itemMeta?._special === 'select_plugin_set'">
       <PluginSetSelector :model-value="modelValue" @update:model-value="emitUpdate" />
     </template>
+    <template v-else-if="itemMeta?._special === 'maibot_instance_selector'">
+      <MaibotInstanceSelector :model-value="modelValue" @update:model-value="emitUpdate" />
+    </template>
     <template v-else-if="itemMeta?._special === 't2i_template'">
       <T2ITemplateEditor />
     </template>
@@ -214,6 +217,7 @@ import PersonaSelector from './PersonaSelector.vue'
 import KnowledgeBaseSelector from './KnowledgeBaseSelector.vue'
 import PluginSetSelector from './PluginSetSelector.vue'
 import T2ITemplateEditor from './T2ITemplateEditor.vue'
+import MaibotInstanceSelector from './MaibotInstanceSelector.vue'
 import { useI18n, useModuleI18n } from '@/i18n/composables'
 
 const props = defineProps({

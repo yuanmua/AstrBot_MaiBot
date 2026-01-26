@@ -1,0 +1,57 @@
+{
+  "title": "MaiBot Management",
+  "subtitle": "Manage and monitor your MaiBot instances",
+  "instances": "Instances",
+  "addInstance": "Add Instance",
+  "emptyText": "No instances yet. Click the button above to create one.",
+  "operations": {
+    "start": "Start",
+    "stop": "Stop",
+    "restart": "Restart",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
+  "instanceCard": {
+    "isDefault": "Default",
+    "uptime": "Uptime",
+    "messageCount": "Messages",
+    "createdAt": "Created",
+    "port": "Port",
+    "webui": "Features"
+  },
+  "instanceDetail": {
+    "instanceName": "Instance Name",
+    "description": "Description",
+    "port": "Port",
+    "enableWebui": "Enable WebUI",
+    "enableSocket": "Enable Socket"
+  },
+  "dialog": {
+    "create": "Create Instance",
+    "edit": "Edit Instance",
+    "delete": "Delete Instance",
+    "deleteWarning": "Are you sure you want to delete this instance? This action cannot be undone.",
+    "deleteDataOption": "Also delete instance data directory",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "copyFrom": "Copy config from"
+  },
+  "logPanel": {
+    "title": "Logs",
+    "filter": "Search logs...",
+    "download": "Download Logs",
+    "clear": "Clear Logs",
+    "realtime": "Real-time",
+    "pause": "Pause",
+    "noLogs": "No logs available",
+    "clearConfirm": "Are you sure you want to clear all logs?"
+  },
+  "routing": {
+    "title": "Routing Management",
+    "defaultInstance": "Default Instance",
+    "addRule": "Add Rule",
+    "chatId": "Chat ID",
+    "instance": "Instance",
+    "noRules": "No routing rules"
+  }
+}

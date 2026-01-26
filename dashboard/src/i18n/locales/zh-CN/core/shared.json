@@ -84,5 +84,11 @@
     "confirmDeleteButton": "确认删除",
     "confirmAction": "确认操作",
     "confirmApplyMessage": "确定要保存对 '{name}' 的修改，并将其设为新的活动模板吗？"
+  },
+  "maibotInstanceSelector": {
+    "selectInstance": "选择麦麦实例",
+    "hint": "选择处理该机器人消息的麦麦实例",
+    "noInstances": "暂无可用的运行中麦麦实例",
+    "useDefault": "使用默认实例"
   }
 }

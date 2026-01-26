@@ -1,5 +1,9 @@
 """
 AstrBot 消息 → MaiBot 消息格式转换器
+
+支持多实例路由：
+- platform 格式：astr:{instance_id}:{stream_id}
+- chat_id 格式：{platform}:{user_id}:{type} (type = private/group)
 """
 
 import hashlib
@@ -30,6 +34,27 @@ def _generate_stream_id(platform: str, user_id: str, group_id: Optional[str] = N
         components = [platform, str(user_id), "private"]
     key = "_".join(components)
     return hashlib.md5(key.encode()).hexdigest()
+
+
+def _get_routing_instance_id(chat_id: str) -> str:
+    """获取消息应该路由到的实例ID
+
+    Args:
+        chat_id: 聊天ID，格式：{platform}:{user_id}:{type}
+
+    Returns:
+        实例ID，如果没有配置路由则返回 "default"
+    """
+    try:
+        from astrbot.core.maibot_adapter.platform_adapter import get_astrbot_adapter
+
+        adapter = get_astrbot_adapter()
+        if adapter and adapter.message_router:
+            return adapter.message_router.route_message(chat_id)
+    except Exception:
+        pass
+
+    return "default"
 
 
 def convert_astrbot_to_maibot(event: AstrMessageEvent) -> Dict[str, Any]:
@@ -84,21 +109,24 @@ def convert_astrbot_to_maibot(event: AstrMessageEvent) -> Dict[str, Any]:
         "data": message_segments
     }
 
-    # 5. 构建 message_info
-    # 使用 stream_id 作为平台标识（以 "astr:" 前缀区分，便于识别这是 AstrBot 转发的消息）
-    # 格式：astr:{instance_id}:{stream_id}
-    # 支持多实例路由，实例ID由消息路由器确定
-    astrbot_platform = f"astr:{stream_id}"
-
     # 添加 chat_id 用于消息路由（格式：platform:user_id:type）
+    # chat_id 必须在获取实例ID之前构建
     chat_id = f"{real_platform}:{user_id}"
     if group_id:
         chat_id += f":group"
     else:
         chat_id += ":private"
 
+    # 5. 获取路由实例ID并构建平台标识
+    # 使用 _get_routing_instance_id 从消息路由器获取实例ID
+    instance_id = _get_routing_instance_id(chat_id)
+
+    # 使用 stream_id 作为平台标识（以 "astr:" 前缀区分，便于识别这是 AstrBot 转发的消息）
+    # 格式：astr:{instance_id}:{stream_id}
+    astrbot_platform = f"astr:{instance_id}:{stream_id}"
+
     message_info = {
-        "platform": astrbot_platform,  # 使用 stream_id 作为平台标识
+        "platform": astrbot_platform,  # 使用 {instance_id}:{stream_id} 格式
         "message_id": message_obj.message_id,
         "time": message_obj.timestamp or time.time(),
         "group_info": group_info,

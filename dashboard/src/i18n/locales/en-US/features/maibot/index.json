@@ -1,0 +1,106 @@
+{
+  "title": "MaiBot Instances",
+  "subtitle": "Manage multiple independent MaiBot bot instances",
+  "instances": "Instance List",
+  "addInstance": "Create Instance",
+  "emptyText": "No instances yet, click Create Instance to add one",
+  "instance": "Instance",
+  "routing": "Routing Rules",
+  "logs": "Logs",
+  "operations": {
+    "start": "Start",
+    "stop": "Stop",
+    "restart": "Restart",
+    "edit": "Edit",
+    "delete": "Delete",
+    "copy": "Copy",
+    "refresh": "Refresh"
+  },
+  "status": {
+    "stopped": "Stopped",
+    "starting": "Starting",
+    "running": "Running",
+    "stopping": "Stopping",
+    "error": "Error",
+    "restarting": "Restarting"
+  },
+  "instanceCard": {
+    "isDefault": "Default Instance",
+    "uptime": "Uptime",
+    "messageCount": "Message Count",
+    "lastMessage": "Last Message",
+    "createdAt": "Created",
+    "port": "Port",
+    "webui": "WebUI",
+    "socket": "Socket"
+  },
+  "instanceDetail": {
+    "basicInfo": "Basic Information",
+    "personality": "Personality",
+    "chatConfig": "Chat Configuration",
+    "advanced": "Advanced Settings",
+    "instanceId": "Instance ID",
+    "instanceName": "Instance Name",
+    "description": "Description",
+    "port": "Port",
+    "enableWebui": "Enable WebUI",
+    "enableSocket": "Enable Socket",
+    "save": "Save",
+    "cancel": "Cancel",
+    "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?"
+  },
+  "logPanel": {
+    "title": "Instance Logs",
+    "logLevel": "Log Level",
+    "filter": "Search",
+    "clear": "Clear Logs",
+    "download": "Download Logs",
+    "realtime": "Real-time Logs",
+    "noLogs": "No logs",
+    "clearConfirm": "Are you sure you want to clear all logs? This action cannot be undone.",
+    "clearSuccess": "Logs cleared"
+  },
+  "routing": {
+    "title": "Message Routing Rules",
+    "defaultInstance": "Default Instance",
+    "rules": "Routing Rules",
+    "addRule": "Add Rule",
+    "noRules": "No routing rules",
+    "chatId": "Chat ID",
+    "instanceId": "Target Instance",
+    "delete": "Delete",
+    "save": "Save",
+    "ruleFormat": "Format: platform:user_id:type (e.g. qq:123456:private)"
+  },
+  "dialog": {
+    "create": "Create Instance",
+    "edit": "Edit Instance",
+    "delete": "Delete Instance",
+    "copyFrom": "Copy configuration from existing instance (optional)",
+    "deleteWarning": "Deleting an instance cannot be undone. Are you sure?",
+    "deleteDataOption": "Also delete instance data",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "close": "Close"
+  },
+  "messages": {
+    "createSuccess": "Instance created successfully!",
+    "updateSuccess": "Instance updated successfully!",
+    "deleteSuccess": "Instance deleted successfully!",
+    "startSuccess": "Instance started successfully!",
+    "stopSuccess": "Instance stopped successfully!",
+    "restartSuccess": "Instance restarted successfully!",
+    "savingConfig": "Saving configuration...",
+    "error": "Operation failed"
+  },
+  "errors": {
+    "instanceNotFound": "Instance not found",
+    "createFailed": "Failed to create instance",
+    "deleteFailed": "Failed to delete instance",
+    "startFailed": "Failed to start instance",
+    "stopFailed": "Failed to stop instance",
+    "saveFailed": "Failed to save configuration",
+    "invalidInstanceId": "Invalid instance ID",
+    "duplicateInstanceId": "Instance ID already exists"
+  }
+}

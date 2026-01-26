@@ -1,0 +1,106 @@
+{
+  "title": "麦麦实例",
+  "subtitle": "管理多个独立的麦麦机器人实例",
+  "instances": "实例列表",
+  "addInstance": "创建实例",
+  "emptyText": "暂无实例，点击 创建实例 添加",
+  "instance": "实例",
+  "routing": "路由规则",
+  "logs": "日志",
+  "operations": {
+    "start": "启动",
+    "stop": "停止",
+    "restart": "重启",
+    "edit": "编辑",
+    "delete": "删除",
+    "copy": "复制",
+    "refresh": "刷新"
+  },
+  "status": {
+    "stopped": "已停止",
+    "starting": "启动中",
+    "running": "运行中",
+    "stopping": "停止中",
+    "error": "错误",
+    "restarting": "重启中"
+  },
+  "instanceCard": {
+    "isDefault": "默认实例",
+    "uptime": "运行时长",
+    "messageCount": "消息计数",
+    "lastMessage": "最后消息",
+    "createdAt": "创建时间",
+    "port": "端口",
+    "webui": "WebUI",
+    "socket": "Socket"
+  },
+  "instanceDetail": {
+    "basicInfo": "基本信息",
+    "personality": "人格配置",
+    "chatConfig": "聊天配置",
+    "advanced": "高级设置",
+    "instanceId": "实例ID",
+    "instanceName": "实例名称",
+    "description": "描述",
+    "port": "端口",
+    "enableWebui": "启用 WebUI",
+    "enableSocket": "启用 Socket",
+    "save": "保存",
+    "cancel": "取消",
+    "unsavedChanges": "有未保存的更改，确定要离开？"
+  },
+  "logPanel": {
+    "title": "实例日志",
+    "logLevel": "日志级别",
+    "filter": "搜索",
+    "clear": "清空日志",
+    "download": "下载日志",
+    "realtime": "实时日志",
+    "noLogs": "暂无日志",
+    "clearConfirm": "确定要清空所有日志？此操作无法撤销。",
+    "clearSuccess": "日志已清空"
+  },
+  "routing": {
+    "title": "消息路由规则",
+    "defaultInstance": "默认实例",
+    "rules": "路由规则",
+    "addRule": "添加规则",
+    "noRules": "暂无路由规则",
+    "chatId": "Chat ID",
+    "instanceId": "目标实例",
+    "delete": "删除",
+    "save": "保存",
+    "ruleFormat": "格式: platform:user_id:type (如 qq:123456:private)"
+  },
+  "dialog": {
+    "create": "创建实例",
+    "edit": "编辑实例",
+    "delete": "删除实例",
+    "copyFrom": "从现有实例复制配置（可选）",
+    "deleteWarning": "删除实例将无法恢复，确定要删除？",
+    "deleteDataOption": "同时删除实例数据",
+    "confirm": "确认",
+    "cancel": "取消",
+    "close": "关闭"
+  },
+  "messages": {
+    "createSuccess": "实例创建成功！",
+    "updateSuccess": "实例更新成功！",
+    "deleteSuccess": "实例删除成功！",
+    "startSuccess": "实例启动成功！",
+    "stopSuccess": "实例停止成功！",
+    "restartSuccess": "实例重启成功！",
+    "savingConfig": "正在保存配置...",
+    "error": "操作失败"
+  },
+  "errors": {
+    "instanceNotFound": "实例不存在",
+    "createFailed": "创建实例失败",
+    "deleteFailed": "删除实例失败",
+    "startFailed": "启动实例失败",
+    "stopFailed": "停止实例失败",
+    "saveFailed": "保存配置失败",
+    "invalidInstanceId": "实例ID无效",
+    "duplicateInstanceId": "实例ID已存在"
+  }
+}

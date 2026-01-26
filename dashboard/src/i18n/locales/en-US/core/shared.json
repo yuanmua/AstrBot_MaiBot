@@ -84,5 +84,11 @@
     "confirmDeleteButton": "Confirm Delete",
     "confirmAction": "Confirm Action",
     "confirmApplyMessage": "Are you sure you want to save changes to '{name}' and set it as the active template?"
+  },
+  "maibotInstanceSelector": {
+    "selectInstance": "Select MaiBot Instance",
+    "hint": "Select the MaiBot instance to handle messages for this bot",
+    "noInstances": "No running MaiBot instances available",
+    "useDefault": "Use Default Instance"
   }
 }

@@ -1,0 +1,57 @@
+{
+  "title": "麦麦管理",
+  "subtitle": "管理和监控您的 MaiBot 实例",
+  "instances": "实例列表",
+  "addInstance": "添加实例",
+  "emptyText": "暂无实例，请点击右上角按钮创建",
+  "operations": {
+    "start": "启动",
+    "stop": "停止",
+    "restart": "重启",
+    "edit": "编辑",
+    "delete": "删除"
+  },
+  "instanceCard": {
+    "isDefault": "默认",
+    "uptime": "运行时长",
+    "messageCount": "消息数",
+    "createdAt": "创建时间",
+    "port": "端口",
+    "webui": "功能"
+  },
+  "instanceDetail": {
+    "instanceName": "实例名称",
+    "description": "描述",
+    "port": "端口",
+    "enableWebui": "启用 WebUI",
+    "enableSocket": "启用 Socket"
+  },
+  "dialog": {
+    "create": "创建实例",
+    "edit": "编辑实例",
+    "delete": "删除实例",
+    "deleteWarning": "确定要删除此实例吗？此操作不可恢复。",
+    "deleteDataOption": "同时删除实例数据目录",
+    "cancel": "取消",
+    "confirm": "确定",
+    "copyFrom": "复制配置自"
+  },
+  "logPanel": {
+    "title": "日志",
+    "filter": "搜索日志...",
+    "download": "下载日志",
+    "clear": "清空日志",
+    "realtime": "实时",
+    "pause": "暂停",
+    "noLogs": "暂无日志",
+    "clearConfirm": "确定要清空所有日志吗？"
+  },
+  "routing": {
+    "title": "路由管理",
+    "defaultInstance": "默认实例",
+    "addRule": "添加规则",
+    "chatId": "聊天 ID",
+    "instance": "实例",
+    "noRules": "暂无路由规则"
+  }
+}

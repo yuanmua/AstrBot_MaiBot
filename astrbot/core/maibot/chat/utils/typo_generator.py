@@ -54,12 +54,18 @@ class ChineseTypoGenerator:
         """
         加载或创建汉字频率字典
         """
-        # 从环境变量获取 depends-data 目录
-        depends_dir = os.environ.get("MAIBOT_DEPENDS_DATA_DIR")
-        if depends_dir:
-            cache_file = Path(depends_dir) / "char_frequency.json"
-        else:
-            cache_file = Path("depends-data/char_frequency.json")
+        # 优先使用 InstanceContext 获取缓存目录
+        try:
+            from astrbot.core.maibot.config.context import get_context
+            context = get_context()
+            cache_file = Path(context.get_cache_dir()) / "char_frequency.json"
+        except (RuntimeError, ImportError):
+            # 如果 context 未初始化，回退到环境变量或默认路径
+            depends_dir = os.environ.get("MAIBOT_DEPENDS_DATA_DIR")
+            if depends_dir:
+                cache_file = Path(depends_dir) / "char_frequency.json"
+            else:
+                cache_file = Path("depends-data/char_frequency.json")
 
         # 如果缓存文件存在，直接加载
         if cache_file.exists():

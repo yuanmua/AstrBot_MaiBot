@@ -35,6 +35,10 @@ from astrbot.core.umop_config_router import UmopConfigRouter
 from astrbot.core.updator import AstrBotUpdator
 from astrbot.core.utils.llm_metadata import update_llm_metadata
 from astrbot.core.utils.migra_helper import migra
+from astrbot.core.maibot_instance.maibot_instance import (
+    initialize_instance_manager,
+    MaibotInstanceManager,
+)
 
 from . import astrbot_config, html_renderer
 from .event_bus import EventBus
@@ -52,6 +56,7 @@ class AstrBotCoreLifecycle:
         self.log_broker = log_broker  # 初始化日志代理
         self.astrbot_config = astrbot_config  # 初始化配置
         self.db = db  # 初始化数据库
+        self.maibot_manager: Optional[MaibotInstanceManager] = None  # MaiBot 实例管理器
 
         # 设置代理
         proxy_config = self.astrbot_config.get("http_proxy", "")
@@ -189,6 +194,9 @@ class AstrBotCoreLifecycle:
 
         asyncio.create_task(update_llm_metadata())
 
+        # 初始化 MaiBot 实例管理器并自动启动所有实例
+        await self._initialize_maibot()
+
     def _load(self) -> None:
         """加载事件总线和任务并初始化."""
         # 创建一个异步任务来执行事件总线的 dispatch() 方法
@@ -261,6 +269,11 @@ class AstrBotCoreLifecycle:
     async def stop(self) -> None:
         """停止 AstrBot 核心生命周期管理类, 取消所有当前任务并终止各个管理器."""
         # 关闭所有运行中的 MaiBot 实例
+        if self.maibot_manager:
+            for instance in self.maibot_manager.get_all_instances():
+                if instance.status.value == "running":
+                    logger.info(f"正在停止 MaiBot 实例: {instance.instance_id}")
+                    await self.maibot_manager.stop_instance(instance.instance_id)
 
         logger.info("✅ 所有 MaiBot 实例已停止")
 
@@ -303,6 +316,42 @@ class AstrBotCoreLifecycle:
             name="restart",
             daemon=True,
         ).start()
+
+    async def _initialize_maibot(self) -> None:
+        """初始化 MaiBot 实例管理器并自动启动所有实例"""
+        try:
+            self.maibot_manager = await initialize_instance_manager("data/maibot")
+            logger.info(f"MaiBot 实例管理器初始化完成，共 {len(self.maibot_manager.instances)} 个实例")
+
+            # 设置实例管理器到 AstrBotPlatformAdapter（IPC 模式）
+            from astrbot.core.maibot_adapter.platform_adapter import (
+                AstrBotPlatformAdapter,
+                initialize_adapter,
+            )
+            AstrBotPlatformAdapter.set_instance_manager(self.maibot_manager)
+            AstrBotPlatformAdapter.set_ipc_mode(True)
+            # 初始化适配器
+            await initialize_adapter("data/maibot", self.maibot_manager, use_ipc_mode=True)
+
+            # 按启动顺序自动启动所有实例
+            await self._auto_start_maibot_instances()
+        except Exception as e:
+            logger.error(f"MaiBot 实例管理器初始化失败: {e}", exc_info=True)
+
+    async def _auto_start_maibot_instances(self) -> None:
+        """按启动顺序自动启动所有 MaiBot 实例"""
+        if not self.maibot_manager:
+            return
+
+        instances = list(self.maibot_manager.instances.values())
+        # 按启动顺序排序
+        instances.sort(key=lambda x: x.lifecycle.get("start_order", 0))
+
+        for instance in instances:
+            logger.info(f"自动启动 MaiBot 实例: {instance.instance_id}")
+            asyncio.create_task(self.maibot_manager.start_instance(instance.instance_id))
+            # 等待启动完成
+            await asyncio.sleep(2)
 
     def load_platform(self) -> list[asyncio.Task]:
         """加载平台实例并返回所有平台实例的异步任务列表"""

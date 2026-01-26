@@ -137,12 +137,17 @@ class MaiBotCore:
         logger.info("MaiBot 初始化完成")
 
     async def _register_astrbot_adapter(self):
-        """注册 AstrBot 平台适配器，拦截消息发送"""
+        """注册 AstrBot 平台适配器，拦截消息发送
+
+        在 IPC 模式下，拦截的消息不会被发送到主进程，
+        而是被收集并在 _handle_message 中返回给主进程
+        """
         try:
             from astrbot.core.maibot.common.message.api import get_global_api
             from astrbot.core.maibot_adapter.platform_adapter import (
                 get_astrbot_adapter,
                 parse_astrbot_platform,
+                AstrBotPlatformAdapter,
             )
 
             # 获取 MaiBot 的消息服务器
@@ -156,28 +161,59 @@ class MaiBotCore:
 
             # 创建包装函数
             async def wrapped_send_message(message):
-                """包装 send_message，拦截 AstrBot 平台的消息"""
+                """包装 send_message，拦截 AstrBot 平台的消息
+
+                在 IPC 模式下，将回复收集到适配器的_pending_replies中，
+                并调用回调函数通知主进程
+                """
                 try:
                     # 获取消息的 platform 属性
                     platform = getattr(message.message_info, "platform", None)
+                    logger.info(f"[AstrBot 适配器] send_message 被调用: platform={platform}")
 
                     # 解析是否为 AstrBot 平台（astr:{stream_id} 格式）
                     stream_id = parse_astrbot_platform(platform)
 
                     if stream_id:
-                        # 使用 AstrBot 适配器处理
-                        logger.debug(
-                            f"[AstrBot 适配器] 拦截消息 -> stream_id: {stream_id[:16]}..., 内容: {getattr(message, 'processed_plain_text', '')[:50]}"
-                        )
-                        return await astrbot_adapter.send_message(message)
+                        logger.info(f"[AstrBot 适配器] 解析到 stream_id: {stream_id[:16]}..., IPC模式: {AstrBotPlatformAdapter._use_ipc_mode}")
+                        # IPC 模式：收集回复到 pending_replies，并调用回调
+                        if AstrBotPlatformAdapter._use_ipc_mode:
+                            async with astrbot_adapter._pending_replies_lock:
+                                astrbot_adapter._pending_replies[stream_id] = message
+                            logger.debug(
+                                f"[AstrBot 适配器][IPC] 收集回复 -> stream_id: {stream_id[:16]}..."
+                            )
+                            # 调用回调函数通知主进程
+                            if AstrBotPlatformAdapter._reply_callback:
+                                try:
+                                    AstrBotPlatformAdapter._reply_callback(message, stream_id)
+                                    logger.debug(
+                                        f"[AstrBot 适配器][IPC] 已调用回复回调 -> stream_id: {stream_id[:16]}..."
+                                    )
+                                except Exception as callback_err:
+                                    logger.error(f"[AstrBot 适配器][IPC] 调用回复回调失败: {callback_err}")
+                            return True
+                        else:
+                            # TCP 模式：直接发送
+                            logger.debug(
+                                f"[AstrBot 适配器][TCP] 拦截消息 -> stream_id: {stream_id[:16]}..., 内容: {getattr(message, 'processed_plain_text', '')[:50]}"
+                            )
+                            return await astrbot_adapter.send_message(message)
                     elif platform and platform.startswith("AstrBot"):
                         # 旧格式兼容
-                        logger.debug(
-                            f"[AstrBot 适配器] 拦截消息(旧格式): {platform}, 内容: {getattr(message, 'processed_plain_text', '')[:50]}"
-                        )
-                        return await astrbot_adapter.send_message(message)
+                        logger.info(f"[AstrBot 适配器] 旧格式 AstrBot platform: {platform}")
+                        if AstrBotPlatformAdapter._use_ipc_mode:
+                            async with astrbot_adapter._pending_replies_lock:
+                                astrbot_adapter._pending_replies[stream_id] = message
+                            return True
+                        else:
+                            logger.debug(
+                                f"[AstrBot 适配器][TCP] 拦截消息(旧格式): {platform}, 内容: {getattr(message, 'processed_plain_text', '')[:50]}"
+                            )
+                            return await astrbot_adapter.send_message(message)
                     else:
                         # 其他平台使用原始方法
+                        logger.debug(f"[AstrBot 适配器] 非 AstrBot 平台，使用原始方法: {platform}")
                         return await original_send_message(message)
 
                 except Exception as e:
