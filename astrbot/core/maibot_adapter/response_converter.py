@@ -14,6 +14,7 @@ from astrbot.core.message.components import (
     Video,
     Face,
     File,
+    Reply,
 )
 
 
@@ -87,6 +88,7 @@ def _convert_seg_to_component(seg: dict):
     Returns:
         消息组件对象或 None
     """
+    print("正在消化消息到AstrBot:",seg)
     seg_type = seg.get("type")
     seg_data = seg.get("data")
 
@@ -180,8 +182,40 @@ def _convert_seg_to_component(seg: dict):
             elif "file" in seg_data:
                 return File(file=seg_data["file"])
 
+    # 回复消息 (reply)
+    elif seg_type == "reply":
+        if isinstance(seg_data, dict):
+            # 提取 reply 消息段的各项数据
+            reply_id = seg_data.get("id")
+            # 被引用的消息内容可能直接提供，也可能在 content 字段
+            reply_content = seg_data.get("content")
+            # 发送者信息
+            sender = seg_data.get("sender", {})
+            sender_id = sender.get("user_id") if isinstance(sender, dict) else None
+            sender_nickname = sender.get("nickname") if isinstance(sender, dict) else None
+            # 消息字符串（用于显示）
+            message_str = ""
+            if reply_content:
+                # 如果有内容，解析为纯文本
+                if isinstance(reply_content, list):
+                    for item in reply_content:
+                        if isinstance(item, dict) and item.get("type") == "text":
+                            message_str += item.get("data", "")
+                elif isinstance(reply_content, str):
+                    message_str = reply_content
+
+            return Reply(
+                id=reply_id,
+                sender_id=sender_id,
+                sender_nickname=sender_nickname,
+                message_str=message_str,
+            )
+        elif isinstance(seg_data, (int, str)):
+            # 简单格式：只有消息 ID
+            return Reply(id=seg_data)
+
     # 其他未识别的类型
     else:
-        return Plain(f"[不支持的消息类型: {seg_type}]")
+        return Plain(f"[消息链转换器-不支持的消息类型: {seg_type}]")
 
     return None

@@ -533,8 +533,10 @@ class MaibotInstanceManager:
                             elif msg_type == "message_reply":
                                 # 处理子进程返回的回复消息
                                 stream_id = payload.get("stream_id", "")
+                                instance_id_from_payload = payload.get("instance_id", "")
                                 reply = payload.get("reply", {})
-                                logger.info(f"[{instance_id}] 收到回复: stream_id={stream_id[:16] if stream_id else 'unknown'}...")
+                                processed_plain_text = reply.get("processed_plain_text", "") if reply else ""
+                                logger.info(f"[{instance_id}] 收到回复: stream_id={stream_id[:16] if stream_id else 'unknown'}, instance_id={instance_id_from_payload}, 内容: {processed_plain_text[:50]}...")
                                 # 将回复传递给 AstrBot 适配器发送
                                 await self._handle_instance_reply(instance_id, stream_id, reply)
                         except Exception:
@@ -590,12 +592,24 @@ class MaibotInstanceManager:
 
             adapter = get_astrbot_adapter()
 
-            # 获取原始事件
+            # 获取原始事件（可能已被删除，需要从 reply 中恢复）
             event = adapter.get_event(stream_id)
+
+            # 如果找不到事件，显示当前存在的事件列表
             if not event:
+                message_info = reply.get("message_info", {})
+                platform = message_info.get("platform", "")
+                current_events = list(adapter._events.keys()) if hasattr(adapter, "_events") else []
+
                 logger.warning(
-                    f"[{instance_id}] 未找到 stream_id={stream_id[:16] if stream_id else 'unknown'} 对应的事件"
+                    f"[{instance_id}] 未找到 stream_id={stream_id[:16] if stream_id else 'unknown'} 对应的事件，"
+                    f"当前事件列表: {current_events[:5]}... (共{len(current_events)}个)"
                 )
+
+                if platform:
+                    logger.warning(
+                        f"[{instance_id}] reply.platform={platform}"
+                    )
                 return
 
             # 从字典重建 MessageChain
@@ -657,8 +671,8 @@ class MaibotInstanceManager:
                     f"[{instance_id}] 回复中没有 message_chain: stream_id={stream_id[:16] if stream_id else 'unknown'}"
                 )
 
-            # 清理事件
-            adapter.remove_event(stream_id)
+            # 注意：不要删除事件！MaiBot 可能在同一个对话中发送多条消息
+            # 事件会在对话超时时由适配器自动清理
 
         except Exception as e:
             logger.error(f"[{instance_id}] 处理子进程回复失败: {e}", exc_info=True)
@@ -822,6 +836,7 @@ class MaibotInstanceManager:
         last_status_time = start_time
 
         while time.time() - start_time < timeout:
+            import multiprocessing
             try:
                 # 检查 output_queue 是否有结果
                 if instance.output_queue.empty():

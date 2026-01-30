@@ -36,33 +36,13 @@ def _generate_stream_id(platform: str, user_id: str, group_id: Optional[str] = N
     return hashlib.md5(key.encode()).hexdigest()
 
 
-def _get_routing_instance_id(chat_id: str) -> str:
-    """获取消息应该路由到的实例ID
-
-    Args:
-        chat_id: 聊天ID，格式：{platform}:{user_id}:{type}
-
-    Returns:
-        实例ID，如果没有配置路由则返回 "default"
-    """
-    try:
-        from astrbot.core.maibot_adapter.platform_adapter import get_astrbot_adapter
-
-        adapter = get_astrbot_adapter()
-        if adapter and adapter.message_router:
-            return adapter.message_router.route_message(chat_id)
-    except Exception:
-        pass
-
-    return "default"
-
-
-def convert_astrbot_to_maibot(event: AstrMessageEvent) -> Dict[str, Any]:
+def convert_astrbot_to_maibot(event: AstrMessageEvent, config: Optional[Dict] = None) -> Dict[str, Any]:
     """
     将 AstrBot 的 AstrMessageEvent 转换为 MaiBot 的 message_data 格式
 
     Args:
         event: AstrBot 消息事件对象
+        config: AstrBot 配置字典（可选），用于读取 maibot_instance_id
 
     Returns:
         Dict: MaiBot 期望的 message_data 字典
@@ -117,9 +97,15 @@ def convert_astrbot_to_maibot(event: AstrMessageEvent) -> Dict[str, Any]:
     else:
         chat_id += ":private"
 
-    # 5. 获取路由实例ID并构建平台标识
-    # 使用 _get_routing_instance_id 从消息路由器获取实例ID
-    instance_id = _get_routing_instance_id(chat_id)
+    # 5. 从配置获取实例ID并构建平台标识
+    # 优先从配置 maibot_processing.maibot_instance_id 读取
+    instance_id = "default"
+    if config:
+        maibot_settings = config.get("maibot_processing", {})
+        instance_id = maibot_settings.get("maibot_instance_id", "") or "default"
+
+    from astrbot import logger
+    logger.debug(f"正在转接到麦麦~: {instance_id}, chat_id={chat_id}")
 
     # 使用 stream_id 作为平台标识（以 "astr:" 前缀区分，便于识别这是 AstrBot 转发的消息）
     # 格式：astr:{instance_id}:{stream_id}
@@ -234,4 +220,4 @@ def _convert_component_to_seg(component) -> Dict[str, Any] | None:
 
     # 其他未识别的类型，转为纯文本
     else:
-        return {"type": "text", "data": f"[不支持的消息类型: {comp_type.name}]"}
+        return {"type": "text", "data": f"[消息格式转换器——不支持的消息类型: {comp_type.name}]"}

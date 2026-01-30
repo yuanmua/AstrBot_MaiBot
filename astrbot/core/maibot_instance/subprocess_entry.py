@@ -87,6 +87,7 @@ async def subprocess_main_async(
     maibot_core: Optional[MaiBotCore] = None
     running = True
     shutdown_requested = False
+    reply_monitor_task = None  # 初始化为 None，避免未定义引用
 
     # 辅助函数：发送状态到主进程
     def send_status(status: str, message: str = "", error: str = ""):
@@ -102,7 +103,7 @@ async def subprocess_main_async(
         })
 
     # 辅助函数：发送日志到主进程
-    def send_log(level: str, msg: str):
+    def send_log(level: str, msg: str, exc_info: bool = False):
         output_queue.put({
             "type": "log",
             "payload": {
@@ -133,33 +134,50 @@ async def subprocess_main_async(
             message_segment = getattr(message, "message_segment", None)
             processed_plain_text = getattr(message, "processed_plain_text", "")
 
+            # 获取 platform 包含的实例 ID
+            platform = getattr(message_info, "platform", "") if message_info else ""
+            from astrbot.core.maibot_adapter.platform_adapter import parse_astrbot_instance_id
+            instance_id = parse_astrbot_instance_id(platform) or "default"
+
+            send_log("info", f"[回调] 拦截到回复: stream_id={stream_id[:16]}..., instance_id={instance_id}, platform={platform}")
+
             # 转换消息格式
             from astrbot.core.maibot_adapter.response_converter import convert_maibot_to_astrbot
 
             # 将 MaiBot 消息段转换为 AstrBot MessageChain
             message_chain = convert_maibot_to_astrbot(message_segment)
 
+            send_log("info", f"[回调] message_chain 组件数: {len(message_chain.chain)}")
+
             # 将 MessageChain 转换为字典格式（确保可序列化跨进程传递）
             def message_chain_to_dict(chain):
                 """将 MessageChain 转换为字典"""
                 result = []
                 for comp in chain.chain:
-                    # 使用 Pydantic 的 model_dump 转换为字典
+                    # 使用组件的 toDict() 方法（更可靠）
                     try:
-                        comp_dict = comp.model_dump()
-                        # 确保有 type 字段
-                        if "type" not in comp_dict and hasattr(comp, "type"):
-                            comp_dict["type"] = str(comp.type.value) if hasattr(comp.type, "value") else str(comp.type)
+                        if hasattr(comp, "toDict") and callable(comp.toDict):
+                            comp_dict = comp.toDict()
+                        elif hasattr(comp, "model_dump") and callable(comp.model_dump):
+                            comp_dict = comp.model_dump()
+                            # 确保有 type 字段
+                            if "type" not in comp_dict and hasattr(comp, "type"):
+                                comp_dict["type"] = str(comp.type.value) if hasattr(comp.type, "value") else str(comp.type)
+                        else:
+                            # Fallback: 手动构建
+                            comp_dict = {"type": "unknown", "data": {}}
                         result.append(comp_dict)
-                    except Exception:
+                    except Exception as e:
                         # Fallback: 手动构建
+                        send_log("warning", f"[回调] 转换组件失败: {e}")
                         result.append({"type": "unknown", "data": {}})
                 return result
 
             reply_data = {
                 "message_info": {
-                    "platform": getattr(message_info, "platform", "") if message_info else "",
+                    "platform": platform,
                     "stream_id": stream_id,
+                    "instance_id": instance_id,  # 添加实例ID
                 },
                 "message_chain": {
                     "chain": message_chain_to_dict(message_chain),
@@ -171,13 +189,14 @@ async def subprocess_main_async(
                 "type": "message_reply",
                 "payload": {
                     "stream_id": stream_id,
+                    "instance_id": instance_id,  # 添加实例ID
                     "reply": reply_data,
                     "timestamp": datetime.now().isoformat(),
                 }
             })
-            send_log("info", f"发送回复到主进程: stream_id={stream_id[:16]}..., 内容: {processed_plain_text[:50]}...")
+            send_log("info", f"[回调] 已放入队列: stream_id={stream_id[:16]}..., 内容: {processed_plain_text[:50]}...")
         except Exception as e:
-            send_log("error", f"发送回复到主进程失败: {e}", exc_info=True)
+            send_log("error", f"[回调] 发送回复到主进程失败: {e}", exc_info=True)
 
     send_status("starting", "子进程启动中...")
 
@@ -190,6 +209,10 @@ async def subprocess_main_async(
     try:
         send_log("info", f"子进程启动: instance_id={instance_id}, data_root={data_root}")
         send_log("info", f"MAIBOT_PATH: {MAIBOT_PATH}")
+
+        # 清除缓存的 API 实例（确保每次都是新实例）
+        from astrbot.core.maibot.common.message.api import clear_cached_api
+        clear_cached_api()
 
         # 创建 MaiBotCore 实例
         maibot_core = MaiBotCore(instance_id=instance_id, config=config)
@@ -220,7 +243,9 @@ async def subprocess_main_async(
                 return
         except Exception as e:
             send_status("error", f"初始化失败: {e}")
-            send_log("error", f"初始化失败: {e}", exc_info=True)
+            send_log("error", f"初始化失败: {e}")
+            import traceback
+            send_log("error", traceback.format_exc())
             return
 
         # 设置 monkey patch 的回调函数（用于发送回复到主进程）
@@ -228,11 +253,9 @@ async def subprocess_main_async(
             get_astrbot_adapter,
             set_reply_callback,
         )
-        adapter = get_astrbot_adapter()
         set_reply_callback(send_reply_to_mainprocess)
 
         # 启动回复监听任务
-        reply_monitor_task = asyncio.create_task(_monitor_pending_replies(adapter, send_log, send_reply_to_mainprocess))
 
         # 消息处理函数（在 MaiBot 启动后定义，以便访问 chat_bot）
         async def _handle_message(payload: Dict[str, Any]) -> None:
@@ -314,16 +337,12 @@ async def subprocess_main_async(
 
     except Exception as e:
         send_status("error", f"子进程异常: {e}")
-        send_log("error", f"子进程异常: {e}", exc_info=True)
+        send_log("error", f"子进程异常: {e}")
+        import traceback
+        send_log("error", traceback.format_exc())
         running = False
 
     finally:
-        # 取消回复监听任务
-        reply_monitor_task.cancel()
-        try:
-            await reply_monitor_task
-        except asyncio.CancelledError:
-            pass
 
         # 关闭 MaiBot
         if maibot_core and shutdown_requested:

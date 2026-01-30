@@ -99,7 +99,7 @@ class MaiBotProcessSubStage(Stage):
             stream_id = _generate_stream_id(real_platform, user_id, group_id)
 
             # 转换消息格式（会添加实例ID到 platform）
-            maibot_message_data = convert_astrbot_to_maibot(event)
+            maibot_message_data = convert_astrbot_to_maibot(event, self.config)
 
             # 从转换后的消息中提取 platform（包含实例ID）
             message_info = maibot_message_data.get("message_info", {})
@@ -133,9 +133,12 @@ class MaiBotProcessSubStage(Stage):
                     # 收到子进程的回复，发送回复
                     reply_data = reply_result["reply"]
                     await self._send_reply(reply_data, stream_id)
+                    # 注意：不要在这里删除事件！MaiBot 可能在同一个对话中发送多条消息
+                    # 事件会在 _send_reply 中删除（但仅当找到事件时）
                 elif reply_status == "processed":
                     # 处理完成但没有回复（MaiBot 可能正在异步生成回复）
                     logger.debug(f"[MaiBot][IPC] 消息已处理，无同步回复")
+                    # 不要删除事件，等待 MaiBot 可能的异步回复
                 else:
                     logger.debug(f"[MaiBot][IPC] 消息处理完成: {reply_status}")
 
@@ -184,8 +187,8 @@ class MaiBotProcessSubStage(Stage):
                 logger.info(
                     f"[MaiBot][IPC] 发送回复: {processed_plain_text[:50]} -> stream_id={stream_id[:16]}..."
                 )
-                # 清除事件
-                self.adapter.remove_event(stream_id)
+                # 注意：不要清除事件！MaiBot 可能在同一个对话中发送多条消息
+                # 事件会在对话超时时由适配器自动清理
             else:
                 logger.warning(
                     f"[MaiBot][IPC] 没有找到事件: stream_id={stream_id[:16]}..."
@@ -193,4 +196,4 @@ class MaiBotProcessSubStage(Stage):
 
         except Exception as e:
             logger.error(f"[MaiBot][IPC] 发送回复失败: {e}", exc_info=True)
-            self.adapter.remove_event(stream_id)
+            # 即使出错也不要删除事件，让后续异步回复有机会找到事件
