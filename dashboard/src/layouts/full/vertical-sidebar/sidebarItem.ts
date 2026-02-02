@@ -49,14 +49,14 @@ const sidebarItem: menu[] = [
     to: '/maibot',
   },
   {
+    title: 'core.navigation.persona',
+    icon: 'mdi-heart',
+    to: '/persona'
+  },
+  {
     title: 'core.navigation.groups.more',
     icon: 'mdi-dots-horizontal',
     children: [
-      {
-        title: 'core.navigation.persona',
-        icon: 'mdi-heart',
-        to: '/persona'
-      },
       {
         title: 'core.navigation.conversation',
         icon: 'mdi-database',
@@ -68,6 +68,16 @@ const sidebarItem: menu[] = [
         to: '/session-management'
       },
       {
+        title: 'core.navigation.cron',
+        icon: 'mdi-clock-outline',
+        to: '/cron'
+      },
+      {
+        title: 'core.navigation.subagent',
+        icon: 'mdi-vector-link',
+        to: '/subagent'
+      },
+      {
         title: 'core.navigation.dashboard',
         icon: 'mdi-view-dashboard',
         to: '/dashboard/default'
@@ -76,6 +86,11 @@ const sidebarItem: menu[] = [
         title: 'core.navigation.console',
         icon: 'mdi-console',
         to: '/console'
+      },
+      {
+        title: 'core.navigation.trace',
+        icon: 'mdi-timeline-text-outline',
+        to: '/trace'
       },
     ]
   }

@@ -15,7 +15,9 @@ from astrbot.core.db.po import (
     CommandConfig,
     CommandConflict,
     ConversationV2,
+    CronJob,
     Persona,
+    PersonaFolder,
     PlatformMessageHistory,
     PlatformSession,
     PlatformStat,
@@ -32,6 +34,7 @@ from astrbot.core.db.po import (
 
 NOT_GIVEN = T.TypeVar("NOT_GIVEN")
 TxResult = T.TypeVar("TxResult")
+CRON_FIELD_NOT_SET = object()
 
 
 class SQLiteDatabase(BaseDatabase):
@@ -51,7 +54,42 @@ class SQLiteDatabase(BaseDatabase):
             await conn.execute(text("PRAGMA temp_store=MEMORY"))
             await conn.execute(text("PRAGMA mmap_size=134217728"))
             await conn.execute(text("PRAGMA optimize"))
+            # 确保 personas 表有 folder_id、sort_order、skills 列（前向兼容）
+            await self._ensure_persona_folder_columns(conn)
+            await self._ensure_persona_skills_column(conn)
             await conn.commit()
+
+    async def _ensure_persona_folder_columns(self, conn) -> None:
+        """确保 personas 表有 folder_id 和 sort_order 列。
+
+        这是为了支持旧版数据库的平滑升级。新版数据库通过 SQLModel
+        的 metadata.create_all 自动创建这些列。
+        """
+        result = await conn.execute(text("PRAGMA table_info(personas)"))
+        columns = {row[1] for row in result.fetchall()}
+
+        if "folder_id" not in columns:
+            await conn.execute(
+                text(
+                    "ALTER TABLE personas ADD COLUMN folder_id VARCHAR(36) DEFAULT NULL"
+                )
+            )
+        if "sort_order" not in columns:
+            await conn.execute(
+                text("ALTER TABLE personas ADD COLUMN sort_order INTEGER DEFAULT 0")
+            )
+
+    async def _ensure_persona_skills_column(self, conn) -> None:
+        """确保 personas 表有 skills 列。
+
+        这是为了支持旧版数据库的平滑升级。新版数据库通过 SQLModel
+        的 metadata.create_all 自动创建这些列。
+        """
+        result = await conn.execute(text("PRAGMA table_info(personas)"))
+        columns = {row[1] for row in result.fetchall()}
+
+        if "skills" not in columns:
+            await conn.execute(text("ALTER TABLE personas ADD COLUMN skills JSON"))
 
     # ====
     # Platform Statistics
@@ -541,6 +579,9 @@ class SQLiteDatabase(BaseDatabase):
         system_prompt,
         begin_dialogs=None,
         tools=None,
+        skills=None,
+        folder_id=None,
+        sort_order=0,
     ):
         """Insert a new persona record."""
         async with self.get_db() as session:
@@ -551,8 +592,13 @@ class SQLiteDatabase(BaseDatabase):
                     system_prompt=system_prompt,
                     begin_dialogs=begin_dialogs or [],
                     tools=tools,
+                    skills=skills,
+                    folder_id=folder_id,
+                    sort_order=sort_order,
                 )
                 session.add(new_persona)
+                await session.flush()
+                await session.refresh(new_persona)
                 return new_persona
 
     async def get_persona_by_id(self, persona_id):
@@ -577,6 +623,7 @@ class SQLiteDatabase(BaseDatabase):
         system_prompt=None,
         begin_dialogs=None,
         tools=NOT_GIVEN,
+        skills=NOT_GIVEN,
     ):
         """Update a persona's system prompt or begin dialogs."""
         async with self.get_db() as session:
@@ -590,6 +637,8 @@ class SQLiteDatabase(BaseDatabase):
                     values["begin_dialogs"] = begin_dialogs
                 if tools is not NOT_GIVEN:
                     values["tools"] = tools
+                if skills is not NOT_GIVEN:
+                    values["skills"] = skills
                 if not values:
                     return None
                 query = query.values(**values)
@@ -604,6 +653,207 @@ class SQLiteDatabase(BaseDatabase):
                 await session.execute(
                     delete(Persona).where(col(Persona.persona_id) == persona_id),
                 )
+
+    # ====
+    # Persona Folder Management
+    # ====
+
+    async def insert_persona_folder(
+        self,
+        name: str,
+        parent_id: str | None = None,
+        description: str | None = None,
+        sort_order: int = 0,
+    ) -> PersonaFolder:
+        """Insert a new persona folder."""
+        async with self.get_db() as session:
+            session: AsyncSession
+            async with session.begin():
+                new_folder = PersonaFolder(
+                    name=name,
+                    parent_id=parent_id,
+                    description=description,
+                    sort_order=sort_order,
+                )
+                session.add(new_folder)
+                await session.flush()
+                await session.refresh(new_folder)
+                return new_folder
+
+    async def get_persona_folder_by_id(self, folder_id: str) -> PersonaFolder | None:
+        """Get a persona folder by its folder_id."""
+        async with self.get_db() as session:
+            session: AsyncSession
+            query = select(PersonaFolder).where(PersonaFolder.folder_id == folder_id)
+            result = await session.execute(query)
+            return result.scalar_one_or_none()
+
+    async def get_persona_folders(
+        self, parent_id: str | None = None
+    ) -> list[PersonaFolder]:
+        """Get all persona folders, optionally filtered by parent_id.
+
+        Args:
+            parent_id: If None, returns root folders only. If specified, returns
+                       children of that folder.
+        """
+        async with self.get_db() as session:
+            session: AsyncSession
+            if parent_id is None:
+                # Get root folders (parent_id is NULL)
+                query = (
+                    select(PersonaFolder)
+                    .where(col(PersonaFolder.parent_id).is_(None))
+                    .order_by(col(PersonaFolder.sort_order), col(PersonaFolder.name))
+                )
+            else:
+                query = (
+                    select(PersonaFolder)
+                    .where(PersonaFolder.parent_id == parent_id)
+                    .order_by(col(PersonaFolder.sort_order), col(PersonaFolder.name))
+                )
+            result = await session.execute(query)
+            return list(result.scalars().all())
+
+    async def get_all_persona_folders(self) -> list[PersonaFolder]:
+        """Get all persona folders."""
+        async with self.get_db() as session:
+            session: AsyncSession
+            query = select(PersonaFolder).order_by(
+                col(PersonaFolder.sort_order), col(PersonaFolder.name)
+            )
+            result = await session.execute(query)
+            return list(result.scalars().all())
+
+    async def update_persona_folder(
+        self,
+        folder_id: str,
+        name: str | None = None,
+        parent_id: T.Any = NOT_GIVEN,
+        description: T.Any = NOT_GIVEN,
+        sort_order: int | None = None,
+    ) -> PersonaFolder | None:
+        """Update a persona folder."""
+        async with self.get_db() as session:
+            session: AsyncSession
+            async with session.begin():
+                query = update(PersonaFolder).where(
+                    col(PersonaFolder.folder_id) == folder_id
+                )
+                values: dict[str, T.Any] = {}
+                if name is not None:
+                    values["name"] = name
+                if parent_id is not NOT_GIVEN:
+                    values["parent_id"] = parent_id
+                if description is not NOT_GIVEN:
+                    values["description"] = description
+                if sort_order is not None:
+                    values["sort_order"] = sort_order
+                if not values:
+                    return None
+                query = query.values(**values)
+                await session.execute(query)
+        return await self.get_persona_folder_by_id(folder_id)
+
+    async def delete_persona_folder(self, folder_id: str) -> None:
+        """Delete a persona folder by its folder_id.
+
+        Note: This will also set folder_id to NULL for all personas in this folder,
+        moving them to the root directory.
+        """
+        async with self.get_db() as session:
+            session: AsyncSession
+            async with session.begin():
+                # Move personas to root directory
+                await session.execute(
+                    update(Persona)
+                    .where(col(Persona.folder_id) == folder_id)
+                    .values(folder_id=None)
+                )
+                # Delete the folder
+                await session.execute(
+                    delete(PersonaFolder).where(
+                        col(PersonaFolder.folder_id) == folder_id
+                    ),
+                )
+
+    async def move_persona_to_folder(
+        self, persona_id: str, folder_id: str | None
+    ) -> Persona | None:
+        """Move a persona to a folder (or root if folder_id is None)."""
+        async with self.get_db() as session:
+            session: AsyncSession
+            async with session.begin():
+                await session.execute(
+                    update(Persona)
+                    .where(col(Persona.persona_id) == persona_id)
+                    .values(folder_id=folder_id)
+                )
+        return await self.get_persona_by_id(persona_id)
+
+    async def get_personas_by_folder(
+        self, folder_id: str | None = None
+    ) -> list[Persona]:
+        """Get all personas in a specific folder.
+
+        Args:
+            folder_id: If None, returns personas in root directory.
+        """
+        async with self.get_db() as session:
+            session: AsyncSession
+            if folder_id is None:
+                query = (
+                    select(Persona)
+                    .where(col(Persona.folder_id).is_(None))
+                    .order_by(col(Persona.sort_order), col(Persona.persona_id))
+                )
+            else:
+                query = (
+                    select(Persona)
+                    .where(Persona.folder_id == folder_id)
+                    .order_by(col(Persona.sort_order), col(Persona.persona_id))
+                )
+            result = await session.execute(query)
+            return list(result.scalars().all())
+
+    async def batch_update_sort_order(
+        self,
+        items: list[dict],
+    ) -> None:
+        """Batch update sort_order for personas and/or folders.
+
+        Args:
+            items: List of dicts with keys:
+                - id: The persona_id or folder_id
+                - type: Either "persona" or "folder"
+                - sort_order: The new sort_order value
+        """
+        if not items:
+            return
+
+        async with self.get_db() as session:
+            session: AsyncSession
+            async with session.begin():
+                for item in items:
+                    item_id = item.get("id")
+                    item_type = item.get("type")
+                    sort_order = item.get("sort_order")
+
+                    if item_id is None or item_type is None or sort_order is None:
+                        continue
+
+                    if item_type == "persona":
+                        await session.execute(
+                            update(Persona)
+                            .where(col(Persona.persona_id) == item_id)
+                            .values(sort_order=sort_order)
+                        )
+                    elif item_type == "folder":
+                        await session.execute(
+                            update(PersonaFolder)
+                            .where(col(PersonaFolder.folder_id) == item_id)
+                            .values(sort_order=sort_order)
+                        )
 
     async def insert_preference_or_update(self, scope, scope_id, key, value):
         """Insert a new preference record or update if it exists."""
@@ -1328,3 +1578,121 @@ class SQLiteDatabase(BaseDatabase):
                 ),
             )
             return result.scalar_one_or_none()
+
+    # ====
+    # Cron Job Management
+    # ====
+
+    async def create_cron_job(
+        self,
+        name: str,
+        job_type: str,
+        cron_expression: str | None,
+        *,
+        timezone: str | None = None,
+        payload: dict | None = None,
+        description: str | None = None,
+        enabled: bool = True,
+        persistent: bool = True,
+        run_once: bool = False,
+        status: str | None = None,
+        job_id: str | None = None,
+    ) -> CronJob:
+        async with self.get_db() as session:
+            session: AsyncSession
+            async with session.begin():
+                job = CronJob(
+                    name=name,
+                    job_type=job_type,
+                    cron_expression=cron_expression,
+                    timezone=timezone,
+                    payload=payload or {},
+                    description=description,
+                    enabled=enabled,
+                    persistent=persistent,
+                    run_once=run_once,
+                    status=status or "scheduled",
+                )
+                if job_id:
+                    job.job_id = job_id
+                session.add(job)
+                await session.flush()
+                await session.refresh(job)
+                return job
+
+    async def update_cron_job(
+        self,
+        job_id: str,
+        *,
+        name: str | None | object = CRON_FIELD_NOT_SET,
+        cron_expression: str | None | object = CRON_FIELD_NOT_SET,
+        timezone: str | None | object = CRON_FIELD_NOT_SET,
+        payload: dict | None | object = CRON_FIELD_NOT_SET,
+        description: str | None | object = CRON_FIELD_NOT_SET,
+        enabled: bool | None | object = CRON_FIELD_NOT_SET,
+        persistent: bool | None | object = CRON_FIELD_NOT_SET,
+        run_once: bool | None | object = CRON_FIELD_NOT_SET,
+        status: str | None | object = CRON_FIELD_NOT_SET,
+        next_run_time: datetime | None | object = CRON_FIELD_NOT_SET,
+        last_run_at: datetime | None | object = CRON_FIELD_NOT_SET,
+        last_error: str | None | object = CRON_FIELD_NOT_SET,
+    ) -> CronJob | None:
+        async with self.get_db() as session:
+            session: AsyncSession
+            async with session.begin():
+                updates: dict = {}
+                for key, val in {
+                    "name": name,
+                    "cron_expression": cron_expression,
+                    "timezone": timezone,
+                    "payload": payload,
+                    "description": description,
+                    "enabled": enabled,
+                    "persistent": persistent,
+                    "run_once": run_once,
+                    "status": status,
+                    "next_run_time": next_run_time,
+                    "last_run_at": last_run_at,
+                    "last_error": last_error,
+                }.items():
+                    if val is CRON_FIELD_NOT_SET:
+                        continue
+                    updates[key] = val
+
+                stmt = (
+                    update(CronJob)
+                    .where(col(CronJob.job_id) == job_id)
+                    .values(**updates)
+                    .execution_options(synchronize_session="fetch")
+                )
+                await session.execute(stmt)
+                result = await session.execute(
+                    select(CronJob).where(col(CronJob.job_id) == job_id)
+                )
+                return result.scalar_one_or_none()
+
+    async def delete_cron_job(self, job_id: str) -> None:
+        async with self.get_db() as session:
+            session: AsyncSession
+            async with session.begin():
+                await session.execute(
+                    delete(CronJob).where(col(CronJob.job_id) == job_id)
+                )
+
+    async def get_cron_job(self, job_id: str) -> CronJob | None:
+        async with self.get_db() as session:
+            session: AsyncSession
+            result = await session.execute(
+                select(CronJob).where(col(CronJob.job_id) == job_id)
+            )
+            return result.scalar_one_or_none()
+
+    async def list_cron_jobs(self, job_type: str | None = None) -> list[CronJob]:
+        async with self.get_db() as session:
+            session: AsyncSession
+            query = select(CronJob)
+            if job_type:
+                query = query.where(col(CronJob.job_type) == job_type)
+            query = query.order_by(desc(CronJob.created_at))
+            result = await session.execute(query)
+            return list(result.scalars().all())

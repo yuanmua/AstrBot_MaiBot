@@ -86,6 +86,7 @@ class WebChatAdapter(Platform):
             name="webchat",
             description="webchat",
             id="webchat",
+            support_proactive_message=False,
         )
 
     async def send_by_session(
@@ -235,6 +236,7 @@ class WebChatAdapter(Platform):
         message_event.set_extra(
             "enable_streaming", payload.get("enable_streaming", True)
         )
+        message_event.set_extra("action_type", payload.get("action_type"))
 
         self.commit_event(message_event)
 

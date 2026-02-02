@@ -5,7 +5,7 @@ from typing import Any, TypedDict
 
 from astrbot.core.utils.astrbot_path import get_astrbot_data_path
 
-VERSION = "4.12.3"
+VERSION = "4.13.2"
 DB_PATH = os.path.join(get_astrbot_data_path(), "data_v4.db")
 
 WEBHOOK_SUPPORTED_PLATFORMS = [
@@ -91,7 +91,7 @@ DEFAULT_CONFIG = {
             "3. If there was an initial user goal, state it first and describe the current progress/status.\n"
             "4. Write the summary in the user's language.\n"
         ),
-        "llm_compress_keep_recent": 4,
+        "llm_compress_keep_recent": 6,
         "llm_compress_provider_id": "",
         "max_context_length": -1,
         "dequeue_context_length": 1,
@@ -106,12 +106,16 @@ DEFAULT_CONFIG = {
         "reachability_check": False,
         "max_agent_step": 30,
         "tool_call_timeout": 60,
+        "tool_schema_mode": "full",
         "llm_safety_mode": True,
         "safety_mode_strategy": "system_prompt",  # TODO: llm judge
         "file_extract": {
             "enable": False,
             "provider": "moonshotai",
             "moonshotai_api_key": "",
+        },
+        "proactive_capability": {
+            "add_cron_tools": True,
         },
         "sandbox": {
             "enable": False,
@@ -121,6 +125,21 @@ DEFAULT_CONFIG = {
             "shipyard_ttl": 3600,
             "shipyard_max_sessions": 10,
         },
+        "skills": {"runtime": "sandbox"},
+    },
+    # SubAgent orchestrator mode:
+    # - main_enable = False: disabled; main LLM mounts tools normally (persona selection).
+    # - main_enable = True: enabled; main LLM will include handoff tools and can optionally
+    #   remove tools that are duplicated on subagents via remove_main_duplicate_tools.
+    "subagent_orchestrator": {
+        "main_enable": False,
+        "remove_main_duplicate_tools": False,
+        "router_system_prompt": (
+            "You are a task router. Your job is to chat naturally, recognize user intent, "
+            "and delegate work to the most suitable subagent using transfer_to_* tools. "
+            "Do not try to use domain tools yourself. If no subagent fits, respond directly."
+        ),
+        "agents": [],
     },
     "provider_stt_settings": {
         "enable": False,
@@ -166,6 +185,7 @@ DEFAULT_CONFIG = {
         "jwt_secret": "",
         "host": "0.0.0.0",
         "port": 6185,
+        "disable_access_log": True,
     },
     "platform": [],
     "platform_specific": {
@@ -179,6 +199,12 @@ DEFAULT_CONFIG = {
     },
     "wake_prefix": ["/"],
     "log_level": "INFO",
+    "log_file_enable": False,
+    "log_file_path": "logs/astrbot.log",
+    "log_file_max_mb": 20,
+    "trace_log_enable": False,
+    "trace_log_path": "logs/astrbot.trace.log",
+    "trace_log_max_mb": 20,
     "pip_install_arg": "",
     "pypi_index_url": "https://mirrors.aliyun.com/pypi/simple/",
     "persona": [],  # deprecated
@@ -325,6 +351,7 @@ CONFIG_METADATA_2 = {
                         "enable": False,
                         "client_id": "",
                         "client_secret": "",
+                        "card_template_id": "",
                     },
                     "Telegram": {
                         "id": "telegram",
@@ -586,6 +613,11 @@ CONFIG_METADATA_2 = {
                         "type": "string",
                         "hint": "可选：填写 Misskey 网盘中目标文件夹的 ID，上传的文件将放置到该文件夹内。留空则使用账号网盘根目录。",
                     },
+                    "card_template_id": {
+                        "description": "卡片模板 ID",
+                        "type": "string",
+                        "hint": "可选。钉钉互动卡片模板 ID。启用后将使用互动卡片进行流式回复。",
+                    },
                     "telegram_command_register": {
                         "description": "Telegram 命令注册",
                         "type": "bool",
@@ -771,27 +803,21 @@ CONFIG_METADATA_2 = {
                             "interval_method": {
                                 "type": "string",
                                 "options": ["random", "log"],
-                                "hint": "分段回复的间隔时间计算方法。random 为随机时间，log 为根据消息长度计算，$y=log_<log_base>(x)$，x为字数，y的单位为秒。",
                             },
                             "interval": {
                                 "type": "string",
-                                "hint": "`random` 方法用。每一段回复的间隔时间，格式为 `最小时间,最大时间`。如 `0.75,2.5`",
                             },
                             "log_base": {
                                 "type": "float",
-                                "hint": "`log` 方法用。对数函数的底数。默认为 2.6",
                             },
                             "words_count_threshold": {
                                 "type": "int",
-                                "hint": "分段回复的字数上限。只有字数小于此值的消息才会被分段，超过此值的长消息将直接发送（不分段）。默认为 150",
                             },
                             "regex": {
                                 "type": "string",
-                                "hint": "用于分隔一段消息。默认情况下会根据句号、问号等标点符号分隔。re.findall(r'<regex>', text)",
                             },
                             "content_cleanup_rule": {
                                 "type": "string",
-                                "hint": "移除分段后的内容中的指定的内容。支持正则表达式。如填写 `[。？！]` 将移除所有的句号、问号、感叹号。re.sub(r'<regex>', '', text)",
                             },
                         },
                     },
@@ -1183,6 +1209,19 @@ CONFIG_METADATA_2 = {
                         "openai-tts-voice": "alloy",
                         "timeout": "20",
                     },
+                    "Genie TTS": {
+                        "id": "genie_tts",
+                        "provider": "genie_tts",
+                        "type": "genie_tts",
+                        "provider_type": "text_to_speech",
+                        "enable": False,
+                        "genie_character_name": "mika",
+                        "genie_onnx_model_dir": "CharacterModels/v2ProPlus/mika/tts_models",
+                        "genie_language": "Japanese",
+                        "genie_refer_audio_path": "",
+                        "genie_refer_text": "",
+                        "timeout": 20,
+                    },
                     "Edge TTS": {
                         "id": "edge_tts",
                         "provider": "microsoft",
@@ -1399,6 +1438,16 @@ CONFIG_METADATA_2 = {
                     },
                 },
                 "items": {
+                    "genie_onnx_model_dir": {
+                        "description": "ONNX Model Directory",
+                        "type": "string",
+                        "hint": "The directory path containing the ONNX model files",
+                    },
+                    "genie_language": {
+                        "description": "Language",
+                        "type": "string",
+                        "options": ["Japanese", "English", "Chinese"],
+                    },
                     "provider_source_id": {
                         "invisible": True,
                         "type": "string",
@@ -2162,6 +2211,9 @@ CONFIG_METADATA_2 = {
                     "tool_call_timeout": {
                         "type": "int",
                     },
+                    "tool_schema_mode": {
+                        "type": "string",
+                    },
                     "file_extract": {
                         "type": "object",
                         "items": {
@@ -2173,6 +2225,25 @@ CONFIG_METADATA_2 = {
                             },
                             "moonshotai_api_key": {
                                 "type": "string",
+                            },
+                        },
+                    },
+                    "skills": {
+                        "type": "object",
+                        "items": {
+                            "enable": {
+                                "type": "bool",
+                            },
+                            "runtime": {
+                                "type": "string",
+                            },
+                        },
+                    },
+                    "proactive_capability": {
+                        "type": "object",
+                        "items": {
+                            "add_cron_tools": {
+                                "type": "bool",
                             },
                         },
                     },
@@ -2284,6 +2355,18 @@ CONFIG_METADATA_2 = {
             "log_level": {
                 "type": "string",
                 "options": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+            },
+            "log_file_enable": {"type": "bool"},
+            "log_file_path": {"type": "string", "condition": {"log_file_enable": True}},
+            "log_file_max_mb": {"type": "int", "condition": {"log_file_enable": True}},
+            "trace_log_enable": {"type": "bool"},
+            "trace_log_path": {
+                "type": "string",
+                "condition": {"trace_log_enable": True},
+            },
+            "trace_log_max_mb": {
+                "type": "int",
+                "condition": {"trace_log_enable": True},
             },
             "t2i_strategy": {
                 "type": "string",
@@ -2553,6 +2636,7 @@ CONFIG_METADATA_3 = {
             # },
             "sandbox": {
                 "description": "Agent 沙箱环境",
+                "hint": "",
                 "type": "object",
                 "items": {
                     "provider_settings.sandbox.enable": {
@@ -2564,6 +2648,7 @@ CONFIG_METADATA_3 = {
                         "description": "沙箱环境驱动器",
                         "type": "string",
                         "options": ["shipyard"],
+                        "labels": ["Shipyard"],
                         "condition": {
                             "provider_settings.sandbox.enable": True,
                         },
@@ -2606,8 +2691,47 @@ CONFIG_METADATA_3 = {
                         },
                     },
                 },
+                "condition": {
+                    "provider_settings.agent_runner_type": "local",
+                    "provider_settings.enable": True,
+                },
+            },
+            "skills": {
+                "description": "Skills",
+                "type": "object",
+                "hint": "",
+                "items": {
+                    "provider_settings.skills.runtime": {
+                        "description": "Skill Runtime",
+                        "type": "string",
+                        "options": ["local", "sandbox"],
+                        "labels": ["本地", "沙箱"],
+                        "hint": "选择 Skills 运行环境。使用沙箱时需先启用沙箱环境。",
+                    },
+                },
+                "condition": {
+                    "provider_settings.agent_runner_type": "local",
+                    "provider_settings.enable": True,
+                },
+            },
+            "proactive_capability": {
+                "description": "主动型 Agent",
+                "hint": "https://docs.astrbot.app/use/proactive-agent.html",
+                "type": "object",
+                "items": {
+                    "provider_settings.proactive_capability.add_cron_tools": {
+                        "description": "启用",
+                        "type": "bool",
+                        "hint": "启用后，将会传递给 Agent 相关工具来实现主动型 Agent。你可以告诉 AstrBot 未来某个时间要做的事情，它将被定时触发然后执行任务。",
+                    },
+                },
+                "condition": {
+                    "provider_settings.agent_runner_type": "local",
+                    "provider_settings.enable": True,
+                },
             },
             "truncate_and_compress": {
+                "hint": "",
                 "description": "上下文管理策略",
                 "type": "object",
                 "items": {
@@ -2665,6 +2789,10 @@ CONFIG_METADATA_3 = {
                             "provider_settings.agent_runner_type": "local",
                         },
                     },
+                },
+                "condition": {
+                    "provider_settings.agent_runner_type": "local",
+                    "provider_settings.enable": True,
                 },
             },
             "others": {
@@ -2749,6 +2877,16 @@ CONFIG_METADATA_3 = {
                     "provider_settings.tool_call_timeout": {
                         "description": "工具调用超时时间（秒）",
                         "type": "int",
+                        "condition": {
+                            "provider_settings.agent_runner_type": "local",
+                        },
+                    },
+                    "provider_settings.tool_schema_mode": {
+                        "description": "工具调用模式",
+                        "type": "string",
+                        "options": ["skills_like", "full"],
+                        "labels": ["Skills-like（两阶段）", "Full（完整参数）"],
+                        "hint": "skills-like 先下发工具名称与描述，再下发参数；full 一次性下发完整参数。",
                         "condition": {
                             "provider_settings.agent_runner_type": "local",
                         },
@@ -3020,7 +3158,8 @@ CONFIG_METADATA_3 = {
                         "type": "bool",
                     },
                     "platform_settings.segmented_reply.interval_method": {
-                        "description": "间隔方法",
+                        "description": "间隔方法。",
+                        "hint": "random 为随机时间，log 为根据消息长度计算，$y=log_<log_base>(x)$，x为字数，y的单位为秒。",
                         "type": "string",
                         "options": ["random", "log"],
                     },
@@ -3035,13 +3174,14 @@ CONFIG_METADATA_3 = {
                     "platform_settings.segmented_reply.log_base": {
                         "description": "对数底数",
                         "type": "float",
-                        "hint": "对数间隔的底数，默认为 2.0。取值范围为 1.0-10.0。",
+                        "hint": "对数间隔的底数，默认为 2.6。取值范围为 1.0-10.0。",
                         "condition": {
                             "platform_settings.segmented_reply.interval_method": "log",
                         },
                     },
                     "platform_settings.segmented_reply.words_count_threshold": {
                         "description": "分段回复字数阈值",
+                        "hint": "分段回复的字数上限。只有字数小于此值的消息才会被分段，超过此值的长消息将直接发送（不分段）。默认为 150",
                         "type": "int",
                     },
                     "platform_settings.segmented_reply.split_mode": {
@@ -3052,6 +3192,7 @@ CONFIG_METADATA_3 = {
                     },
                     "platform_settings.segmented_reply.regex": {
                         "description": "分段正则表达式",
+                        "hint": "用于分隔一段消息。默认情况下会根据句号、问号等标点符号分隔。如填写 `[。？！]` 将移除所有的句号、问号、感叹号。re.findall(r'<regex>', text)",
                         "type": "string",
                         "condition": {
                             "platform_settings.segmented_reply.split_mode": "regex",
@@ -3200,6 +3341,36 @@ CONFIG_METADATA_3_SYSTEM = {
                         "hint": "控制台输出日志的级别。",
                         "options": ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
                     },
+                    "log_file_enable": {
+                        "description": "启用文件日志",
+                        "type": "bool",
+                        "hint": "开启后会将日志写入指定文件。",
+                    },
+                    "log_file_path": {
+                        "description": "日志文件路径",
+                        "type": "string",
+                        "hint": "相对路径以 data 目录为基准，例如 logs/astrbot.log；支持绝对路径。",
+                    },
+                    "log_file_max_mb": {
+                        "description": "日志文件大小上限 (MB)",
+                        "type": "int",
+                        "hint": "超过大小后自动轮转，默认 20MB。",
+                    },
+                    "trace_log_enable": {
+                        "description": "启用 Trace 文件日志",
+                        "type": "bool",
+                        "hint": "将 Trace 事件写入独立文件（不影响控制台输出）。",
+                    },
+                    "trace_log_path": {
+                        "description": "Trace 日志文件路径",
+                        "type": "string",
+                        "hint": "相对路径以 data 目录为基准，例如 logs/astrbot.trace.log；支持绝对路径。",
+                    },
+                    "trace_log_max_mb": {
+                        "description": "Trace 日志大小上限 (MB)",
+                        "type": "int",
+                        "hint": "超过大小后自动轮转，默认 20MB。",
+                    },
                     "pip_install_arg": {
                         "description": "pip 安装额外参数",
                         "type": "string",
@@ -3244,6 +3415,7 @@ DEFAULT_VALUE_MAP = {
     "string": "",
     "text": "",
     "list": [],
+    "file": [],
     "object": {},
     "template_list": [],
 }

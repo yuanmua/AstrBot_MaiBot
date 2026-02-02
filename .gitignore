@@ -51,3 +51,7 @@ pytest.ini
 AGENTS.md
 IFLOW.md
 /maibot_statistics.html
+
+# genie_tts data
+CharacterModels/
+GenieData/

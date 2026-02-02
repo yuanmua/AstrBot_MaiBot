@@ -12,6 +12,7 @@ from astrbot.core.agent.tool import ToolSet
 from astrbot.core.astrbot_config_mgr import AstrBotConfigManager
 from astrbot.core.config.astrbot_config import AstrBotConfig
 from astrbot.core.conversation_mgr import ConversationManager
+from astrbot.core.cron.manager import CronJobManager
 from astrbot.core.db import BaseDatabase
 from astrbot.core.knowledge_base.kb_mgr import KnowledgeBaseManager
 from astrbot.core.message.message_event_result import MessageChain
@@ -34,6 +35,7 @@ from astrbot.core.star.filter.platform_adapter_type import (
     ADAPTER_NAME_2_TYPE,
     PlatformAdapterType,
 )
+from astrbot.core.subagent_orchestrator import SubAgentOrchestrator
 
 from ..exceptions import ProviderNotFoundError
 from .filter.command import CommandFilter
@@ -65,6 +67,8 @@ class Context:
         persona_manager: PersonaManager,
         astrbot_config_mgr: AstrBotConfigManager,
         knowledge_base_manager: KnowledgeBaseManager,
+        cron_manager: CronJobManager,
+        subagent_orchestrator: SubAgentOrchestrator | None = None,
     ):
         self._event_queue = event_queue
         """事件队列。消息平台通过事件队列传递消息事件。"""
@@ -86,6 +90,9 @@ class Context:
         """配置文件管理器(非webui)"""
         self.kb_manager = knowledge_base_manager
         """知识库管理器"""
+        self.cron_manager = cron_manager
+        """Cron job manager, initialized by core lifecycle."""
+        self.subagent_orchestrator = subagent_orchestrator
 
     async def llm_generate(
         self,
@@ -328,28 +335,29 @@ class Context:
         """获取所有用于 Embedding 任务的 Provider。"""
         return self.provider_manager.embedding_provider_insts
 
-    def get_using_provider(self, umo: str | None = None) -> Provider:
+    def get_using_provider(self, umo: str | None = None) -> Provider | None:
         """获取当前使用的用于文本生成任务的 LLM Provider(Chat_Completion 类型)。
 
         Args:
             umo: unified_message_origin 值，如果传入并且用户启用了提供商会话隔离，
-                 则使用该会话偏好的提供商。
+                 则使用该会话偏好的对话模型（提供商）。
 
         Returns:
-            当前使用的文本生成提供者。
+            当前使用的对话模型（提供商），如果未设置则返回 None。
 
         Raises:
-            ValueError: 返回的提供者不是 Provider 类型。
-
-        Note:
-            通过 /provider 指令可以切换提供者。
+            ValueError: 该会话来源配置的的对话模型（提供商）的类型不正确。
         """
         prov = self.provider_manager.get_using_provider(
             provider_type=ProviderType.CHAT_COMPLETION,
             umo=umo,
         )
+        if prov is None:
+            return None
         if not isinstance(prov, Provider):
-            raise ValueError("返回的 Provider 不是 Provider 类型")
+            raise ValueError(
+                f"该会话来源的对话模型（提供商）的类型不正确: {type(prov)}"
+            )
         return prov
 
     def get_using_tts_provider(self, umo: str | None = None) -> TTSProvider | None:
@@ -462,6 +470,7 @@ class Context:
                     _parts.append(part)
                     if part in flags and i + 1 < len(module_part):
                         _parts.append(module_part[i + 1])
+                        module_part.append("main")
                         break
                 tool.handler_module_path = ".".join(_parts)
                 module_path = tool.handler_module_path
