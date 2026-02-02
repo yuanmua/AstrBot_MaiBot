@@ -96,6 +96,40 @@ export async function getInstances(): Promise<InstanceInfo[]> {
 }
 
 /**
+ * 获取运行中的实例列表
+ */
+export async function getRunningInstances(): Promise<InstanceInfo[]> {
+  try {
+    const response =
+      await apiClient.get<ApiResponse<{ instances: InstanceInfo[] }>>(
+        "/running",
+      );
+    if (response.data.data?.instances) {
+      return response.data.data.instances.map((inst) => ({
+        id: inst.id || (inst as any).instance_id,
+        name: inst.name,
+        description: inst.description,
+        status: inst.status,
+        is_default: inst.is_default,
+        port: inst.port,
+        enable_webui: inst.enable_webui,
+        enable_socket: inst.enable_socket,
+        created_at: inst.created_at,
+        updated_at: inst.updated_at,
+        uptime: inst.uptime,
+        message_count: inst.message_count,
+        error_message: inst.error_message,
+        last_message_time: inst.last_message_time,
+      }));
+    }
+    return [];
+  } catch (error) {
+    console.error("获取运行中实例列表失败:", error);
+    throw error;
+  }
+}
+
+/**
  * 获取单个实例详情
  */
 export async function getInstance(instanceId: string): Promise<InstanceInfo> {
@@ -378,6 +412,7 @@ export async function downloadInstanceLogs(instanceId: string): Promise<void> {
 
 export default {
   getInstances,
+  getRunningInstances,
   getInstance,
   createInstance,
   updateInstance,

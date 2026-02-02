@@ -26,20 +26,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from '@/i18n/composables';
-
-// API 响应接口
-interface InstanceInfo {
-  id: string;
-  name: string;
-  status: string;
-  is_default: boolean;
-}
-
-interface ApiResponse<T> {
-  status: string;
-  message?: string;
-  data?: T;
-}
+import { getRunningInstances, type InstanceInfo } from '@/utils/maibotApi';
 
 const props = defineProps({
   modelValue: {
@@ -74,13 +61,7 @@ const instanceItems = computed(() => {
 const fetchInstances = async () => {
   loading.value = true;
   try {
-    const response = await fetch('/api/maibot/running');
-    if (response.ok) {
-      const data: ApiResponse<{ instances: InstanceInfo[] }> = await response.json();
-      if (data.data?.instances) {
-        instances.value = data.data.instances;
-      }
-    }
+    instances.value = await getRunningInstances();
   } catch (error) {
     console.error('获取麦麦实例列表失败:', error);
   } finally {

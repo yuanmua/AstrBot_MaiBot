@@ -213,20 +213,20 @@ function formatNumber(num) {
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
-async function fetchStarCount() {
-  try {
-    const response = await fetch('https://cloud.astrbot.app/api/v1/github/repo-info');
-    const data = await response.json();
-    if (data.data && data.data.stargazers_count) {
-      starCount.value = data.data.stargazers_count;
-      console.debug('Fetched star count:', starCount.value);
-    }
-  } catch (error) {
-    console.debug('Failed to fetch star count:', error);
-  }
-}
-
-fetchStarCount();
+// async function fetchStarCount() {
+//   try {
+//     const response = await fetch('https://cloud.astrbot.app/api/v1/github/repo-info');
+//     const data = await response.json();
+//     if (data.data && data.data.stargazers_count) {
+//       starCount.value = data.data.stargazers_count;
+//       console.debug('Fetched star count:', starCount.value);
+//     }
+//   } catch (error) {
+//     console.debug('Failed to fetch star count:', error);
+//   }
+// }
+//
+// fetchStarCount();
 
 // 打开更新日志对话框
 function openChangelogDialog() {

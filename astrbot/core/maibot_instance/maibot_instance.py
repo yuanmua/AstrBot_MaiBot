@@ -24,9 +24,10 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from astrbot.core.maibot_instance.subprocess_entry import subprocess_main
-from astrbot.core.maibot.common.logger import get_logger
+from astrbot.core.log import LogManager
 
-logger = get_logger("maibot_instance")
+# 使用 AstrBot 的日志系统，避免与 MaiBot 的 structlog 冲突
+logger = LogManager.GetLogger("maibot_instance")
 
 # 心跳超时时间（秒）
 HEARTBEAT_TIMEOUT = 30
@@ -52,6 +53,7 @@ class MaibotInstance:
         description: str = "",
         is_default: bool = False,
         lifecycle: Optional[Dict[str, Any]] = None,    # 生命周期配置
+        logging: Optional[Dict[str, Any]] = None,      # 日志配置
         host: str = "127.0.0.1",
         port: int = 8000,
         web_host: str = "127.0.0.1",
@@ -69,6 +71,11 @@ class MaibotInstance:
             "restart_on_crash": True,   # 崩溃后自动重启
             "max_restarts": 3,          # 最大重启次数
             "restart_delay": 5000,      # 重启延迟（毫秒）
+        }
+        # 日志配置
+        self.logging = logging or {
+            "enable_console": False,     # 是否输出到主控制台
+            "log_level": "INFO",        # 日志级别: DEBUG, INFO, WARNING, ERROR
         }
         self.host = host
         self.port = port
@@ -94,6 +101,10 @@ class MaibotInstance:
         """上次心跳时间"""
         self._status_monitor_task: Optional[asyncio.Task] = None
         """状态监控任务"""
+        self._heartbeat_task: Optional[asyncio.Task] = None
+        """心跳循环任务"""
+        self._message_task: Optional[asyncio.Task] = None
+        """消息循环任务"""
 
     def get_data_dir(self, base_path: str) -> str:
         return os.path.join(base_path, "instances", self.instance_id)
@@ -110,6 +121,7 @@ class MaibotInstance:
             "description": self.description,
             "is_default": self.is_default,
             "lifecycle": self.lifecycle,
+            "logging": self.logging,
             "host": self.host,
             "port": self.port,
             "web_host": self.web_host,
@@ -148,7 +160,10 @@ class MaibotInstanceManager:
         logger.info(f"实例管理器初始化完成，共 {len(self.instances)} 个实例")
 
     async def _load_instances_metadata(self) -> None:
-        """加载实例元数据"""
+        """加载实例元数据
+
+        自动填充缺失的配置字段并热更新到配置文件
+        """
         if not os.path.exists(self.metadata_path):
             logger.info("未找到实例元数据文件")
             return
@@ -156,13 +171,62 @@ class MaibotInstanceManager:
         with open(self.metadata_path, "r", encoding="utf-8") as f:
             metadata = json.load(f)
 
+        # 默认配置模板
+        default_lifecycle = {
+            "start_order": 0,
+            "restart_on_crash": True,
+            "max_restarts": 3,
+            "restart_delay": 5000,
+        }
+        default_logging = {
+            "enable_console": True,
+            "log_level": "INFO",
+        }
+
+        needs_save = False  # 标记是否需要保存配置文件
+        updated_instances = []  # 记录被更新的实例
+
         for instance_data in metadata.get("instances", []):
+            instance_id = instance_data.get("id", "unknown")
+            updated = False
+
+            # 自动填充缺失的 lifecycle 字段
+            lifecycle = instance_data.get("lifecycle")
+            if lifecycle is None:
+                lifecycle = default_lifecycle.copy()
+                instance_data["lifecycle"] = lifecycle
+                updated = True
+            else:
+                # 检查是否有子字段缺失
+                for key, value in default_lifecycle.items():
+                    if key not in lifecycle:
+                        lifecycle[key] = value
+                        updated = True
+
+            # 自动填充缺失的 logging 字段
+            logging_config = instance_data.get("logging")
+            if logging_config is None:
+                logging_config = default_logging.copy()
+                instance_data["logging"] = logging_config
+                updated = True
+            else:
+                # 检查是否有子字段缺失
+                for key, value in default_logging.items():
+                    if key not in logging_config:
+                        logging_config[key] = value
+                        updated = True
+
+            if updated:
+                updated_instances.append(instance_id)
+                needs_save = True
+
             instance = MaibotInstance(
-                instance_id=instance_data["id"],
+                instance_id=instance_id,
                 name=instance_data["name"],
                 description=instance_data.get("description", ""),
                 is_default=instance_data.get("is_default", False),
-                lifecycle=instance_data.get("lifecycle"),
+                lifecycle=lifecycle,
+                logging=logging_config,
                 host=instance_data.get("host", "127.0.0.1"),
                 port=instance_data.get("port", 8000),
                 web_host=instance_data.get("web_host", "127.0.0.1"),
@@ -180,6 +244,36 @@ class MaibotInstanceManager:
                 )
             self.instances[instance.instance_id] = instance
 
+        # 如果有字段被自动填充，热更新配置文件
+        if needs_save:
+            logger.info(f"检测到 {len(updated_instances)} 个实例缺少配置字段，正在自动填充...")
+            # 更新元数据中的 instances
+            metadata["instances"] = [
+                {
+                    "id": inst.instance_id,
+                    "name": inst.name,
+                    "description": inst.description,
+                    "is_default": inst.is_default,
+                    "lifecycle": inst.lifecycle,
+                    "logging": inst.logging,
+                    "host": inst.host,
+                    "port": inst.port,
+                    "web_host": inst.web_host,
+                    "web_port": inst.web_port,
+                    "enable_webui": inst.enable_webui,
+                    "enable_socket": inst.enable_socket,
+                    "created_at": inst.created_at.isoformat() if inst.created_at else None,
+                    "updated_at": inst.updated_at.isoformat() if inst.updated_at else None,
+                }
+                for inst in self.instances.values()
+            ]
+            metadata["updated_at"] = datetime.now().isoformat()
+
+            os.makedirs(os.path.dirname(self.metadata_path), exist_ok=True)
+            with open(self.metadata_path, "w", encoding="utf-8") as f:
+                json.dump(metadata, f, indent=2, ensure_ascii=False)
+            logger.info(f"已自动更新配置文件: {updated_instances}")
+
         logger.info(f"已加载 {len(self.instances)} 个实例")
 
     async def _save_instances_metadata(self) -> None:
@@ -191,6 +285,7 @@ class MaibotInstanceManager:
                 "description": inst.description,
                 "is_default": inst.is_default,
                 "lifecycle": inst.lifecycle,
+                "logging": inst.logging,
                 "host": inst.host,
                 "port": inst.port,
                 "web_host": inst.web_host,
@@ -312,6 +407,7 @@ class MaibotInstanceManager:
                 "web_port": instance.web_port,
                 "enable_webui": instance.enable_webui,
                 "enable_socket": instance.enable_socket,
+                "logging": instance.logging,  # 日志配置
             }
 
             # 4. 创建并启动子进程
@@ -438,28 +534,46 @@ class MaibotInstanceManager:
             except Exception:
                 pass
 
+        if instance._heartbeat_task:
+            instance._heartbeat_task.cancel()
+            try:
+                pass
+            except Exception:
+                pass
+
+        if instance._message_task:
+            instance._message_task.cancel()
+            try:
+                pass
+            except Exception:
+                pass
+
         instance.process = None
         instance.input_queue = None
         instance.output_queue = None
         instance._status_monitor_task = None
+        instance._heartbeat_task = None
+        instance._message_task = None
 
     async def _monitor_instance_status(self, instance: MaibotInstance) -> None:
         """监控实例状态（后台任务）
 
-        定期检查子进程状态，接收心跳和日志，支持崩溃自动重启
+        协调两个独立循环：心跳循环和消息循环
+        负责处理进程崩溃重启，不直接处理消息
         """
         instance_id = instance.instance_id
         restart_count = 0  # 重启计数
         max_restarts = instance.lifecycle.get("max_restarts", 3)
 
-        while instance.status == InstanceStatus.RUNNING:
-            try:
-                # 发送心跳检测
-                if instance.input_queue:
-                    try:
-                        instance.input_queue.put_nowait({"type": "ping"})
-                    except Exception:
-                        pass
+        # 启动两个独立循环
+        instance._heartbeat_task = asyncio.create_task(self._heartbeat_loop(instance))
+        instance._message_task = asyncio.create_task(self._message_loop(instance))
+
+        logger.info(f"实例 {instance_id} 已启动心跳和消息循环")
+
+        try:
+            while instance.status == InstanceStatus.RUNNING:
+                await asyncio.sleep(1.0)
 
                 # 检查子进程是否还在运行
                 if instance.process and not instance.process.is_alive():
@@ -467,100 +581,235 @@ class MaibotInstanceManager:
                     logger.warning(
                         f"实例 {instance_id} 子进程已退出，退出码: {exit_code}"
                     )
+                    await self._handle_crash(instance_id, instance, exit_code, restart_count, max_restarts)
+                    restart_count = 0  # 重置重启计数
+                    continue
 
-                    # 检查是否需要自动重启
-                    if instance.lifecycle.get("restart_on_crash", True):
-                        if restart_count < max_restarts:
-                            restart_count += 1
-                            delay = instance.lifecycle.get("restart_delay", 5000) / 1000
-                            logger.info(
-                                f"实例 {instance_id} 等待 {delay}s 后自动重启 ({restart_count}/{max_restarts})"
-                            )
-                            await asyncio.sleep(delay)
+                # 检查心跳任务是否异常退出（可能是心跳超时）
+                if instance._heartbeat_task.done():
+                    try:
+                        exception = instance._heartbeat_task.exception()
+                        if exception:
+                            logger.error(f"实例 {instance_id} 心跳任务异常: {exception}")
+                    except asyncio.InvalidStateError:
+                        pass
+                    except Exception as e:
+                        logger.error(f"获取心跳任务异常失败: {e}")
 
-                            # 清理资源
-                            self._cleanup_instance(instance)
+                    # 心跳任务退出说明有问题，触发重启
+                    logger.warning(f"实例 {instance_id} 心跳任务已退出，触发重启")
+                    await self._handle_crash(instance_id, instance, -1, restart_count, max_restarts)
+                    restart_count = 0
+                    continue
 
-                            # 重启
-                            instance.status = InstanceStatus.RESTARTING
-                            await self.start_instance(instance_id)
-                            # 重置重启计数，让监控继续
-                            restart_count = 0
-                            continue
-                        else:
-                            # 超过最大重启次数
-                            logger.error(
-                                f"实例 {instance_id} 崩溃重启次数超限 ({restart_count}/{max_restarts})"
-                            )
+                # 检查消息任务是否异常退出
+                if instance._message_task.done():
+                    try:
+                        exception = instance._message_task.exception()
+                        if exception:
+                            logger.error(f"实例 {instance_id} 消息任务异常: {exception}")
+                    except asyncio.InvalidStateError:
+                        pass
+                    except Exception as e:
+                        logger.error(f"获取消息任务异常失败: {e}")
+                    # 消息任务异常不影响整体运行，重启它
+                    logger.info(f"重启消息任务")
+                    instance._message_task = asyncio.create_task(self._message_loop(instance))
 
-                    instance.status = InstanceStatus.ERROR
-                    instance.error_message = f"子进程异常退出，退出码: {exit_code}"
-                    instance.started_at = None
-                    self._cleanup_instance(instance)
-                    break
+        except asyncio.CancelledError:
+            logger.info(f"实例 {instance_id} 状态监控任务已取消")
+        except Exception as e:
+            logger.error(f"监控实例 {instance_id} 状态时出错: {e}", exc_info=True)
+        finally:
+            # 取消两个子任务
+            for task_name, task in [("心跳", instance._heartbeat_task), ("消息", instance._message_task)]:
+                if task and not task.done():
+                    task.cancel()
+                    try:
+                        await asyncio.wait_for(task, timeout=2.0)
+                    except asyncio.TimeoutError:
+                        logger.warning(f"等待{task_name}任务取消超时")
+                    except asyncio.CancelledError:
+                        pass
+                    except Exception as e:
+                        logger.warning(f"{task_name}任务取消时出错: {e}")
 
-                # 读取输出队列中的消息
+    async def _heartbeat_loop(self, instance: MaibotInstance) -> None:
+        """心跳检测循环（独立运行）
+
+        专注于心跳检测，不处理其他消息
+        """
+        instance_id = instance.instance_id
+
+        while instance.status == InstanceStatus.RUNNING:
+            try:
+                # 1. 发送 ping
+                if instance.input_queue:
+                    try:
+                        instance.input_queue.put_nowait({"type": "ping"})
+                    except Exception:
+                        pass
+
+                # 2. 快速检查是否有 pong（不阻塞）
                 if instance.output_queue:
-                    while not instance.output_queue.empty():
+                    pong_count = 0
+                    while pong_count < 10:  # 最多处理10个，避免积压
                         try:
+                            if instance.output_queue.empty():
+                                break
                             msg = instance.output_queue.get_nowait()
-                            msg_type = msg.get("type", "")
-                            payload = msg.get("payload", {})
-
-                            if msg_type == "pong":
-                                # 心跳响应
+                            if msg.get("type") == "pong":
                                 instance.last_heartbeat = datetime.now()
-                            elif msg_type == "status":
-                                status = payload.get("status", "")
-                                if status == "stopped":
-                                    logger.info(f"实例 {instance_id} 已停止")
-                                    instance.status = InstanceStatus.STOPPED
-                                    instance.started_at = None
-                                    self._cleanup_instance(instance)
-                                    break
-                            elif msg_type == "log":
-                                level = payload.get("level", "info")
-                                msg_text = payload.get("message", "")
-                                if level == "error":
-                                    logger.error(f"[{instance_id}] {msg_text}")
-                                elif level == "warning":
-                                    logger.warning(f"[{instance_id}] {msg_text}")
-                                else:
-                                    logger.info(f"[{instance_id}] {msg_text}")
-                            elif msg_type == "signal":
-                                signum = payload.get("signal", "")
-                                logger.info(f"实例 {instance_id} 收到信号: {signum}")
-                            elif msg_type == "message_reply":
-                                # 处理子进程返回的回复消息
-                                stream_id = payload.get("stream_id", "")
-                                instance_id_from_payload = payload.get("instance_id", "")
-                                reply = payload.get("reply", {})
-                                processed_plain_text = reply.get("processed_plain_text", "") if reply else ""
-                                logger.info(f"[{instance_id}] 收到回复: stream_id={stream_id[:16] if stream_id else 'unknown'}, instance_id={instance_id_from_payload}, 内容: {processed_plain_text[:50]}...")
-                                # 将回复传递给 AstrBot 适配器发送
-                                await self._handle_instance_reply(instance_id, stream_id, reply)
+                                pong_count += 1
                         except Exception:
                             break
 
-                # 检查心跳超时
+                # 3. 检测心跳超时
                 if instance.last_heartbeat:
                     elapsed = (datetime.now() - instance.last_heartbeat).total_seconds()
                     if elapsed > HEARTBEAT_TIMEOUT:
                         logger.warning(
                             f"实例 {instance_id} 心跳超时 ({elapsed:.1f}s)，尝试重启..."
                         )
-                        instance.status = InstanceStatus.RESTARTING
-                        await self.restart_instance(instance_id)
-                        break
+                        # 标记需要重启，由协调任务处理
+                        return  # 退出循环，让协调任务处理重启
 
-                await asyncio.sleep(1.0)
+                await asyncio.sleep(5.0)  # 心跳间隔5秒
 
             except asyncio.CancelledError:
-                logger.info(f"实例 {instance_id} 状态监控任务已取消")
+                logger.info(f"实例 {instance_id} 心跳循环已取消")
                 break
             except Exception as e:
-                logger.error(f"监控实例 {instance_id} 状态时出错: {e}")
+                logger.error(f"实例 {instance_id} 心跳循环出错: {e}", exc_info=True)
                 await asyncio.sleep(5.0)
+
+    async def _message_loop(self, instance: MaibotInstance) -> None:
+        """消息处理循环（独立运行）
+
+        处理所有非心跳消息：log, status, signal, message_reply
+        message_reply 使用后台任务处理，不阻塞循环
+        """
+        instance_id = instance.instance_id
+
+        while instance.status == InstanceStatus.RUNNING:
+            try:
+                if instance.output_queue:
+                    if instance.output_queue.empty():
+                        await asyncio.sleep(0.05)
+                        continue
+
+                    try:
+                        msg = instance.output_queue.get_nowait()
+                    except Exception:
+                        await asyncio.sleep(0.05)
+                        continue
+
+                    msg_type = msg.get("type", "")
+                    payload = msg.get("payload", {})
+
+                    if msg_type == "pong":
+                        # 心跳响应（心跳循环也会处理，这里是冗余保障）
+                        instance.last_heartbeat = datetime.now()
+                    elif msg_type == "status":
+                        status = payload.get("status", "")
+                        if status == "stopped":
+                            logger.info(f"实例 {instance_id} 已停止")
+                            instance.status = InstanceStatus.STOPPED
+                            instance.started_at = None
+                            # 清理资源
+                            self._cleanup_instance(instance)
+                            return  # 退出循环
+                    elif msg_type == "log":
+                        level = payload.get("level", "info")
+                        msg_text = payload.get("message", "")
+                        # 直接 print，让终端解释 ANSI 颜色序列
+                        if level == "error":
+                            print(f"[{instance_id}] {msg_text}")
+                        elif level == "warning":
+                            print(f"[{instance_id}] {msg_text}")
+                        else:
+                            print(f"[{instance_id}] {msg_text}")
+                    elif msg_type == "signal":
+                        signum = payload.get("signal", "")
+                        logger.info(f"实例 {instance_id} 收到信号: {signum}")
+                    elif msg_type == "message_reply":
+                        # 异步处理，不阻塞循环
+                        stream_id = payload.get("stream_id", "")
+                        instance_id_from_payload = payload.get("instance_id", "")
+                        reply = payload.get("reply", {})
+                        processed_plain_text = reply.get("processed_plain_text", "") if reply else ""
+                        logger.info(f"[{instance_id}] 收到回复: stream_id={stream_id[:16] if stream_id else 'unknown'}, instance_id={instance_id_from_payload}, 内容: {processed_plain_text[:50]}...")
+                        # 启动后台任务处理回复
+                        asyncio.create_task(self._handle_instance_reply(instance_id, stream_id, reply))
+
+                await asyncio.sleep(0.05)  # 消息处理间隔50ms
+
+            except asyncio.CancelledError:
+                logger.info(f"实例 {instance_id} 消息循环已取消")
+                break
+            except Exception as e:
+                logger.error(f"实例 {instance_id} 消息循环出错: {e}", exc_info=True)
+                await asyncio.sleep(1.0)
+
+    async def _handle_crash(
+        self,
+        instance_id: str,
+        instance: MaibotInstance,
+        exit_code: int,
+        restart_count: int,
+        max_restarts: int,
+    ) -> None:
+        """处理进程崩溃
+
+        Args:
+            instance_id: 实例ID
+            instance: 实例对象
+            exit_code: 退出码
+            restart_count: 当前重启计数
+            max_restarts: 最大重启次数
+        """
+        # 取消两个子任务
+        for task_name, task in [("心跳", instance._heartbeat_task), ("消息", instance._message_task)]:
+            if task and not task.done():
+                task.cancel()
+                try:
+                    await asyncio.wait_for(task, timeout=2.0)
+                except asyncio.TimeoutError:
+                    logger.warning(f"等待{task_name}任务取消超时")
+                except asyncio.CancelledError:
+                    pass
+                except Exception as e:
+                    logger.warning(f"{task_name}任务取消时出错: {e}")
+
+        # 检查是否需要自动重启
+        if instance.lifecycle.get("restart_on_crash", True):
+            if restart_count < max_restarts:
+                delay = instance.lifecycle.get("restart_delay", 5000) / 1000
+                logger.info(
+                    f"实例 {instance_id} 等待 {delay}s 后自动重启 ({restart_count + 1}/{max_restarts})"
+                )
+                await asyncio.sleep(delay)
+
+                # 清理资源
+                self._cleanup_instance(instance)
+
+                # 重启
+                instance.status = InstanceStatus.RESTARTING
+                await self.start_instance(instance_id)
+            else:
+                # 超过最大重启次数
+                logger.error(
+                    f"实例 {instance_id} 崩溃重启次数超限 ({restart_count}/{max_restarts})"
+                )
+                instance.status = InstanceStatus.ERROR
+                instance.error_message = f"子进程异常退出，退出码: {exit_code}"
+                instance.started_at = None
+                self._cleanup_instance(instance)
+        else:
+            instance.status = InstanceStatus.ERROR
+            instance.error_message = f"子进程异常退出，退出码: {exit_code}"
+            instance.started_at = None
+            self._cleanup_instance(instance)
 
     async def _handle_instance_reply(
         self, instance_id: str, stream_id: str, reply: Dict[str, Any]

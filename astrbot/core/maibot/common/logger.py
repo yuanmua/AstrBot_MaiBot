@@ -327,6 +327,26 @@ def load_log_config():  # sourcery skip: use-contextlib-suppress
     return default_config
 
 
+# 子进程模式标志（由 maibot_logger 设置，必须在加载 LOG_CONFIG 之前检查）
+_subprocess_mode = False
+
+
+def _check_subprocess_mode():
+    """检查是否运行在子进程模式（使用 maibot_logger）"""
+    global _subprocess_mode
+    if _subprocess_mode:
+        return True
+    try:
+        # 延迟导入，避免循环依赖问题
+        from astrbot.core.maibot_adapter.maibot_logger import is_subprocess_mode
+        if is_subprocess_mode():
+            _subprocess_mode = True
+            return True
+    except ImportError:
+        pass
+    return False
+
+
 LOG_CONFIG = load_log_config()
 
 
@@ -828,6 +848,10 @@ for handler in root_logger.handlers:
 # 立即配置日志系统，确保最早期的日志也使用正确格式
 def _immediate_setup():
     """立即设置日志系统，在模块导入时就生效"""
+    # 子进程模式：跳过，使用 maibot_logger 的配置
+    if _check_subprocess_mode():
+        return
+
     # 重新配置structlog
     configure_structlog()
 
@@ -866,8 +890,35 @@ raw_logger: structlog.stdlib.BoundLogger = structlog.get_logger()
 binds: dict[str, Callable] = {}
 
 
+def _use_maibot_logger():
+    """检查是否使用 maibot_logger（子进程模式）"""
+    global _subprocess_mode
+    if _subprocess_mode:
+        return True
+    try:
+        from astrbot.core.maibot_adapter.maibot_logger import get_maibot_logger
+        if get_maibot_logger() is not None:
+            _subprocess_mode = True
+            return True
+    except ImportError:
+        pass
+    return False
+
+
 def get_logger(name: Optional[str]) -> structlog.stdlib.BoundLogger:
-    """获取logger实例，支持按名称绑定"""
+    """获取logger实例，支持按名称绑定
+
+    在子进程模式下，会使用 maibot_logger 的接口
+    """
+    # 子进程模式：尝试使用 maibot_logger
+    if _use_maibot_logger():
+        try:
+            from astrbot.core.maibot_adapter.maibot_logger import get_logger as maibot_get_logger
+            return maibot_get_logger(name)
+        except ImportError:
+            pass
+
+    # 普通模式：使用原来的逻辑
     if name is None:
         return raw_logger
     logger = binds.get(name)  # type: ignore
@@ -881,19 +932,23 @@ def initialize_logging(verbose: bool = True):
     """手动初始化日志系统，确保所有logger都使用正确的配置
 
     在应用程序的早期调用此函数，确保所有模块都使用统一的日志配置
-    
+
     Args:
         verbose: 是否输出详细的初始化信息。默认为 True。
                  在 Runner 进程中可以设置为 False 以避免重复的初始化日志。
     """
     global LOG_CONFIG, _logging_initialized
-    
+
+    # 子进程模式：跳过初始化，由 maibot_logger 接管
+    if _check_subprocess_mode():
+        return
+
     # 防止重复初始化（在同一进程内）
     if _logging_initialized:
         return
-    
+
     _logging_initialized = True
-    
+
     LOG_CONFIG = load_log_config()
     # print(LOG_CONFIG)
     configure_third_party_loggers()

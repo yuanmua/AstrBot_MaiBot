@@ -15,6 +15,7 @@ import os
 import sys
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, Any, Optional
 
 # 确保项目根目录在路径中
@@ -25,6 +26,12 @@ if PROJECT_ROOT not in sys.path:
 # 计算 MaiBot 项目路径并设置为环境变量（必须在导入 MaiBot 之前设置）
 MAIBOT_PATH = os.path.join(PROJECT_ROOT, "MaiBot")
 os.environ["MAIBOT_PATH"] = MAIBOT_PATH
+
+# 默认日志配置
+DEFAULT_LOG_CONFIG = {
+    "enable_console": True,
+    "log_level": "INFO",
+}
 
 
 def _run_subprocess_main(
@@ -72,7 +79,49 @@ async def subprocess_main_async(
         output_queue: 状态输出队列（子进程 -> 主进程）
     """
     import signal
+
+    # 1. 先初始化实例日志系统（在导入任何 MaiBot 模块之前）
+    # 关键：立即标记子进程模式，确保后续导入的模块知道使用 maibot_logger
+    from astrbot.core.maibot_adapter.maibot_logger import (
+        _mark_subprocess_mode,
+        initialize_maibot_logger,
+        get_logger,
+        set_log_publisher,
+        get_maibot_logger,
+    )
+
+    # 立即标记子进程模式，防止后续模块导入时重复配置日志
+    _mark_subprocess_mode()
+
+    log_config = config.get("logging", DEFAULT_LOG_CONFIG)
+    enable_console = log_config.get("enable_console", True)
+
+    # 设置日志发布回调，用于发送到主进程（仅在 enable_console=True 时设置）
+    def send_log_to_main(level: str, msg: str):
+        output_queue.put({
+            "type": "log",
+            "payload": {
+                "level": level,
+                "message": msg,
+                "timestamp": datetime.now().isoformat(),
+            }
+        })
+
+    if enable_console:
+        set_log_publisher(send_log_to_main)
+
+    initialize_maibot_logger(
+        instance_id=instance_id,
+        log_level=log_config.get("log_level", "INFO"),
+        enable_console=enable_console,
+    )
+    maibot_logger = get_logger("subprocess")
+
+    # 2. 然后导入 MaiBot（会使用已初始化的 maibot_logger）
     from astrbot.core.maibot import MaiBotCore
+
+    # 获取实例日志目录路径
+    base_log_dir = Path(config.get("data_root", data_root)).parent / "logs" / "mailog"
 
     # 设置子进程信号处理
     def signal_handler(signum, frame):
@@ -201,10 +250,10 @@ async def subprocess_main_async(
     send_status("starting", "子进程启动中...")
 
     # 打印路径信息用于调试
-    print(f"[DEBUG] PROJECT_ROOT: {PROJECT_ROOT}")
-    print(f"[DEBUG] MAIBOT_PATH: {MAIBOT_PATH}")
-    print(f"[DEBUG] MAIBOT_PATH exists: {os.path.exists(MAIBOT_PATH)}")
-    print(f"[DEBUG] WebUI dist exists: {os.path.exists(os.path.join(MAIBOT_PATH, 'webui', 'dist'))}")
+    maibot_logger.info(f"PROJECT_ROOT: {PROJECT_ROOT}")
+    maibot_logger.info(f"MAIBOT_PATH: {MAIBOT_PATH}")
+    maibot_logger.info(f"MAIBOT_PATH exists: {os.path.exists(MAIBOT_PATH)}")
+    maibot_logger.info(f"WebUI dist exists: {os.path.exists(os.path.join(MAIBOT_PATH, 'webui', 'dist'))}")
 
     try:
         send_log("info", f"子进程启动: instance_id={instance_id}, data_root={data_root}")

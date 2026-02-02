@@ -3,7 +3,7 @@ import time
 
 from maim_message import MessageServer
 
-from astrbot.core.maibot.common.remote import TelemetryHeartBeatTask
+# from astrbot.core.maibot.common.remote import TelemetryHeartBeatTask
 from astrbot.core.maibot.manager.async_task_manager import async_task_manager
 from astrbot.core.maibot.chat.utils.statistic import OnlineTimeRecordTask, StatisticOutputTask
 
@@ -99,7 +99,7 @@ class MainSystem:
         await async_task_manager.add_task(StatisticOutputTask())
 
         # 添加遥测心跳任务
-        await async_task_manager.add_task(TelemetryHeartBeatTask())
+        # await async_task_manager.add_task(TelemetryHeartBeatTask())
 
         # 添加表达方式自动检查任务
         await async_task_manager.add_task(ExpressionAutoCheckTask())

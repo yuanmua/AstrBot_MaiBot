@@ -5,6 +5,10 @@ from astrbot.core.maibot.common.logger import get_logger
 from astrbot.core.maibot.config.config import global_config
 
 
+# 全局缓存的 MessageServer 实例（用于 monkey patch）
+_cached_global_api: MessageServer | None = None
+
+
 # 从 AstrBot context 获取配置
 def _get_host_port():
     """从 context 获取 host 和 port，如果 context 未初始化则使用默认值"""
@@ -17,8 +21,14 @@ def _get_host_port():
         return "127.0.0.1", 8000
 
 
-def get_global_api() -> MessageServer:  # sourcery skip: extract-method
-    """获取 MessageServer 实例（每次从 context 读取配置创建新实例）"""
+def get_global_api() -> MessageServer:
+    """获取 MessageServer 实例（缓存返回单例，确保 monkey patch 生效）"""
+    global _cached_global_api
+
+    # 如果已有缓存的实例，直接返回
+    if _cached_global_api is not None:
+        return _cached_global_api
+
     # 检查maim_message版本
     try:
         maim_message_version = importlib.metadata.version("maim_message")
@@ -30,8 +40,11 @@ def get_global_api() -> MessageServer:  # sourcery skip: extract-method
         version_compatible = False
         has_api_server_feature = False
 
-    # 读取配置项
-    maim_message_config = global_config.maim_message
+    # 读取配置项（安全访问，global_config 可能尚未初始化）
+    try:
+        maim_message_config = global_config.maim_message if global_config else None
+    except (AttributeError, TypeError):
+        maim_message_config = None
 
     # 从 context 获取 host 和 port
     host, port = _get_host_port()
@@ -49,22 +62,23 @@ def get_global_api() -> MessageServer:  # sourcery skip: extract-method
         maim_message_logger = get_logger("maim_message")
         kwargs["custom_logger"] = maim_message_logger
 
-        # 添加token认证
-        if maim_message_config.auth_token and len(maim_message_config.auth_token) > 0:
+        # 添加token认证（安全访问，maim_message_config 可能为 None）
+        if maim_message_config and maim_message_config.auth_token and len(maim_message_config.auth_token) > 0:
             kwargs["enable_token"] = True
 
             # Removed legacy custom config block (use_custom) as requested.
             kwargs["enable_custom_uvicorn_logger"] = False
 
         global_api = MessageServer(**kwargs)
-        if version_compatible and maim_message_config.auth_token:
+        if version_compatible and maim_message_config and maim_message_config.auth_token:
             for token in maim_message_config.auth_token:
                 global_api.add_valid_token(token)
 
         # ---------------------------------------------------------------------
         # Additional API Server Configuration (maim_message >= 6.0)
         # ---------------------------------------------------------------------
-        enable_api_server = maim_message_config.enable_api_server
+        # 安全获取配置值
+        enable_api_server = maim_message_config.enable_api_server if maim_message_config else False
         
         # 如果版本支持且启用了API Server，则初始化额外服务器
         if has_api_server_feature and enable_api_server:
@@ -74,22 +88,22 @@ def get_global_api() -> MessageServer:  # sourcery skip: extract-method
 
                 api_logger = get_logger("maim_message_api_server")
 
-                # 1. Prepare Config
-                api_server_host = maim_message_config.api_server_host
-                api_server_port = maim_message_config.api_server_port
-                use_wss = maim_message_config.api_server_use_wss
+                # 1. Prepare Config（安全访问配置值）
+                api_server_host = maim_message_config.api_server_host if maim_message_config else "127.0.0.1"
+                api_server_port = maim_message_config.api_server_port if maim_message_config else 8002
+                use_wss = maim_message_config.api_server_use_wss if maim_message_config else False
 
                 server_config = ServerConfig(
                     host=api_server_host,
                     port=api_server_port,
                     ssl_enabled=use_wss,
-                    ssl_certfile=maim_message_config.api_server_cert_file if use_wss else None,
-                    ssl_keyfile=maim_message_config.api_server_key_file if use_wss else None,
+                    ssl_certfile=maim_message_config.api_server_cert_file if (maim_message_config and use_wss) else None,
+                    ssl_keyfile=maim_message_config.api_server_key_file if (maim_message_config and use_wss) else None,
                 )
 
                 # 2. Setup Auth Handler
                 async def auth_handler(metadata: dict) -> bool:
-                    allowed_keys = maim_message_config.api_server_allowed_api_keys
+                    allowed_keys = maim_message_config.api_server_allowed_api_keys if maim_message_config else []
                     # If list is empty/None, allow all (default behavior of returning True)
                     if not allowed_keys:
                         return True
@@ -178,4 +192,12 @@ def get_global_api() -> MessageServer:  # sourcery skip: extract-method
                 import traceback
                 get_logger("maim_message").debug(traceback.format_exc())
 
+    # 缓存实例，确保 monkey patch 生效
+    _cached_global_api = global_api
     return global_api
+
+
+def clear_cached_api() -> None:
+    """清除缓存的 MessageServer 实例（子进程重启时调用）"""
+    global _cached_global_api
+    _cached_global_api = None
