@@ -4,7 +4,7 @@ MaiBot 适配器模块
 """
 
 from .message_converter import convert_astrbot_to_maibot
-from .response_converter import convert_maibot_to_astrbot
+from .response_converter import convert_maibot_to_astrbot, seg_to_dict_list
 from .platform_adapter import (
     parse_astrbot_platform,
     parse_astrbot_instance_id,
@@ -16,6 +16,7 @@ from .platform_adapter import (
 __all__ = [
     "convert_astrbot_to_maibot",
     "convert_maibot_to_astrbot",
+    "seg_to_dict_list",
     "parse_astrbot_platform",
     "parse_astrbot_instance_id",
     "AstrBotPlatformAdapter",

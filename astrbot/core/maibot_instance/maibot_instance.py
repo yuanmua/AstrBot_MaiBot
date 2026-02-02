@@ -735,12 +735,11 @@ class MaibotInstanceManager:
                     elif msg_type == "message_reply":
                         # 异步处理，不阻塞循环
                         stream_id = payload.get("stream_id", "")
-                        instance_id_from_payload = payload.get("instance_id", "")
-                        reply = payload.get("reply", {})
-                        processed_plain_text = reply.get("processed_plain_text", "") if reply else ""
-                        logger.info(f"[{instance_id}] 收到回复: stream_id={stream_id[:16] if stream_id else 'unknown'}, instance_id={instance_id_from_payload}, 内容: {processed_plain_text[:50]}...")
+                        segments = payload.get("segments", [])
+                        processed_plain_text = payload.get("processed_plain_text", "")
+                        logger.info(f"[{instance_id}] 收到回复: stream_id={stream_id[:16] if stream_id else 'unknown'}, 内容: {processed_plain_text[:50]}...")
                         # 启动后台任务处理回复
-                        asyncio.create_task(self._handle_instance_reply(instance_id, stream_id, reply))
+                        asyncio.create_task(self._handle_instance_reply(instance_id, stream_id, segments, processed_plain_text))
 
                 await asyncio.sleep(0.05)  # 消息处理间隔50ms
 
@@ -812,7 +811,7 @@ class MaibotInstanceManager:
             self._cleanup_instance(instance)
 
     async def _handle_instance_reply(
-        self, instance_id: str, stream_id: str, reply: Dict[str, Any]
+        self, instance_id: str, stream_id: str, segments: List[dict], processed_plain_text: str
     ) -> None:
         """处理子进程返回的回复消息
 
@@ -821,107 +820,38 @@ class MaibotInstanceManager:
         Args:
             instance_id: 实例ID
             stream_id: 流ID
-            reply: 回复数据 {
-                "message_info": {...},
-                "message_chain": dict,  # 字典格式的 MessageChain
-                "processed_plain_text": str
-            }
+            segments: 消息段字典列表
+            processed_plain_text: 处理后的纯文本
         """
         try:
             from astrbot.core.maibot_adapter.platform_adapter import get_astrbot_adapter
-            from astrbot.core.message.message_event_result import MessageChain
-            from astrbot.core.message.components import (
-                Plain,
-                Image,
-                Record,
-                Video,
-                Face,
-                File,
-            )
+            from astrbot.core.maibot_adapter.response_converter import convert_maibot_to_astrbot
 
             adapter = get_astrbot_adapter()
 
-            # 获取原始事件（可能已被删除，需要从 reply 中恢复）
+            # 获取原始事件
             event = adapter.get_event(stream_id)
 
-            # 如果找不到事件，显示当前存在的事件列表
             if not event:
-                message_info = reply.get("message_info", {})
-                platform = message_info.get("platform", "")
                 current_events = list(adapter._events.keys()) if hasattr(adapter, "_events") else []
-
                 logger.warning(
-                    f"[{instance_id}] 未找到 stream_id={stream_id[:16] if stream_id else 'unknown'} 对应的事件，"
+                    f"[{instance_id}] 未找到 stream_id={stream_id[:16]}... 对应的事件，"
                     f"当前事件列表: {current_events[:5]}... (共{len(current_events)}个)"
                 )
-
-                if platform:
-                    logger.warning(
-                        f"[{instance_id}] reply.platform={platform}"
-                    )
                 return
 
-            # 从字典重建 MessageChain
-            message_chain_data = reply.get("message_chain", {})
-            if message_chain_data:
-                chain_data = message_chain_data.get("chain", [])
+            if not segments:
+                logger.warning(f"[{instance_id}] 回复没有消息段: stream_id={stream_id[:16]}...")
+                return
 
-                # 从字典列表重建组件
-                components = []
-                for comp_dict in chain_data:
-                    comp_type = comp_dict.get("type", "").lower()
-                    comp_data = comp_dict.get("data", {})
+            # 使用统一的转换函数将字典列表转换为 MessageChain
+            message_chain = convert_maibot_to_astrbot(segments)
 
-                    if comp_type == "text" or comp_type == "plain":
-                        components.append(Plain(comp_data.get("text", "")))
-                    elif comp_type == "image":
-                        # Image 可能有多种来源：url, base64, file
-                        if "base64" in comp_data:
-                            components.append(Image(base64=comp_data["base64"]))
-                        elif "url" in comp_data:
-                            components.append(Image(url=comp_data["url"]))
-                        elif "file" in comp_data:
-                            components.append(Image(file=comp_data["file"]))
-                    elif comp_type == "voice" or comp_type == "record":
-                        if "url" in comp_data:
-                            components.append(Record(url=comp_data["url"]))
-                        elif "file" in comp_data:
-                            components.append(Record(file=comp_data["file"]))
-                    elif comp_type == "video":
-                        if "url" in comp_data:
-                            components.append(Video(url=comp_data["url"]))
-                        elif "file" in comp_data:
-                            components.append(Video(file=comp_data["file"]))
-                    elif comp_type == "face":
-                        face_id = comp_data.get("id", 0)
-                        components.append(Face(id=face_id))
-                    elif comp_type == "file":
-                        if "url" in comp_data:
-                            components.append(File(url=comp_data["url"]))
-                        elif "file" in comp_data:
-                            components.append(File(file=comp_data["file"]))
-                    else:
-                        # 未知类型，尝试创建 Plain
-                        components.append(Plain(f"[未知类型: {comp_type}]"))
-
-                # 创建 MessageChain
-                message_chain = MessageChain(
-                    chain=components,
-                    use_t2i_=message_chain_data.get("use_t2i_"),
-                )
-
-                # 发送消息
-                await event.send(message_chain)
-                logger.info(
-                    f"[{instance_id}] 回复已发送: stream_id={stream_id[:16] if stream_id else 'unknown'}, 内容: {reply.get('processed_plain_text', '')[:50]}"
-                )
-            else:
-                logger.warning(
-                    f"[{instance_id}] 回复中没有 message_chain: stream_id={stream_id[:16] if stream_id else 'unknown'}"
-                )
-
-            # 注意：不要删除事件！MaiBot 可能在同一个对话中发送多条消息
-            # 事件会在对话超时时由适配器自动清理
+            # 发送消息
+            await event.send(message_chain)
+            logger.info(
+                f"[{instance_id}] 回复已发送: stream_id={stream_id[:16]}..., 内容: {processed_plain_text[:50]}"
+            )
 
         except Exception as e:
             logger.error(f"[{instance_id}] 处理子进程回复失败: {e}", exc_info=True)

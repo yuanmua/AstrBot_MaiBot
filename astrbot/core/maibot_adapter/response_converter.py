@@ -2,7 +2,7 @@
 MaiBot 响应 → AstrBot 消息链转换器
 """
 
-from typing import List
+from typing import List, Union
 
 from maim_message import Seg
 
@@ -18,39 +18,12 @@ from astrbot.core.message.components import (
 )
 
 
-def convert_maibot_to_astrbot(message_segment: Seg) -> MessageChain:
+def seg_to_dict_list(segment: Seg) -> List[dict]:
     """
-    将 MaiBot 的消息段（Seg）转换为 AstrBot 的 MessageChain
+    将 Seg 对象转换为可序列化的字典列表
 
     Args:
-        message_segment: MaiBot 的消息段对象（Seg）
-
-    Returns:
-        MessageChain: AstrBot 消息链对象
-    """
-    components = []
-
-    # 解析 MaiBot 的消息段
-    segments = _parse_seg(message_segment)
-
-    for seg in segments:
-        component = _convert_seg_to_component(seg)
-        if component:
-            components.append(component)
-
-    # 如果没有任何组件，添加一个空文本
-    if not components:
-        components.append(Plain(""))
-
-    return MessageChain(components)
-
-
-def _parse_seg(segment: Seg) -> List[dict]:
-    """
-    递归解析 Seg 对象，提取所有消息段
-
-    Args:
-        segment: Seg 对象
+        segment: MaiBot 的 Seg 对象
 
     Returns:
         List[dict]: 消息段列表，每个元素为 {"type": "...", "data": ...}
@@ -64,11 +37,10 @@ def _parse_seg(segment: Seg) -> List[dict]:
     if segment.type == "seglist":
         if segment.data:
             for seg in segment.data:
-                result.extend(_parse_seg(seg))
+                result.extend(seg_to_dict_list(seg))
 
     # 如果是转发消息
     elif segment.type == "forward":
-        # 转发消息暂时转换为纯文本提示
         result.append({"type": "text", "data": "[合并转发消息]"})
 
     # 其他单个消息段
@@ -76,6 +48,55 @@ def _parse_seg(segment: Seg) -> List[dict]:
         result.append({"type": segment.type, "data": segment.data})
 
     return result
+
+
+def dict_list_to_message_chain(segments: List[dict]) -> MessageChain:
+    """
+    将字典列表转换为 AstrBot MessageChain
+
+    Args:
+        segments: 消息段字典列表
+
+    Returns:
+        MessageChain: AstrBot 消息链对象
+    """
+    from astrbot import logger
+    logger.info(f"[消息转换器] 正在消化MaiBot言语到: Seg：{Seg}...")
+
+    components = []
+
+    for seg in segments:
+        component = _convert_seg_to_component(seg)
+        if component:
+            components.append(component)
+
+    if not components:
+        components.append(Plain(""))
+
+    return MessageChain(components)
+
+
+def convert_maibot_to_astrbot(message_segment: Union[Seg, List[dict]]) -> MessageChain:
+    """
+    将 MaiBot 的消息段转换为 AstrBot 的 MessageChain
+
+    支持两种输入格式：
+    1. Seg 对象（直接转换）
+    2. 字典列表（已序列化的格式）
+
+    Args:
+        message_segment: MaiBot 的消息段对象（Seg）或字典列表
+
+    Returns:
+        MessageChain: AstrBot 消息链对象
+    """
+    # 如果是字典列表，直接转换
+    if isinstance(message_segment, list):
+        return dict_list_to_message_chain(message_segment)
+
+    # 如果是 Seg 对象，先转换为字典列表
+    segments = seg_to_dict_list(message_segment)
+    return dict_list_to_message_chain(segments)
 
 
 def _convert_seg_to_component(seg: dict):
@@ -88,7 +109,6 @@ def _convert_seg_to_component(seg: dict):
     Returns:
         消息组件对象或 None
     """
-    print("正在消化消息到AstrBot:",seg)
     seg_type = seg.get("type")
     seg_data = seg.get("data")
 

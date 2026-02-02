@@ -2,11 +2,9 @@
 子进程入口模块
 
 作为子进程的主入口点，负责：
-1. 从 input_queue 读取控制命令
+1. 从 input_queue 读取控制命令和消息
 2. 执行 MaiBotCore 的初始化和启动
-3. 通过 output_queue 发送状态更新和日志
-4. 处理来自主进程的消息（IPC 模式）
-5. 监听 _pending_replies，一旦有回复立即发送给主进程
+3. 通过 output_queue 发送状态更新、日志和回复
 """
 
 import asyncio
@@ -176,7 +174,10 @@ async def subprocess_main_async(
 
     # 辅助函数：发送回复到主进程（当 monkey patch 拦截到回复时调用）
     def send_reply_to_mainprocess(message, stream_id: str):
-        """将拦截到的回复发送给主进程"""
+        """将拦截到的回复发送给主进程
+
+        只做序列化，不做消息转换。转换在主进程中进行。
+        """
         try:
             # 获取消息信息
             message_info = getattr(message, "message_info", None)
@@ -188,58 +189,20 @@ async def subprocess_main_async(
             from astrbot.core.maibot_adapter.platform_adapter import parse_astrbot_instance_id
             instance_id = parse_astrbot_instance_id(platform) or "default"
 
-            send_log("info", f"[回调] 拦截到回复: stream_id={stream_id[:16]}..., instance_id={instance_id}, platform={platform}")
+            send_log("info", f"[回调] 拦截到回复: stream_id={stream_id[:16]}...")
 
-            # 转换消息格式
-            from astrbot.core.maibot_adapter.response_converter import convert_maibot_to_astrbot
+            # 将 Seg 对象转换为可序列化的字典列表
+            from astrbot.core.maibot_adapter.response_converter import seg_to_dict_list
+            segments = seg_to_dict_list(message_segment)
 
-            # 将 MaiBot 消息段转换为 AstrBot MessageChain
-            message_chain = convert_maibot_to_astrbot(message_segment)
-
-            send_log("info", f"[回调] message_chain 组件数: {len(message_chain.chain)}")
-
-            # 将 MessageChain 转换为字典格式（确保可序列化跨进程传递）
-            def message_chain_to_dict(chain):
-                """将 MessageChain 转换为字典"""
-                result = []
-                for comp in chain.chain:
-                    # 使用组件的 toDict() 方法（更可靠）
-                    try:
-                        if hasattr(comp, "toDict") and callable(comp.toDict):
-                            comp_dict = comp.toDict()
-                        elif hasattr(comp, "model_dump") and callable(comp.model_dump):
-                            comp_dict = comp.model_dump()
-                            # 确保有 type 字段
-                            if "type" not in comp_dict and hasattr(comp, "type"):
-                                comp_dict["type"] = str(comp.type.value) if hasattr(comp.type, "value") else str(comp.type)
-                        else:
-                            # Fallback: 手动构建
-                            comp_dict = {"type": "unknown", "data": {}}
-                        result.append(comp_dict)
-                    except Exception as e:
-                        # Fallback: 手动构建
-                        send_log("warning", f"[回调] 转换组件失败: {e}")
-                        result.append({"type": "unknown", "data": {}})
-                return result
-
-            reply_data = {
-                "message_info": {
-                    "platform": platform,
-                    "stream_id": stream_id,
-                    "instance_id": instance_id,  # 添加实例ID
-                },
-                "message_chain": {
-                    "chain": message_chain_to_dict(message_chain),
-                    "use_t2i_": message_chain.use_t2i_,
-                },
-                "processed_plain_text": processed_plain_text,
-            }
+            # 发送到主进程
             output_queue.put({
                 "type": "message_reply",
                 "payload": {
                     "stream_id": stream_id,
-                    "instance_id": instance_id,  # 添加实例ID
-                    "reply": reply_data,
+                    "instance_id": instance_id,
+                    "segments": segments,  # 字典列表，主进程中转换为 MessageChain
+                    "processed_plain_text": processed_plain_text,
                     "timestamp": datetime.now().isoformat(),
                 }
             })
@@ -403,44 +366,6 @@ async def subprocess_main_async(
 
         send_status("stopped", "子进程已停止")
         send_log("info", "子进程退出")
-
-
-async def _monitor_pending_replies(adapter, send_log, send_reply_to_mainprocess):
-    """监听 _pending_replies，一旦有回复立即发送给主进程
-
-    Args:
-        adapter: AstrBotPlatformAdapter 实例
-        send_log: 日志发送函数
-        send_reply_to_mainprocess: 回复发送函数
-    """
-    send_log("info", "启动回复监听任务")
-    processed_stream_ids = set()  # 记录已发送的 stream_id
-
-    while True:
-        try:
-            async with adapter._pending_replies_lock:
-                # 检查是否有新的回复
-                current_keys = set(adapter._pending_replies.keys())
-                new_keys = current_keys - processed_stream_ids
-
-                for stream_id in new_keys:
-                    message = adapter._pending_replies[stream_id]
-                    send_log("info", f"检测到新回复: stream_id={stream_id[:16]}...")
-                    # 发送回复到主进程
-                    send_reply_to_mainprocess(message, stream_id)
-                    # 标记为已处理
-                    processed_stream_ids.add(stream_id)
-                    # 从 _pending_replies 中移除
-                    del adapter._pending_replies[stream_id]
-
-            await asyncio.sleep(0.1)  # 每100ms检查一次
-
-        except asyncio.CancelledError:
-            send_log("info", "回复监听任务已取消")
-            break
-        except Exception as e:
-            send_log("error", f"监听回复时出错: {e}")
-            await asyncio.sleep(1.0)
 
 
 # 保持向后兼容，subprocess_main 现在是一个同步包装函数

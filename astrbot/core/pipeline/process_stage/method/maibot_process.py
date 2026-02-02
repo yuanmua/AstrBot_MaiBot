@@ -5,20 +5,17 @@ MaiBot 处理子阶段
 工作流程：
 1. 主进程将消息通过 IPC 发送给子进程
 2. 子进程中的 MaiBot 处理消息并生成回复
-3. 子进程将回复返回给主进程
-4. 主进程通过适配器发送回复
+3. 子进程通过 output_queue 将回复发送给主进程
+4. 主进程的 _handle_instance_reply() 负责发送回复
 """
 
-import asyncio
 import hashlib
-import time
-from typing import Dict, Optional
+from typing import Optional
 
 from astrbot.api import logger
 from astrbot.core.platform.astr_message_event import AstrMessageEvent
 from astrbot.core.pipeline.context import PipelineContext
 from astrbot.core.pipeline.stage import Stage
-from astrbot.core.maibot_adapter.response_converter import convert_maibot_to_astrbot
 
 
 def _generate_stream_id(platform: str, user_id: str, group_id: Optional[str] = None) -> str:
@@ -126,21 +123,9 @@ class MaiBotProcessSubStage(Stage):
             )
 
             if result.get("success"):
-                reply_result = result.get("result", {})
-                reply_status = reply_result.get("status", "")
-
-                if reply_status == "replied" and reply_result.get("reply"):
-                    # 收到子进程的回复，发送回复
-                    reply_data = reply_result["reply"]
-                    await self._send_reply(reply_data, stream_id)
-                    # 注意：不要在这里删除事件！MaiBot 可能在同一个对话中发送多条消息
-                    # 事件会在 _send_reply 中删除（但仅当找到事件时）
-                elif reply_status == "processed":
-                    # 处理完成但没有回复（MaiBot 可能正在异步生成回复）
-                    logger.debug(f"[MaiBot][IPC] 消息已处理，无同步回复")
-                    # 不要删除事件，等待 MaiBot 可能的异步回复
-                else:
-                    logger.debug(f"[MaiBot][IPC] 消息处理完成: {reply_status}")
+                # 消息已提交给子进程处理
+                # 回复会通过 output_queue -> _handle_instance_reply() 异步发送
+                logger.debug(f"[MaiBot][IPC] 消息已提交处理")
 
                 # 停止事件传播（MaiBot 已经处理）
                 event.stop_event()
@@ -161,39 +146,3 @@ class MaiBotProcessSubStage(Stage):
                 pass
             # 如果 MaiBot 处理失败，继续由 AstrBot 处理
             return None
-
-    async def _send_reply(self, reply_data: Dict, stream_id: str) -> None:
-        """发送回复消息
-
-        Args:
-            reply_data: 子进程返回的回复数据
-            stream_id: 流ID
-        """
-        try:
-            message_segment = reply_data.get("message_segment")
-            processed_plain_text = reply_data.get("processed_plain_text", "")
-
-            if not message_segment:
-                logger.warning(f"[MaiBot][IPC] 回复没有消息段: stream_id={stream_id[:16]}...")
-                return
-
-            # 转换 MaiBot 消息为 AstrBot MessageChain
-            message_chain = convert_maibot_to_astrbot(message_segment)
-
-            # 获取事件并发送
-            current_event = self.adapter.get_event(stream_id)
-            if current_event:
-                await current_event.send(message_chain)
-                logger.info(
-                    f"[MaiBot][IPC] 发送回复: {processed_plain_text[:50]} -> stream_id={stream_id[:16]}..."
-                )
-                # 注意：不要清除事件！MaiBot 可能在同一个对话中发送多条消息
-                # 事件会在对话超时时由适配器自动清理
-            else:
-                logger.warning(
-                    f"[MaiBot][IPC] 没有找到事件: stream_id={stream_id[:16]}..."
-                )
-
-        except Exception as e:
-            logger.error(f"[MaiBot][IPC] 发送回复失败: {e}", exc_info=True)
-            # 即使出错也不要删除事件，让后续异步回复有机会找到事件

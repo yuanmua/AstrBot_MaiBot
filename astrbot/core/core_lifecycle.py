@@ -369,15 +369,9 @@ class AstrBotCoreLifecycle:
             self.maibot_manager = await initialize_instance_manager("data/maibot")
             logger.info(f"MaiBot 实例管理器初始化完成，共 {len(self.maibot_manager.instances)} 个实例")
 
-            # 设置实例管理器到 AstrBotPlatformAdapter（IPC 模式）
-            from astrbot.core.maibot_adapter.platform_adapter import (
-                AstrBotPlatformAdapter,
-                initialize_adapter,
-            )
-            AstrBotPlatformAdapter.set_instance_manager(self.maibot_manager)
-            AstrBotPlatformAdapter.set_ipc_mode(True)
-            # 初始化适配器
-            await initialize_adapter("data/maibot", self.maibot_manager, use_ipc_mode=True)
+            # 初始化 AstrBot 适配器
+            from astrbot.core.maibot_adapter.platform_adapter import initialize_adapter
+            await initialize_adapter(self.maibot_manager)
 
             # 按启动顺序自动启动所有实例
             await self._auto_start_maibot_instances()

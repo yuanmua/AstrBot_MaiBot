@@ -181,28 +181,28 @@
     </v-dialog>
 
     <!-- 操作按钮浮窗 -->
-    <v-speed-dial v-model="fab" direction="top" open-on-hover class="fixed-fab">
-      <template #activator="{ props }">
-        <v-btn
-          v-bind="props"
-          icon="mdi-menu"
-          size="large"
-          color="primary"
-        ></v-btn>
-      </template>
+<!--    <v-speed-dial v-model="fab" direction="top" open-on-hover class="fixed-fab">-->
+<!--      <template #activator="{ props }">-->
+<!--        <v-btn-->
+<!--          v-bind="props"-->
+<!--          icon="mdi-menu"-->
+<!--          size="large"-->
+<!--          color="primary"-->
+<!--        ></v-btn>-->
+<!--      </template>-->
 
-      <v-btn icon="mdi-refresh" @click="refreshInstances" :loading="loading">
-        <v-tooltip text="刷新实例列表" location="left"></v-tooltip>
-      </v-btn>
+<!--      <v-btn icon="mdi-refresh" @click="refreshInstances" :loading="loading">-->
+<!--        <v-tooltip text="刷新实例列表" location="left"></v-tooltip>-->
+<!--      </v-btn>-->
 
-      <v-btn icon="mdi-routes" @click="goToRouting">
-        <v-tooltip text="路由管理" location="left"></v-tooltip>
-      </v-btn>
+<!--      <v-btn icon="mdi-routes" @click="goToRouting">-->
+<!--        <v-tooltip text="路由管理" location="left"></v-tooltip>-->
+<!--      </v-btn>-->
 
-      <v-btn icon="mdi-file-document" @click="goToLogs">
-        <v-tooltip text="查看日志" location="left"></v-tooltip>
-      </v-btn>
-    </v-speed-dial>
+<!--      <v-btn icon="mdi-file-document" @click="goToLogs">-->
+<!--        <v-tooltip text="查看日志" location="left"></v-tooltip>-->
+<!--      </v-btn>-->
+<!--    </v-speed-dial>-->
   </v-container>
 </template>
 

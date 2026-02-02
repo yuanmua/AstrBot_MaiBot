@@ -233,7 +233,10 @@ async def _send_message(message: MessageSending, show_log=True) -> bool:
             return False
 
         try:
-            send_result = await get_global_api().send_message(message)
+            # 调试日志：检查 send_message 方法是否被 monkey patch
+            api_instance = get_global_api()
+            logger.info(f"[调试] 准备调用 send_message, api_instance id: {id(api_instance)}, send_message: {api_instance.send_message.__name__ if hasattr(api_instance.send_message, '__name__') else 'unknown'}")
+            send_result = await api_instance.send_message(message)
             # if send_result:
             if show_log:
                 logger.info(f"已将消息  '{message_preview}'  发往平台'{message.message_info.platform}'")
