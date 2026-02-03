@@ -51,7 +51,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useInstances } from "@/composables/useInstances";
-import InstanceLogPanel from "@/components/features.maibot/InstanceLogPanel.vue";
+import InstanceLogPanel from "@/components/maibot/InstanceLogPanel.vue";
 import { useModuleI18n } from "@/i18n/composables";
 const { tm } = useModuleI18n("features/maibot");
 

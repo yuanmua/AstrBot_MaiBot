@@ -3,25 +3,25 @@
  * 处理与后端 MaiBot 管理接口的通信
  */
 
-import axios from 'axios';
+import axios from "axios";
 
 // API 基础 URL
-const API_BASE_URL = '/api/maibot';
+const API_BASE_URL = "/api/maibot";
 
 // 创建 axios 实例
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 10000,
   headers: {
-    'Content-Type': 'application/json'
-  }
+    "Content-Type": "application/json",
+  },
 });
 
 // 请求拦截器：添加认证 token
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
   if (token) {
-    config.headers['Authorization'] = `Bearer ${token}`;
+    config.headers["Authorization"] = `Bearer ${token}`;
   }
   return config;
 });
@@ -40,13 +40,20 @@ export interface InstanceInfo {
   id: string;
   name: string;
   description: string;
-  status: 'stopped' | 'starting' | 'running' | 'stopping' | 'error' | 'restarting';
+  status:
+    | "stopped"
+    | "starting"
+    | "running"
+    | "stopping"
+    | "error"
+    | "restarting";
   is_default: boolean;
   port: number;
   enable_webui: boolean;
   enable_socket: boolean;
   created_at: string;
   updated_at: string;
+  started_at?: string;
   uptime?: number;
   message_count?: number;
   error_message?: string;
@@ -58,7 +65,6 @@ export interface RoutingRule {
   chat_id: string;
   instance_id: string;
 }
-
 
 /**
  * 获取所有实例
@@ -82,6 +88,7 @@ export async function getInstances(): Promise<InstanceInfo[]> {
         enable_socket: inst.enable_socket,
         created_at: inst.created_at,
         updated_at: inst.updated_at,
+        started_at: inst.started_at,
         uptime: inst.uptime,
         message_count: inst.message_count,
         error_message: inst.error_message,
@@ -116,6 +123,7 @@ export async function getRunningInstances(): Promise<InstanceInfo[]> {
         enable_socket: inst.enable_socket,
         created_at: inst.created_at,
         updated_at: inst.updated_at,
+        started_at: inst.started_at,
         uptime: inst.uptime,
         message_count: inst.message_count,
         error_message: inst.error_message,
@@ -134,11 +142,13 @@ export async function getRunningInstances(): Promise<InstanceInfo[]> {
  */
 export async function getInstance(instanceId: string): Promise<InstanceInfo> {
   try {
-    const response = await apiClient.get<ApiResponse<InstanceInfo>>(`/instances/${instanceId}`);
-    if (response.data.status === 'ok' && response.data.data) {
+    const response = await apiClient.get<ApiResponse<InstanceInfo>>(
+      `/instances/${instanceId}`,
+    );
+    if (response.data.status === "ok" && response.data.data) {
       return response.data.data;
     }
-    throw new Error(response.data.message || '实例不存在');
+    throw new Error(response.data.message || "实例不存在");
   } catch (error) {
     console.error(`获取实例 ${instanceId} 详情失败:`, error);
     throw error;
@@ -156,6 +166,7 @@ export async function createInstance(data: {
   copy_from?: string;
   enable_webui?: boolean;
   enable_socket?: boolean;
+  config_updates?: Record<string, any>; // 配置修改项（会与模板合并）
 }): Promise<InstanceInfo> {
   try {
     const response = await apiClient.post<ApiResponse<InstanceInfo>>(
@@ -177,17 +188,17 @@ export async function createInstance(data: {
  */
 export async function updateInstance(
   instanceId: string,
-  data: Partial<InstanceInfo>
+  data: Partial<InstanceInfo>,
 ): Promise<InstanceInfo> {
   try {
     const response = await apiClient.put<ApiResponse<InstanceInfo>>(
       `/instances/${instanceId}`,
-      data
+      data,
     );
     if (response.data.success && response.data.data) {
       return response.data.data;
     }
-    throw new Error(response.data.error || '更新实例失败');
+    throw new Error(response.data.error || "更新实例失败");
   } catch (error) {
     console.error(`更新实例 ${instanceId} 失败:`, error);
     throw error;
@@ -199,17 +210,17 @@ export async function updateInstance(
  */
 export async function deleteInstance(
   instanceId: string,
-  deleteData: boolean = false
+  deleteData: boolean = false,
 ): Promise<void> {
   try {
     const response = await apiClient.delete<ApiResponse>(
       `/instances/${instanceId}`,
       {
-        params: { delete_data: deleteData }
-      }
+        params: { delete_data: deleteData },
+      },
     );
-    if (response.data.status !== 'ok') {
-      throw new Error(response.data.error || '删除实例失败');
+    if (response.data.status !== "ok") {
+      throw new Error(response.data.error || "删除实例失败");
     }
   } catch (error) {
     console.error(`删除实例 ${instanceId} 失败:`, error);
@@ -223,10 +234,10 @@ export async function deleteInstance(
 export async function startInstance(instanceId: string): Promise<void> {
   try {
     const response = await apiClient.post<ApiResponse>(
-      `/instances/${instanceId}/start`
+      `/instances/${instanceId}/start`,
     );
-    if (response.data.status !== 'ok') {
-      throw new Error(response.data.error || '启动实例失败');
+    if (response.data.status !== "ok") {
+      throw new Error(response.data.error || "启动实例失败");
     }
   } catch (error) {
     console.error(`启动实例 ${instanceId} 失败:`, error);
@@ -240,10 +251,10 @@ export async function startInstance(instanceId: string): Promise<void> {
 export async function stopInstance(instanceId: string): Promise<void> {
   try {
     const response = await apiClient.post<ApiResponse>(
-      `/instances/${instanceId}/stop`
+      `/instances/${instanceId}/stop`,
     );
-    if (response.data.status !== 'ok') {
-      throw new Error(response.data.error || '停止实例失败');
+    if (response.data.status !== "ok") {
+      throw new Error(response.data.error || "停止实例失败");
     }
   } catch (error) {
     console.error(`停止实例 ${instanceId} 失败:`, error);
@@ -257,10 +268,10 @@ export async function stopInstance(instanceId: string): Promise<void> {
 export async function restartInstance(instanceId: string): Promise<void> {
   try {
     const response = await apiClient.post<ApiResponse>(
-      `/instances/${instanceId}/restart`
+      `/instances/${instanceId}/restart`,
     );
-    if (response.data.status !== 'ok') {
-      throw new Error(response.data.error || '重启实例失败');
+    if (response.data.status !== "ok") {
+      throw new Error(response.data.error || "重启实例失败");
     }
   } catch (error) {
     console.error(`重启实例 ${instanceId} 失败:`, error);
@@ -273,11 +284,13 @@ export async function restartInstance(instanceId: string): Promise<void> {
  */
 export async function getInstanceConfig(instanceId: string): Promise<any> {
   try {
-    const response = await apiClient.get<ApiResponse>(`/instances/${instanceId}/config`);
-    if (response.data.success && response.data.data) {
-      return response.data.data;
+    const response = await apiClient.get<ApiResponse>(
+      `/instances/${instanceId}/config`,
+    );
+    if (response.data.status === "ok" && response.data.data) {
+      return response.data.data.config;
     }
-    throw new Error('获取配置失败');
+    throw new Error(response.data.message || "获取配置失败");
   } catch (error) {
     console.error(`获取实例 ${instanceId} 配置失败:`, error);
     throw error;
@@ -286,15 +299,30 @@ export async function getInstanceConfig(instanceId: string): Promise<any> {
 
 /**
  * 保存实例配置
+ * @param instanceId 实例ID
+ * @param config 配置数据对象（可选）
+ * @param rawContent 原始 TOML 内容（可选，与 config 二选一）
  */
-export async function saveInstanceConfig(instanceId: string, config: any): Promise<void> {
+export async function saveInstanceConfig(
+  instanceId: string,
+  config?: any,
+  rawContent?: string,
+): Promise<void> {
   try {
+    const payload: any = {};
+    if (config !== undefined) {
+      payload.config = config;
+    }
+    if (rawContent !== undefined) {
+      payload.raw_content = rawContent;
+    }
+
     const response = await apiClient.put<ApiResponse>(
       `/instances/${instanceId}/config`,
-      config
+      payload,
     );
-    if (response.data.status !== 'ok') {
-      throw new Error(response.data.error || '保存配置失败');
+    if (response.data.status !== "ok") {
+      throw new Error(response.data.message || "保存配置失败");
     }
   } catch (error) {
     console.error(`保存实例 ${instanceId} 配置失败:`, error);
@@ -310,13 +338,13 @@ export async function getRoutingRules(): Promise<{
   rules: RoutingRule[];
 }> {
   try {
-    const response = await apiClient.get<ApiResponse>('/routing/rules');
+    const response = await apiClient.get<ApiResponse>("/routing/rules");
     if (response.data.success && response.data.data) {
       return response.data.data;
     }
-    throw new Error('获取路由规则失败');
+    throw new Error("获取路由规则失败");
   } catch (error) {
-    console.error('获取路由规则失败:', error);
+    console.error("获取路由规则失败:", error);
     throw error;
   }
 }
@@ -329,12 +357,12 @@ export async function saveRoutingRules(data: {
   rules: RoutingRule[];
 }): Promise<void> {
   try {
-    const response = await apiClient.put<ApiResponse>('/routing/rules', data);
-    if (response.data.status !== 'ok') {
-      throw new Error(response.data.error || '保存路由规则失败');
+    const response = await apiClient.put<ApiResponse>("/routing/rules", data);
+    if (response.data.status !== "ok") {
+      throw new Error(response.data.error || "保存路由规则失败");
     }
   } catch (error) {
-    console.error('保存路由规则失败:', error);
+    console.error("保存路由规则失败:", error);
     throw error;
   }
 }
@@ -345,7 +373,7 @@ export async function saveRoutingRules(data: {
 export async function getInstanceLogs(
   instanceId: string,
   limit: number = 100,
-  offset: number = 0
+  offset: number = 0,
 ): Promise<{
   logs: string[];
   total: number;
@@ -354,13 +382,14 @@ export async function getInstanceLogs(
     const response = await apiClient.get<ApiResponse>(
       `/instances/${instanceId}/logs`,
       {
-        params: { limit, offset }
-      }
+        params: { limit, offset },
+      },
     );
-    if (response.data.success && response.data.data) {
+    // 后端使用 Response().ok().__dict__ 格式，返回 { status: "ok", data: {...} }
+    if (response.data.status === "ok" && response.data.data) {
       return response.data.data;
     }
-    throw new Error('获取日志失败');
+    throw new Error(response.data.message || "获取日志失败");
   } catch (error) {
     console.error(`获取实例 ${instanceId} 日志失败:`, error);
     throw error;
@@ -373,10 +402,10 @@ export async function getInstanceLogs(
 export async function clearInstanceLogs(instanceId: string): Promise<void> {
   try {
     const response = await apiClient.post<ApiResponse>(
-      `/instances/${instanceId}/logs/clear`
+      `/instances/${instanceId}/logs/clear`,
     );
-    if (response.data.status !== 'ok') {
-      throw new Error(response.data.error || '清空日志失败');
+    if (response.data.status !== "ok") {
+      throw new Error(response.data.message || "清空日志失败");
     }
   } catch (error) {
     console.error(`清空实例 ${instanceId} 日志失败:`, error);
@@ -391,14 +420,14 @@ export async function downloadInstanceLogs(instanceId: string): Promise<void> {
   try {
     const response = await apiClient.get(
       `/instances/${instanceId}/logs/download`,
-      { responseType: 'blob' }
+      { responseType: "blob" },
     );
 
     if (response.data) {
       const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = url;
-      link.setAttribute('download', `${instanceId}_logs.txt`);
+      link.setAttribute("download", `${instanceId}_logs.txt`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -406,6 +435,24 @@ export async function downloadInstanceLogs(instanceId: string): Promise<void> {
     }
   } catch (error) {
     console.error(`下载实例 ${instanceId} 日志失败:`, error);
+    throw error;
+  }
+}
+
+/**
+ * 获取默认模板配置
+ */
+export async function getDefaultTemplateConfig(): Promise<any> {
+  try {
+    const response = await apiClient.get<ApiResponse>(
+      "/instances/default_config",
+    );
+    if (response.data.status === "ok" && response.data.data) {
+      return response.data.data;
+    }
+    throw new Error(response.data.message || "获取默认配置失败");
+  } catch (error) {
+    console.error("获取默认模板配置失败:", error);
     throw error;
   }
 }
@@ -421,10 +468,11 @@ export default {
   stopInstance,
   restartInstance,
   getInstanceConfig,
+  getDefaultTemplateConfig,
   saveInstanceConfig,
   getRoutingRules,
   saveRoutingRules,
   getInstanceLogs,
   clearInstanceLogs,
-  downloadInstanceLogs
+  downloadInstanceLogs,
 };

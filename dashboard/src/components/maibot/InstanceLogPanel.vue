@@ -16,7 +16,7 @@
         <!-- 搜索框 -->
         <v-text-field
           v-model="searchText"
-          :placeholder="$t('features.maibot.logPanel.filter')"
+          :placeholder="tm('logPanel.filter')"
           density="compact"
           prepend-inner-icon="mdi-magnify"
           clearable
@@ -44,11 +44,7 @@
                 ></v-icon>
               </template>
               <v-list-item-title>
-                {{
-                  isRealtimeEnabled
-                    ? tm("logPanel.realtime")
-                    : "暂停实时"
-                }}
+                {{ isRealtimeEnabled ? tm("logPanel.realtime") : "暂停实时" }}
               </v-list-item-title>
             </v-list-item>
 
@@ -67,9 +63,7 @@
               <template #prepend>
                 <v-icon icon="mdi-trash-can" color="error"></v-icon>
               </template>
-              <v-list-item-title>{{
-                tm("logPanel.clear")
-              }}</v-list-item-title>
+              <v-list-item-title>{{ tm("logPanel.clear") }}</v-list-item-title>
             </v-list-item>
           </v-list>
         </v-menu>
@@ -123,6 +117,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { useInstances } from "@/composables/useInstances";
 import { useToast } from "@/utils/toast";
+import { useModuleI18n } from "@/i18n/composables";
 const { tm } = useModuleI18n("features/maibot");
 
 interface Props {

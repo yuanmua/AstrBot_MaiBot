@@ -119,6 +119,17 @@
         {{ statusText }}
       </v-btn>
 
+      <!-- 编辑按钮（运行/停止状态可见） -->
+      <v-btn
+        v-if="instance.status === 'running' || instance.status === 'stopped'"
+        size="small"
+        variant="outlined"
+        color="primary"
+        @click="handleEdit"
+      >
+        {{ tm("operations.edit") }}
+      </v-btn>
+
       <!-- 更多操作菜单 -->
       <v-menu>
         <template #activator="{ props }">
@@ -131,6 +142,15 @@
         </template>
 
         <v-list>
+          <v-list-item @click="handleViewLogs">
+            <template #prepend>
+              <v-icon icon="mdi-file-document"></v-icon>
+            </template>
+            <v-list-item-title>{{
+              tm("operations.viewLogs")
+            }}</v-list-item-title>
+          </v-list-item>
+
           <v-list-item
             @click="handleRestart"
             :disabled="
@@ -143,13 +163,6 @@
             <v-list-item-title>{{
               tm("operations.restart")
             }}</v-list-item-title>
-          </v-list-item>
-
-          <v-list-item @click="handleEdit">
-            <template #prepend>
-              <v-icon icon="mdi-pencil"></v-icon>
-            </template>
-            <v-list-item-title>{{ tm("operations.edit") }}</v-list-item-title>
           </v-list-item>
 
           <v-divider></v-divider>
@@ -187,6 +200,7 @@ const emit = defineEmits<{
   restart: [];
   edit: [];
   delete: [];
+  "view-log": [id: string];
 }>();
 
 const { instanceLoading } = useInstances();
@@ -242,22 +256,51 @@ const isLoading = computed(() => {
 
 // 格式化运行时长
 const formatUptime = computed(() => {
-  if (!props.instance.uptime) {
-    return props.instance.status === "running" ? "启动中..." : "-";
+  // 优先使用 uptime 字段（后端计算）
+  if (props.instance.uptime !== undefined && props.instance.uptime !== null) {
+    const seconds = Math.floor(props.instance.uptime);
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+
+    if (days > 0) {
+      return `${days}d ${hours}h`;
+    } else if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else {
+      return `${minutes}m`;
+    }
   }
 
-  const seconds = Math.floor(props.instance.uptime);
-  const days = Math.floor(seconds / 86400);
-  const hours = Math.floor((seconds % 86400) / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
+  // 如果没有 uptime，根据 started_at 计算
+  if (props.instance.started_at && props.instance.status === "running") {
+    const startedAt = new Date(props.instance.started_at);
+    const now = new Date();
+    const diffMs = now.getTime() - startedAt.getTime();
+    const diffSeconds = Math.floor(diffMs / 1000);
 
-  if (days > 0) {
-    return `${days}d ${hours}h`;
-  } else if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  } else {
-    return `${minutes}m`;
+    const days = Math.floor(diffSeconds / 86400);
+    const hours = Math.floor((diffSeconds % 86400) / 3600);
+    const minutes = Math.floor((diffSeconds % 3600) / 60);
+
+    if (days > 0) {
+      return `${days}d ${hours}h`;
+    } else if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else {
+      return `${minutes}m`;
+    }
   }
+
+  // 启动中状态
+  if (
+    props.instance.status === "starting" ||
+    props.instance.status === "restarting"
+  ) {
+    return "启动中...";
+  }
+
+  return "-";
 });
 
 // 格式化日期
@@ -292,6 +335,10 @@ const handleRestart = () => {
 
 const handleEdit = () => {
   emit("edit");
+};
+
+const handleViewLogs = () => {
+  emit("view-log", props.instance.id);
 };
 
 const handleDelete = () => {

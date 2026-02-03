@@ -310,9 +310,9 @@ def _update_config_generic(config_name: str, template_name: str, config_path: st
     shutil.move(config_path, old_backup_path)
     logger.info(f"已备份旧{config_name}配置文件到: {old_backup_path}")
 
-    # 复制模板文件到配置目录
-    shutil.copy2(template_path, new_config_path)
-    logger.info(f"已创建新{config_name}配置文件: {new_config_path}")
+    # 复制模板文件到配置目录（使用原配置文件路径）
+    shutil.copy2(template_path, config_path)
+    logger.info(f"已创建新{config_name}配置文件: {config_path}")
 
     # 输出新增和删减项及注释
     if old_config:
@@ -328,7 +328,7 @@ def _update_config_generic(config_name: str, template_name: str, config_path: st
     _update_dict(new_config, old_config)
 
     # 保存更新后的配置（保留注释和格式，数组多行格式化）
-    with open(new_config_path, "w", encoding="utf-8") as f:
+    with open(config_path, "w", encoding="utf-8") as f:
         f.write(format_toml_string(new_config))
     logger.info(f"{config_name}配置文件更新完成，建议检查新配置文件中的内容，以免丢失重要信息")
 

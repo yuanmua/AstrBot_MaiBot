@@ -320,8 +320,13 @@ class MaibotInstanceManager:
         web_port: int = 8001,
         enable_webui: bool = False,
         enable_socket: bool = False,
+        config_updates: Optional[Dict[str, Any]] = None,
     ) -> MaibotInstance:
-        """创建新实例"""
+        """创建新实例
+
+        Args:
+            config_updates: 配置修改项（只修改的部分），会与模板配置合并
+        """
         if instance_id in self.instances:
             raise ValueError(f"实例ID已存在: {instance_id}")
 
@@ -359,6 +364,38 @@ class MaibotInstanceManager:
             logger.info(f"已从模板创建实例 {instance_id} 配置文件")
         else:
             logger.warning(f"未找到配置模板: {template_path}")
+
+        # 合并用户修改的配置
+        if config_updates:
+            try:
+                import tomlkit
+                # 读取已复制的模板配置
+                config_content = ""
+                if os.path.exists(config_path):
+                    with open(config_path, "r", encoding="utf-8") as f:
+                        config_content = f.read()
+
+                config = tomlkit.loads(config_content)
+
+                # 递归合并配置
+                def deep_merge(base: Dict[str, Any], updates: Dict[str, Any]) -> Dict[str, Any]:
+                    result = base.copy()
+                    for key, value in updates.items():
+                        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+                            result[key] = deep_merge(result[key], value)
+                        else:
+                            result[key] = value
+                    return result
+
+                config = deep_merge(dict(config), config_updates)
+
+                # 保存合并后的配置
+                with open(config_path, "w", encoding="utf-8") as f:
+                    tomlkit.dump(config, f)
+
+                logger.info(f"已合并实例 {instance_id} 的配置修改")
+            except Exception as e:
+                logger.error(f"合并实例 {instance_id} 配置失败: {e}")
 
         self.instances[instance_id] = instance
         await self._save_instances_metadata()

@@ -3,12 +3,16 @@
 提供麦麦实例的创建、删除、启动、停止等管理功能。
 """
 
-from typing import Optional
+import os
+from datetime import datetime
+from pathlib import Path
 
+import tomlkit
 from quart import request
 
 from astrbot.api import logger
 from astrbot.core.core_lifecycle import AstrBotCoreLifecycle
+from astrbot.core.utils.astrbot_path import get_astrbot_data_path
 
 from .route import Response, Route, RouteContext
 
@@ -25,7 +29,10 @@ class MaiBotManagerRoute(Route):
                 ("GET", self.get_instances),
                 ("POST", self.create_instance),
             ],
-            "/maibot/instances/<instance_id>":  [
+            "/maibot/instances/default_config": [
+                ("GET", self.get_maibot_default_config),
+            ],
+            "/maibot/instances/<instance_id>": [
                 ("GET", self.get_instance),
                 ("PUT", self.update_instance),
                 ("DELETE", self.delete_instance),
@@ -34,6 +41,17 @@ class MaiBotManagerRoute(Route):
             "/maibot/instances/<instance_id>/start": ("POST", self.start_instance),
             "/maibot/instances/<instance_id>/stop": ("POST", self.stop_instance),
             "/maibot/instances/<instance_id>/restart": ("POST", self.restart_instance),
+            # ============ 实例配置管理 ============
+            "/maibot/instances/<instance_id>/config": [
+                ("GET", self.get_instance_config),
+                ("PUT", self.save_instance_config),
+            ],
+            # ============ 实例日志管理 ============
+            "/maibot/instances/<instance_id>/logs": [
+                ("GET", self.get_instance_logs),
+            ],
+            "/maibot/instances/<instance_id>/logs/clear": ("POST", self.clear_instance_logs),
+            "/maibot/instances/<instance_id>/logs/download": ("GET", self.download_instance_logs),
             # ============ 运行状态 ============
             "/maibot/running": ("GET", self.get_running_instances),
             "/maibot/default": [
@@ -41,11 +59,11 @@ class MaiBotManagerRoute(Route):
                 ("PUT", self.set_default_instance),
             ],
             # ============ 路由规则管理 ============
-            "/maibot/routing/rules":[
+            "/maibot/routing/rules": [
                 ("GET", self.get_routing_rules),
                 ("PUT", self.save_routing_rules),
                 ("DELETE", self.clear_routing_rules),
-        ],
+            ],
         }
         self.register_routes()
 
@@ -78,6 +96,47 @@ class MaiBotManagerRoute(Route):
             logger.error(f"获取实例列表失败: {e}", exc_info=True)
             return Response().error(f"获取实例列表失败: {e}").__dict__, 500
 
+    def _get_template_config_path(self) -> str:
+        """获取默认模板配置文件路径"""
+        # 模板文件路径: astrbot/core/maibot/template/bot_config_template.toml
+        template_dir = os.path.join(
+            os.path.dirname(__file__), "..", "..", "core", "maibot", "template"
+        )
+        return os.path.join(template_dir, "bot_config_template.toml")
+
+    async def get_maibot_default_config(self):
+        """获取默认模板配置"""
+        try:
+            config_path = self._get_template_config_path()
+
+            if not os.path.exists(config_path):
+                return Response().error("默认模板配置文件不存在").__dict__, 404
+
+            # 读取 TOML 文件
+            with open(config_path, "r", encoding="utf-8") as f:
+                config_data = tomlkit.load(f)
+
+            # 清理配置：移除注释相关的字段
+            self._clean_config(config_data)
+
+            return Response().ok({
+                "config": config_data,
+            }).__dict__
+        except Exception as e:
+            logger.error(f"获取默认模板配置失败: {e}", exc_info=True)
+            return Response().error(f"获取默认配置失败: {e}").__dict__, 500
+
+    def _clean_config(self, config: dict):
+        """清理配置数据，移除注释相关字段"""
+        keys_to_remove = []
+        for key in config:
+            if key.startswith("_") or key.lower().endswith("_comment"):
+                keys_to_remove.append(key)
+            elif isinstance(config[key], dict):
+                self._clean_config(config[key])
+        for key in keys_to_remove:
+            config.pop(key, None)
+
     async def get_instance(self, instance_id: str):
         """获取单个实例详情"""
         if not self._check_maibot_manager():
@@ -104,6 +163,7 @@ class MaiBotManagerRoute(Route):
             - web_port: WebUI 端口
             - enable_webui: 是否启用 WebUI
             - enable_socket: 是否启用 Socket
+            - config: TOML 配置内容（可选）
         """
         if not self._check_maibot_manager():
             return Response().error("麦麦管理器未初始化").__dict__, 500
@@ -126,6 +186,7 @@ class MaiBotManagerRoute(Route):
                 web_port=data.get("web_port", 8001),
                 enable_webui=data.get("enable_webui", False),
                 enable_socket=data.get("enable_socket", False),
+                config_updates=data.get("config_updates"),
             )
 
             return Response().ok({
@@ -416,6 +477,314 @@ class MaiBotManagerRoute(Route):
         except Exception as e:
             logger.error(f"清空路由规则失败: {e}", exc_info=True)
             return Response().error(f"清空路由规则失败: {e}").__dict__, 500
+
+    # ============ 实例配置管理 ============
+
+    def _get_instance_config_path(self, instance_id: str) -> str:
+        """获取实例配置文件路径"""
+        # 从 astrbot_path 获取数据目录
+        data_dir = get_astrbot_data_path()
+        instances_dir = os.path.join(data_dir, "maibot", "config", "instances")
+        return os.path.join(instances_dir, f"{instance_id}.toml")
+
+    async def get_instance_config(self, instance_id: str):
+        """获取实例配置文件内容
+
+        Args:
+            instance_id: 实例 ID
+        """
+        try:
+            config_path = self._get_instance_config_path(instance_id)
+
+            if not os.path.exists(config_path):
+                return Response().error(f"实例 {instance_id} 的配置文件不存在").__dict__, 404
+
+            # 读取 TOML 文件
+            with open(config_path, "r", encoding="utf-8") as f:
+                config_data = tomlkit.load(f)
+
+            return Response().ok({
+                "instance_id": instance_id,
+                "config": config_data,
+            }).__dict__
+        except Exception as e:
+            logger.error(f"获取实例 {instance_id} 配置失败: {e}", exc_info=True)
+            return Response().error(f"获取配置失败: {e}").__dict__, 500
+
+    async def save_instance_config(self, instance_id: str):
+        """保存实例配置文件（部分更新）
+
+        Args:
+            instance_id: 实例 ID
+
+        Request Body:
+            - raw_content: 原始 TOML 内容（只包含需要修改的 section）
+        """
+        try:
+            config_path = self._get_instance_config_path(instance_id)
+
+            if not os.path.exists(config_path):
+                return Response().error(f"实例 {instance_id} 的配置文件不存在").__dict__, 404
+
+            data = await request.get_json()
+            raw_content = data.get("raw_content")
+
+            if raw_content is not None:
+                # 验证 TOML 格式
+                try:
+                    new_config = tomlkit.loads(raw_content)
+                except Exception as e:
+                    return Response().error(f"TOML 格式错误: {e}").__dict__, 400
+
+                # 读取原配置
+                with open(config_path, "r", encoding="utf-8") as f:
+                    doc = tomlkit.load(f)
+
+                # 只更新前端传来的 section（对每个 section 深度合并）
+                for key, value in new_config.items():
+                    if key == "inner":
+                        # 保留 inner 版本号
+                        if "version" in value:
+                            doc.setdefault("inner", {})["version"] = value["version"]
+                        continue
+
+                    if key in doc:
+                        # 已存在的 section 做深度合并
+                        MaiBotManagerRoute._deep_merge(doc[key], value)
+                    else:
+                        # 新增的 section 直接添加
+                        doc[key] = value
+
+                # 格式化并保存
+                with open(config_path, "w", encoding="utf-8") as f:
+                    f.write(tomlkit.dumps(doc))
+            else:
+                return Response().error("请求数据中缺少 raw_content 字段").__dict__, 400
+
+            logger.info(f"实例 {instance_id} 配置已保存")
+            return Response().ok({
+                "instance_id": instance_id,
+                "message": "配置已保存",
+            }).__dict__
+        except Exception as e:
+            logger.error(f"保存实例 {instance_id} 配置失败: {e}", exc_info=True)
+            return Response().error(f"保存配置失败: {e}").__dict__, 500
+
+    @staticmethod
+    def _deep_merge(target: dict, source: dict):
+        """递归深度合并字典，用于合并配置节
+
+        Args:
+            target: 目标字典（原配置）
+            source: 源字典（新配置）
+        """
+        for key, value in source.items():
+            if key in target:
+                target_value = target[key]
+                if isinstance(target_value, dict) and isinstance(value, dict):
+                    # 两个都是字典，递归合并
+                    MaiBotManagerRoute._deep_merge(target_value, value)
+                elif isinstance(target_value, tomlkit.items.Table) and isinstance(value, dict):
+                    # target 是 Table，source 是 dict，转为普通 dict 递归
+                    MaiBotManagerRoute._deep_merge(dict(target_value), value)
+                else:
+                    # 直接覆盖（基础类型或类型不匹配）
+                    target[key] = value
+            else:
+                # source 中的新字段直接添加
+                target[key] = value
+
+    # ============ 实例日志管理 ============
+
+    def _get_instance_log_dir(self, instance_id: str) -> str:
+        """获取实例日志目录路径"""
+        # 日志目录: D:\work\Bot\logs\mailog\{instance_id}
+        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "logs", "mailog"))
+        return os.path.join(base_dir, instance_id)
+
+    async def get_instance_logs(self, instance_id: str):
+        """获取实例日志
+
+        Query Parameters:
+            - limit: 返回行数限制 (默认 200)
+            - offset: 跳过行数 (默认 0)
+        """
+        try:
+            log_dir = self._get_instance_log_dir(instance_id)
+
+            if not os.path.exists(log_dir):
+                return Response().ok({
+                    "logs": [],
+                    "total": 0,
+                    "message": f"实例 {instance_id} 的日志目录不存在",
+                }).__dict__
+
+            # 获取日志文件列表，按文件名排序（最新的在最后）
+            log_files = sorted(
+                [f for f in os.listdir(log_dir) if f.endswith(".log.jsonl")],
+                reverse=True,  # 最新的文件优先
+            )
+
+            if not log_files:
+                return Response().ok({
+                    "logs": [],
+                    "total": 0,
+                }).__dict__
+
+            # 解析查询参数
+            limit = request.args.get("limit", default=200, type=int)
+            offset = request.args.get("offset", default=0, type=int)
+
+            all_logs = []
+            total_lines = 0
+
+            # 从最新的文件开始读取
+            for log_file in log_files:
+                file_path = os.path.join(log_dir, log_file)
+                try:
+                    with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+                        for line in f:
+                            line = line.strip()
+                            if not line:
+                                continue
+
+                            # 解析 JSON 日志行，转换为易读的格式
+                            try:
+                                import json
+                                log_data = json.loads(line)
+                                formatted_log = self._format_log_line(log_data)
+                                all_logs.append(formatted_log)
+                                total_lines += 1
+                            except json.JSONDecodeError:
+                                # 如果不是 JSON，直接使用原始行
+                                all_logs.append(line)
+                                total_lines += 1
+
+                            # 如果已经收集够足够的行，提前结束
+                            if total_lines >= limit * 2:  # 多读一些以确保有足够数据
+                                break
+                except Exception as e:
+                    logger.warning(f"读取日志文件 {log_file} 失败: {e}")
+                    continue
+
+                if total_lines >= limit * 2:
+                    break
+
+            # 应用分页
+            paginated_logs = all_logs[offset : offset + limit]
+
+            return Response().ok({
+                "logs": paginated_logs,
+                "total": total_lines,
+            }).__dict__
+
+        except Exception as e:
+            logger.error(f"获取实例 {instance_id} 日志失败: {e}", exc_info=True)
+            return Response().error(f"获取日志失败: {e}").__dict__, 500
+
+    def _format_log_line(self, log_data: dict) -> str:
+        """格式化单条日志为可读字符串"""
+        try:
+            # 提取时间戳
+            timestamp = log_data.get("timestamp", "")
+            # 提取日志级别
+            level = log_data.get("level", "INFO")
+            # 提取事件/消息
+            event = log_data.get("event", "")
+            # 提取日志器名称
+            logger_name = log_data.get("logger_name", "")
+
+            # 构建格式化的日志行
+            formatted = f"[{timestamp}] [{level}] [{logger_name}] {event}"
+
+            # 如果有额外字段，添加到末尾
+            extra_fields = {}
+            for key in ["logger_name", "event", "level", "timestamp"]:
+                if key in log_data:
+                    extra_fields[key] = log_data[key]
+
+            # 添加其他有用信息
+            if "pathname" in log_data:
+                formatted += f" ({log_data['pathname']}:{log_data.get('lineno', '')})"
+
+            return formatted
+        except Exception:
+            return str(log_data)
+
+    async def clear_instance_logs(self, instance_id: str):
+        """清空实例日志"""
+        try:
+            log_dir = self._get_instance_log_dir(instance_id)
+
+            if not os.path.exists(log_dir):
+                return Response().error(f"实例 {instance_id} 的日志目录不存在").__dict__, 404
+
+            # 获取所有日志文件
+            log_files = [f for f in os.listdir(log_dir) if f.endswith(".log.jsonl")]
+
+            if not log_files:
+                return Response().ok({"message": "没有日志文件需要清空"}).__dict__
+
+            # 删除日志文件
+            deleted_count = 0
+            for log_file in log_files:
+                file_path = os.path.join(log_dir, log_file)
+                try:
+                    os.remove(file_path)
+                    deleted_count += 1
+                except Exception as e:
+                    logger.warning(f"删除日志文件 {log_file} 失败: {e}")
+
+            return Response().ok({
+                "message": f"已清空 {deleted_count} 个日志文件",
+                "deleted_count": deleted_count,
+            }).__dict__
+
+        except Exception as e:
+            logger.error(f"清空实例 {instance_id} 日志失败: {e}", exc_info=True)
+            return Response().error(f"清空日志失败: {e}").__dict__, 500
+
+    async def download_instance_logs(self, instance_id: str):
+        """下载实例日志"""
+        try:
+            log_dir = self._get_instance_log_dir(instance_id)
+
+            if not os.path.exists(log_dir):
+                return Response().error(f"实例 {instance_id} 的日志目录不存在").__dict__, 404
+
+            # 获取所有日志文件，按文件名排序
+            log_files = sorted(
+                [f for f in os.listdir(log_dir) if f.endswith(".log.jsonl")],
+                reverse=True,
+            )
+
+            if not log_files:
+                return Response().error("没有日志文件").__dict__, 404
+
+            # 构建日志内容
+            log_content = f"# 实例 {instance_id} 日志\n"
+            log_content += f"# 生成时间: {datetime.now().isoformat()}\n"
+            log_content += "#" + "=" * 50 + "\n\n"
+
+            for log_file in log_files:
+                file_path = os.path.join(log_dir, log_file)
+                log_content += f"\n# ===== {log_file} =====\n"
+                try:
+                    with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+                        log_content += f.read()
+                except Exception as e:
+                    log_content += f"# 读取文件失败: {e}\n"
+
+            # 返回文件内容
+            from quart import make_response
+            response = await make_response(log_content)
+            response.headers["Content-Type"] = "text/plain; charset=utf-8"
+            response.headers["Content-Disposition"] = f'attachment; filename="{instance_id}_logs.txt"'
+            return response
+
+        except Exception as e:
+            logger.error(f"下载实例 {instance_id} 日志失败: {e}", exc_info=True)
+            return Response().error(f"下载日志失败: {e}").__dict__, 500
 
     @property
     def maibot_adapter(self):
