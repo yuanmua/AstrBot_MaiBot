@@ -37,6 +37,7 @@ from astrbot.core.maibot.chat.replyer.prompt.replyer_private_prompt import init_
 from astrbot.core.maibot.chat.replyer.prompt.rewrite_prompt import init_rewrite_prompt
 from astrbot.core.maibot.memory_system.memory_retrieval import init_memory_retrieval_prompt, build_memory_retrieval_prompt
 from astrbot.core.maibot.bw_learner.jargon_explainer import explain_jargon_in_context
+from astrbot.core.maibot.chat.knowledge.astrbot_knowledge_retrieval import build_astrbot_knowledge_prompt
 
 init_lpmm_prompt()
 init_replyer_private_prompt()
@@ -710,19 +711,25 @@ class PrivateReplyer:
         else:
             jargon_coroutine = self._build_disabled_jargon_explanation()
 
-        # 从 chosen_actions 中提取 question（仅在 reply 动作中）
+        # 从 chosen_actions 中提取 question 和 kb_keywords（仅在 reply 动作中）
         question = None
+        kb_keywords = None
         if chosen_actions:
             for action_info in chosen_actions:
                 if action_info.action_type == "reply" and isinstance(action_info.action_data, dict):
+                    # 提取 question
                     q = action_info.action_data.get("question")
                     if isinstance(q, str):
                         cleaned_q = q.strip()
                         if cleaned_q:
                             question = cleaned_q
-                            break
+                    # 提取 kb_keywords
+                    kw = action_info.action_data.get("kb_keywords")
+                    if isinstance(kw, list):
+                        kb_keywords = [k for k in kw if isinstance(k, str) and k.strip()]
+                    break
 
-        # 并行执行九个构建任务（包括黑话解释，可配置关闭）
+        # 并行执行构建任务（包括黑话解释，可配置关闭）
         task_results = await asyncio.gather(
             self._time_and_run_task(
                 self.build_expression_habits(chat_talking_prompt_short, target, reply_reason), "expression_habits"
@@ -741,6 +748,12 @@ class PrivateReplyer:
                 "memory_retrieval",
             ),
             self._time_and_run_task(jargon_coroutine, "jargon_explanation"),
+            self._time_and_run_task(
+                build_astrbot_knowledge_prompt(
+                    chat_talking_prompt_short, sender, target, self.chat_stream, kb_keywords=kb_keywords
+                ),
+                "astrbot_knowledge",
+            ),
         )
 
         # 任务名称中英文映射
@@ -753,6 +766,7 @@ class PrivateReplyer:
             "personality_prompt": "人格信息",
             "memory_retrieval": "记忆检索",
             "jargon_explanation": "黑话解释",
+            "astrbot_knowledge": "读取资料",
         }
 
         # 处理结果
@@ -781,6 +795,7 @@ class PrivateReplyer:
         memory_retrieval: str = results_dict["memory_retrieval"]
         keywords_reaction_prompt = await self.build_keywords_reaction_prompt(target)
         jargon_explanation: str = results_dict.get("jargon_explanation") or ""
+        astrbot_knowledge: str = results_dict.get("astrbot_knowledge") or ""  # AstrBot 知识库检索结果
         planner_reasoning = f"你的想法是：{reply_reason}"
 
         if extra_info:
@@ -830,6 +845,7 @@ class PrivateReplyer:
                 knowledge_prompt=prompt_info,
                 relation_info_block=relation_info,
                 extra_info_block=extra_info_block,
+                astrbot_knowledge=astrbot_knowledge,
                 identity=personality_prompt,
                 action_descriptions=actions_info,
                 dialogue_prompt=dialogue_prompt,
@@ -852,6 +868,7 @@ class PrivateReplyer:
                 knowledge_prompt=prompt_info,
                 relation_info_block=relation_info,
                 extra_info_block=extra_info_block,
+                astrbot_knowledge=astrbot_knowledge,
                 identity=personality_prompt,
                 action_descriptions=actions_info,
                 dialogue_prompt=dialogue_prompt,

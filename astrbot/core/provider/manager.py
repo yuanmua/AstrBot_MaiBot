@@ -371,6 +371,14 @@ class ProviderManager:
                 from .sources.gemini_embedding_source import (
                     GeminiEmbeddingProvider as GeminiEmbeddingProvider,
                 )
+            case "siliconflow_embedding":
+                from .sources.siliconflow_embedding_source import (
+                    SiliconFlowEmbeddingProvider as SiliconFlowEmbeddingProvider,
+                )
+            case "ollama_embedding":
+                from .sources.ollama_embedding_source import (
+                    OllamaEmbeddingProvider as OllamaEmbeddingProvider,
+                )
             case "vllm_rerank":
                 from .sources.vllm_rerank_source import (
                     VLLMRerankProvider as VLLMRerankProvider,

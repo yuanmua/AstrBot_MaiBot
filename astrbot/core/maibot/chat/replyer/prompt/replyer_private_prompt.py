@@ -3,8 +3,9 @@ from astrbot.core.maibot.chat.utils.prompt_builder import Prompt
 
 def init_replyer_private_prompt():
     Prompt(
-        """{knowledge_prompt}{tool_info_block}{extra_info_block}
+        """{knowledge_prompt}{tool_info_block}{extra_info_block}{astrbot_knowledge}
     {expression_habits_block}{memory_retrieval}{jargon_explanation}
+    如果要回答具体的的数据、背景信息，上下文里没有就不要回答，不知道就好，不要编造
 
     你正在和{sender_name}聊天，这是你们之前聊的内容:
     {time_block}
@@ -22,8 +23,9 @@ def init_replyer_private_prompt():
     )
 
     Prompt(
-        """{knowledge_prompt}{tool_info_block}{extra_info_block}
+        """{knowledge_prompt}{tool_info_block}{extra_info_block}{astrbot_knowledge}
 {expression_habits_block}{memory_retrieval}{jargon_explanation}
+如果要回答具体的数据、背景信息，上下文里没有就不要回答，不知道就好，不要编造
 
 你正在和{sender_name}聊天，这是你们之前聊的内容:
 {time_block}

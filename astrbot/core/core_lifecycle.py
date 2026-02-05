@@ -373,6 +373,9 @@ class AstrBotCoreLifecycle:
             from astrbot.core.maibot_adapter.platform_adapter import initialize_adapter
             await initialize_adapter(self.maibot_manager)
 
+            # 设置 AstrBot Context 引用（用于知识库 IPC 检索）
+            self.maibot_manager.set_astrbot_context(self.star_context)
+
             # 按启动顺序自动启动所有实例
             await self._auto_start_maibot_instances()
         except Exception as e:

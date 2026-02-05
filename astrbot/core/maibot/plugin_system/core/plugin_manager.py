@@ -241,7 +241,7 @@ class PluginManager:
     # == 目录管理 ==
     def _ensure_plugin_directories(self) -> None:
         """确保所有插件根目录存在，如果不存在则创建"""
-        default_directories = ["src/plugins/built_in", "plugins"]
+        default_directories = ["data/maibot/plugins/built_in", "plugins"]
 
         for directory in default_directories:
             if not os.path.exists(directory):

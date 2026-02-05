@@ -54,6 +54,7 @@ class MaibotInstance:
         is_default: bool = False,
         lifecycle: Optional[Dict[str, Any]] = None,    # 生命周期配置
         logging: Optional[Dict[str, Any]] = None,      # 日志配置
+        knowledge_base: Optional[Dict[str, Any]] = None,  # 知识库配置
         host: str = "127.0.0.1",
         port: int = 8000,
         web_host: str = "127.0.0.1",
@@ -76,6 +77,13 @@ class MaibotInstance:
         self.logging = logging or {
             "enable_console": False,     # 是否输出到主控制台
             "log_level": "INFO",        # 日志级别: DEBUG, INFO, WARNING, ERROR
+        }
+        # 知识库配置（AstrBot 知识库并行检索）
+        self.knowledge_base = knowledge_base or {
+            "enabled": False,           # 是否启用 AstrBot 知识库
+            "kb_names": [],             # 使用的知识库名称列表
+            "fusion_top_k": 5,          # 融合后返回的结果数量
+            "return_top_k": 20,         # 从知识库检索的结果数量
         }
         self.host = host
         self.port = port
@@ -122,6 +130,7 @@ class MaibotInstance:
             "is_default": self.is_default,
             "lifecycle": self.lifecycle,
             "logging": self.logging,
+            "knowledge_base": self.knowledge_base,
             "host": self.host,
             "port": self.port,
             "web_host": self.web_host,
@@ -145,6 +154,7 @@ class MaibotInstanceManager:
         self.data_root = data_root
         self.instances: Dict[str, MaibotInstance] = {}
         self.metadata_path = os.path.join(data_root, "config", "instances_meta.json")
+        self._astrbot_context = None  # AstrBot Context 引用，用于知识库 IPC
 
     async def initialize(self) -> None:
         """初始化实例管理器"""
@@ -182,6 +192,12 @@ class MaibotInstanceManager:
             "enable_console": True,
             "log_level": "INFO",
         }
+        default_knowledge_base = {
+            "enabled": False,
+            "kb_names": [],
+            "fusion_top_k": 5,
+            "return_top_k": 20,
+        }
 
         needs_save = False  # 标记是否需要保存配置文件
         updated_instances = []  # 记录被更新的实例
@@ -216,6 +232,19 @@ class MaibotInstanceManager:
                         logging_config[key] = value
                         updated = True
 
+            # 自动填充缺失的 knowledge_base 字段
+            knowledge_base_config = instance_data.get("knowledge_base")
+            if knowledge_base_config is None:
+                knowledge_base_config = default_knowledge_base.copy()
+                instance_data["knowledge_base"] = knowledge_base_config
+                updated = True
+            else:
+                # 检查是否有子字段缺失
+                for key, value in default_knowledge_base.items():
+                    if key not in knowledge_base_config:
+                        knowledge_base_config[key] = value
+                        updated = True
+
             if updated:
                 updated_instances.append(instance_id)
                 needs_save = True
@@ -227,6 +256,7 @@ class MaibotInstanceManager:
                 is_default=instance_data.get("is_default", False),
                 lifecycle=lifecycle,
                 logging=logging_config,
+                knowledge_base=knowledge_base_config,
                 host=instance_data.get("host", "127.0.0.1"),
                 port=instance_data.get("port", 8000),
                 web_host=instance_data.get("web_host", "127.0.0.1"),
@@ -256,6 +286,7 @@ class MaibotInstanceManager:
                     "is_default": inst.is_default,
                     "lifecycle": inst.lifecycle,
                     "logging": inst.logging,
+                    "knowledge_base": inst.knowledge_base,
                     "host": inst.host,
                     "port": inst.port,
                     "web_host": inst.web_host,
@@ -286,6 +317,7 @@ class MaibotInstanceManager:
                 "is_default": inst.is_default,
                 "lifecycle": inst.lifecycle,
                 "logging": inst.logging,
+                "knowledge_base": inst.knowledge_base,
                 "host": inst.host,
                 "port": inst.port,
                 "web_host": inst.web_host,
@@ -445,6 +477,7 @@ class MaibotInstanceManager:
                 "enable_webui": instance.enable_webui,
                 "enable_socket": instance.enable_socket,
                 "logging": instance.logging,  # 日志配置
+                "knowledge_base": instance.knowledge_base,  # 知识库配置
             }
 
             # 4. 创建并启动子进程
@@ -723,7 +756,7 @@ class MaibotInstanceManager:
     async def _message_loop(self, instance: MaibotInstance) -> None:
         """消息处理循环（独立运行）
 
-        处理所有非心跳消息：log, status, signal, message_reply
+        处理所有非心跳消息：log, status, signal, message_reply, kb_retrieve
         message_reply 使用后台任务处理，不阻塞循环
         """
         instance_id = instance.instance_id
@@ -774,9 +807,15 @@ class MaibotInstanceManager:
                         stream_id = payload.get("stream_id", "")
                         segments = payload.get("segments", [])
                         processed_plain_text = payload.get("processed_plain_text", "")
-                        logger.info(f"[{instance_id}] 收到回复: stream_id={stream_id[:16] if stream_id else 'unknown'}, 内容: {processed_plain_text[:50]}...")
+                        logger.info(f"[{instance_id}] 📩 从 output_queue 收到 message_reply:")
+                        logger.info(f"[{instance_id}]   stream_id={stream_id[:16] if stream_id else 'None'}")
+                        logger.info(f"[{instance_id}]   segments数量={len(segments) if segments else 0}")
+                        logger.info(f"[{instance_id}]   内容预览: {processed_plain_text[:100] if processed_plain_text else '空'}...")
                         # 启动后台任务处理回复
                         asyncio.create_task(self._handle_instance_reply(instance_id, stream_id, segments, processed_plain_text))
+                    elif msg_type == "kb_retrieve":
+                        # 知识库检索请求，启动后台任务处理
+                        asyncio.create_task(self._handle_kb_retrieve(instance, payload))
 
                 await asyncio.sleep(0.05)  # 消息处理间隔50ms
 
@@ -864,6 +903,10 @@ class MaibotInstanceManager:
             from astrbot.core.maibot_adapter.platform_adapter import get_astrbot_adapter
             from astrbot.core.maibot_adapter.response_converter import convert_maibot_to_astrbot
 
+            logger.info(f"[{instance_id}] 📨 收到子进程回复: stream_id={stream_id[:16] if stream_id else 'None'}")
+            logger.info(f"[{instance_id}] 回复内容预览: {processed_plain_text[:100] if processed_plain_text else '空'}")
+            logger.info(f"[{instance_id}] segments 数量: {len(segments) if segments else 0}")
+
             adapter = get_astrbot_adapter()
 
             # 获取原始事件
@@ -871,27 +914,159 @@ class MaibotInstanceManager:
 
             if not event:
                 current_events = list(adapter._events.keys()) if hasattr(adapter, "_events") else []
-                logger.warning(
-                    f"[{instance_id}] 未找到 stream_id={stream_id[:16]}... 对应的事件，"
-                    f"当前事件列表: {current_events[:5]}... (共{len(current_events)}个)"
+                logger.error(
+                    f"[{instance_id}] ❌ 未找到 stream_id={stream_id[:16] if stream_id else 'None'} 对应的事件，"
+                    f"当前事件缓存: {current_events[:5]}... (共{len(current_events)}个)"
                 )
                 return
 
             if not segments:
-                logger.warning(f"[{instance_id}] 回复没有消息段: stream_id={stream_id[:16]}...")
+                logger.warning(f"[{instance_id}] ❌ 回复没有消息段: stream_id={stream_id[:16] if stream_id else 'None'}...")
                 return
 
             # 使用统一的转换函数将字典列表转换为 MessageChain
+            logger.info(f"[{instance_id}] 正在转换消息格式...")
             message_chain = convert_maibot_to_astrbot(segments)
+            logger.info(f"[{instance_id}] 消息转换完成，MessageChain 长度: {len(message_chain)}")
 
             # 发送消息
+            logger.info(f"[{instance_id}] 准备发送消息到平台...")
             await event.send(message_chain)
-            logger.info(
-                f"[{instance_id}] 回复已发送: stream_id={stream_id[:16]}..., 内容: {processed_plain_text[:50]}"
-            )
+            logger.info(f"[{instance_id}] ✅ 回复已发送: stream_id={stream_id[:16] if stream_id else 'None'}, 内容: {processed_plain_text[:50]}")
 
         except Exception as e:
-            logger.error(f"[{instance_id}] 处理子进程回复失败: {e}", exc_info=True)
+            logger.error(f"[{instance_id}] ❌ 处理子进程回复失败: {e}", exc_info=True)
+
+    async def _handle_kb_retrieve(
+        self, instance: MaibotInstance, payload: Dict[str, Any]
+    ) -> None:
+        """处理子进程的知识库检索请求
+
+        调用 AstrBot 的 KnowledgeBaseManager 进行检索，并将结果返回给子进程
+
+        Args:
+            instance: MaiBot 实例
+            payload: 检索请求参数，包含:
+                - request_id: 请求 ID
+                - query: 查询文本
+                - kb_names: 知识库名称列表
+                - top_k_fusion: 融合后返回数量
+                - top_m_final: 最终返回数量
+        """
+        request_id = payload.get("request_id", "")
+        query = payload.get("query", "")
+        kb_names = payload.get("kb_names", [])
+        top_k_fusion = payload.get("top_k_fusion", 20)
+        top_m_final = payload.get("top_m_final", 5)
+
+        try:
+            # 获取 AstrBot 的知识库管理器
+            from astrbot.core.star.context import Context
+
+            # 尝试从全局获取 Context（需要在 AstrBot 初始化时设置）
+            kb_manager = self._get_kb_manager()
+
+            if kb_manager is None:
+                logger.warning(f"[{instance.instance_id}] 知识库管理器未初始化")
+                self._send_kb_result(instance, request_id, False, error="知识库管理器未初始化")
+                return
+
+            if not kb_names:
+                logger.debug(f"[{instance.instance_id}] 未指定知识库名称")
+                self._send_kb_result(instance, request_id, True, results=[])
+                return
+
+            # 调用知识库检索
+            logger.info(f"[{instance.instance_id}] 知识库检索: query={query[:50]}..., kb_names={kb_names}")
+            result = await kb_manager.retrieve(
+                query=query,
+                kb_names=kb_names,
+                top_k_fusion=top_k_fusion,
+                top_m_final=top_m_final,
+            )
+
+            if result is None:
+                self._send_kb_result(instance, request_id, True, results=[])
+                return
+
+            # 转换结果格式
+            results = result.get("results", [])
+            formatted_results = [
+                {
+                    "content": r.get("content", ""),
+                    "score": r.get("score", 0.0),
+                    "kb_name": r.get("kb_name", ""),
+                    "doc_name": r.get("doc_name", ""),
+                }
+                for r in results
+            ]
+
+            logger.info(f"[{instance.instance_id}] 知识库检索完成，返回 {len(formatted_results)} 条结果")
+            self._send_kb_result(instance, request_id, True, results=formatted_results)
+
+        except Exception as e:
+            logger.error(f"[{instance.instance_id}] 知识库检索失败: {e}", exc_info=True)
+            self._send_kb_result(instance, request_id, False, error=str(e))
+
+    def _send_kb_result(
+        self,
+        instance: MaibotInstance,
+        request_id: str,
+        success: bool,
+        results: List[Dict] = None,
+        error: str = "",
+    ) -> None:
+        """发送知识库检索结果给子进程
+
+        Args:
+            instance: MaiBot 实例
+            request_id: 请求 ID
+            success: 是否成功
+            results: 检索结果列表
+            error: 错误信息
+        """
+        if instance.input_queue is None:
+            logger.warning(f"[{instance.instance_id}] 无法发送知识库结果：队列未初始化")
+            return
+
+        try:
+            instance.input_queue.put_nowait({
+                "type": "kb_retrieve_result",
+                "payload": {
+                    "request_id": request_id,
+                    "success": success,
+                    "results": results or [],
+                    "error": error,
+                }
+            })
+        except Exception as e:
+            logger.error(f"[{instance.instance_id}] 发送知识库结果失败: {e}")
+
+    def _get_kb_manager(self):
+        """获取 AstrBot 的知识库管理器
+
+        Returns:
+            KnowledgeBaseManager 实例，如果未初始化则返回 None
+        """
+        try:
+            # 尝试从全局 Context 获取
+            from astrbot.core.star.context import Context
+            # 这里需要一个全局的 Context 引用
+            # 在 AstrBot 初始化时会设置
+            if hasattr(self, '_astrbot_context') and self._astrbot_context:
+                return self._astrbot_context.kb_manager
+            return None
+        except Exception:
+            return None
+
+    def set_astrbot_context(self, context) -> None:
+        """设置 AstrBot Context 引用
+
+        Args:
+            context: AstrBot 的 Context 实例
+        """
+        self._astrbot_context = context
+        logger.info("已设置 AstrBot Context 引用")
 
     async def restart_instance(self, instance_id: str) -> bool:
         """重启指定实例"""

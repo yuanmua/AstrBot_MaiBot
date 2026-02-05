@@ -189,11 +189,13 @@ async def subprocess_main_async(
             from astrbot.core.maibot_adapter.platform_adapter import parse_astrbot_instance_id
             instance_id = parse_astrbot_instance_id(platform) or "default"
 
-            send_log("info", f"[回调] 拦截到回复: stream_id={stream_id[:16]}...")
+            send_log("info", f"[回调] 🔔 拦截到回复: stream_id={stream_id[:16] if stream_id else 'None'}, instance_id={instance_id}")
+            send_log("info", f"[回调] 消息内容预览: {processed_plain_text[:100] if processed_plain_text else '空'}")
 
             # 将 Seg 对象转换为可序列化的字典列表
             from astrbot.core.maibot_adapter.response_converter import seg_to_dict_list
             segments = seg_to_dict_list(message_segment)
+            send_log("info", f"[回调] segments 数量: {len(segments) if segments else 0}")
 
             # 发送到主进程
             output_queue.put({
@@ -206,9 +208,9 @@ async def subprocess_main_async(
                     "timestamp": datetime.now().isoformat(),
                 }
             })
-            send_log("info", f"[回调] 已放入队列: stream_id={stream_id[:16]}..., 内容: {processed_plain_text[:50]}...")
+            send_log("info", f"[回调] ✅ 已放入 output_queue: stream_id={stream_id[:16] if stream_id else 'None'}")
         except Exception as e:
-            send_log("error", f"[回调] 发送回复到主进程失败: {e}", exc_info=True)
+            send_log("error", f"[回调] ❌ 发送回复到主进程失败: {e}", exc_info=True)
 
     send_status("starting", "子进程启动中...")
 
@@ -264,8 +266,37 @@ async def subprocess_main_async(
         from astrbot.core.maibot_adapter.platform_adapter import (
             get_astrbot_adapter,
             set_reply_callback,
+            AstrBotPlatformAdapter,
         )
+        send_log("info", f"[子进程] 🔧 准备设置回复回调...")
+        send_log("info", f"[子进程] send_reply_to_mainprocess 函数地址: {send_reply_to_mainprocess}")
         set_reply_callback(send_reply_to_mainprocess)
+        send_log("info", f"[子进程] ✅ 回复回调已设置: {AstrBotPlatformAdapter._reply_callback}")
+
+        # 设置知识库适配器的 IPC 队列并根据配置创建适配器
+        from astrbot.core.maibot.chat.knowledge.knowledge_base_adapter import (
+            KnowledgeBaseAdapter,
+            create_kb_adapter,
+        )
+        KnowledgeBaseAdapter.set_ipc_queues(output_queue, instance_id)
+
+        # 从配置中读取知识库设置
+        kb_config = config.get("knowledge_base", {})
+        if kb_config.get("enabled", False):
+            kb_names = kb_config.get("kb_names", [])
+            fusion_top_k = kb_config.get("fusion_top_k", 5)
+            return_top_k = kb_config.get("return_top_k", 20)
+            if kb_names:
+                adapter = create_kb_adapter(
+                    kb_names=kb_names,
+                    fusion_top_k=fusion_top_k,
+                    return_top_k=return_top_k,
+                )
+                send_log("info", f"知识库适配器已创建: kb_names={kb_names}, fusion_top_k={fusion_top_k}, return_top_k={return_top_k}")
+            else:
+                send_log("info", "知识库适配器已启用但未指定知识库名称，跳过创建")
+        else:
+            send_log("info", "知识库适配器未启用")
 
         # 启动回复监听任务
 
@@ -335,8 +366,17 @@ async def subprocess_main_async(
                         }
                     })
                 elif cmd_type == "message":
-                    # 处理消息（IPC 模式）
-                    await _handle_message(cmd.get("payload", {}))
+                    # 处理消息（IPC 模式）- 在后台运行，不阻塞命令循环
+                    # 这样可以让命令循环继续处理 kb_retrieve_result 等响应
+                    asyncio.create_task(_handle_message(cmd.get("payload", {})))
+                elif cmd_type == "kb_retrieve_result":
+                    # 知识库检索结果，缓存到适配器
+                    from astrbot.core.maibot.chat.knowledge.knowledge_base_adapter import cache_kb_response
+                    payload = cmd.get("payload", {})
+                    request_id = payload.get("request_id", "")
+                    if request_id:
+                        cache_kb_response(request_id, payload)
+                        send_log("debug", f"收到知识库检索结果: request_id={request_id}")
                 else:
                     send_log("warning", f"未知命令: {cmd_type}")
 

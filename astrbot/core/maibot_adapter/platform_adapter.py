@@ -86,17 +86,29 @@ class AstrBotPlatformAdapter:
     def set_event(self, stream_id: str, event: "AstrMessageEvent"):
         """存储事件，供回复时使用"""
         self._events[stream_id] = event
-        logger.debug(f"[AstrBot 适配器] 存储事件: stream_id={stream_id[:16]}...")
+        sender_name = event.get_sender_name() if hasattr(event, 'get_sender_name') else "unknown"
+        logger.info(f"[AstrBot 适配器] 📥 存储事件: stream_id={stream_id[:16] if stream_id else 'None'}, sender={sender_name}, 当前事件数: {len(self._events)}")
 
     def get_event(self, stream_id: str) -> Optional["AstrMessageEvent"]:
         """获取事件"""
-        return self._events.get(stream_id)
+        event = self._events.get(stream_id)
+        if event:
+            sender_name = event.get_sender_name() if hasattr(event, 'get_sender_name') else "unknown"
+            logger.info(f"[AstrBot 适配器] 📤 获取事件成功: stream_id={stream_id[:16] if stream_id else 'None'}, sender={sender_name}")
+        else:
+            logger.warning(f"[AstrBot 适配器] ❌ 获取事件失败: stream_id={stream_id[:16] if stream_id else 'None'} 不存在于事件缓存")
+            # 打印当前缓存的所有 stream_id（只打印前5个）
+            cached_ids = list(self._events.keys())[:5]
+            logger.warning(f"[AstrBot 适配器] 当前缓存的事件: {cached_ids}... (共{len(self._events)}个)")
+        return event
 
     def remove_event(self, stream_id: str):
         """移除事件"""
         if stream_id in self._events:
             del self._events[stream_id]
-            logger.debug(f"[AstrBot 适配器] 移除事件: stream_id={stream_id[:16]}...")
+            logger.info(f"[AstrBot 适配器] 🗑️ 移除事件: stream_id={stream_id[:16] if stream_id else 'None'}, 剩余事件数: {len(self._events)}")
+        else:
+            logger.warning(f"[AstrBot 适配器] ⚠️ 尝试移除不存在的事件: stream_id={stream_id[:16] if stream_id else 'None'}")
 
 
 # 全局单例

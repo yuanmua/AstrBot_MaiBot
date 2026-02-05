@@ -4,8 +4,9 @@ from astrbot.core.maibot.chat.utils.prompt_builder import Prompt
 
 def init_replyer_prompt():
     Prompt(
-        """{knowledge_prompt}{tool_info_block}{extra_info_block}
+        """{knowledge_prompt}{tool_info_block}{extra_info_block}{astrbot_knowledge}
 {expression_habits_block}{memory_retrieval}{jargon_explanation}
+如果要回答具体的的数据、背景信息，上下文里没有就不要回答，不知道就好，不要编造
 
 你正在qq群里聊天，下面是群里正在聊的内容，其中包含聊天记录和聊天中的图片
 其中标注 {bot_name}(你) 的发言是你自己的发言，请注意区分:
@@ -26,8 +27,9 @@ def init_replyer_prompt():
     )
 
     Prompt(
-        """{knowledge_prompt}{tool_info_block}{extra_info_block}
+        """{knowledge_prompt}{tool_info_block}{extra_info_block}{astrbot_knowledge}
 {expression_habits_block}{memory_retrieval}{jargon_explanation}
+如果要回答具体的的数据、背景信息，上下文里没有就不要回答，不知道就好，不要编造
 
 你正在qq群里聊天，下面是群里正在聊的内容，其中包含聊天记录和聊天中的图片
 其中标注 {bot_name}(你) 的发言是你自己的发言，请注意区分:

@@ -53,7 +53,8 @@ reply
 4.不要选择回复你自己发送的消息
 5.不要单独对表情包进行回复
 6.将上下文中所有含义不明的，疑似黑话的，缩写词均写入unknown_words中
-7.如果你对上下文存在疑问，有需要查询的问题，写入question中
+7.如果你对上下文存在疑问，一旦有需要查询的问题及报价单等具体信息，尤其是问道一些你不清楚的具体信息及背景信息，写入question中
+8.如果需要从资料库检索信息（专业知识、事实信息、人物事件、报价信息等），将关键词写入kb_keywords中（每个词6字以下，最多5个）
 {reply_action_example}
 
 no_reply
@@ -520,7 +521,7 @@ class ActionPlanner:
             name_block = f"你的名字是{bot_name}{bot_nickname}，请注意哪些是你自己的发言。"
 
             # 根据 think_mode 配置决定 reply action 的示例 JSON
-            # 在 JSON 中直接作为 action 参数携带 unknown_words 和 question
+            # 在 JSON 中直接作为 action 参数携带 unknown_words、question 和 kb_keywords
             if global_config.chat.think_mode == "classic":
                 reply_action_example = ""
                 if global_config.chat.llm_quote:
@@ -528,7 +529,8 @@ class ActionPlanner:
                 reply_action_example += (
                     '{{"action":"reply", "target_message_id":"消息id(m+数字)", '
                     '"unknown_words":["词语1","词语2"], '
-                    '"question":"需要查询的问题"'
+                    '"question":"需要查询的问题", '
+                    '"kb_keywords":["关键词1","关键词2"]'
                 )
                 if global_config.chat.llm_quote:
                     reply_action_example += ', "quote":"如果需要引用该message，设置为true"'
@@ -543,7 +545,8 @@ class ActionPlanner:
                     '{{"action":"reply", "think_level":数值等级(0或1), '
                     '"target_message_id":"消息id(m+数字)", '
                     '"unknown_words":["词语1","词语2"], '
-                    '"question":"需要查询的问题"'
+                    '"question":"需要查询的问题", '
+                    '"kb_keywords":["关键词1","关键词2"]'
                 )
                 if global_config.chat.llm_quote:
                     reply_action_example += ', "quote":"如果需要引用该message，设置为true"'

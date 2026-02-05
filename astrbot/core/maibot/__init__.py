@@ -165,16 +165,21 @@ class MaiBotCore:
 
                     # 解析是否为 AstrBot 平台（astr:{instance_id}:{stream_id} 格式）
                     stream_id = parse_astrbot_platform(platform)
+                    logger.info(f"[AstrBot 适配器] parse_astrbot_platform({platform}) -> stream_id={stream_id[:32] if stream_id else 'None'}")
 
                     if stream_id:
-                        logger.info(f"[AstrBot 适配器] 解析到 stream_id: {stream_id[:16]}...")
+                        logger.info(f"[AstrBot 适配器] 解析成功，stream_id: {stream_id[:16]}...")
                         # 调用回调函数将回复发送给主进程
-                        if AstrBotPlatformAdapter._reply_callback:
+                        logger.info(f"[AstrBot 适配器] _reply_callback 当前值: {AstrBotPlatformAdapter._reply_callback}")
+                        if AstrBotPlatformAdapter._reply_callback is not None:
                             try:
+                                logger.info(f"[AstrBot 适配器] 准备调用回调函数...")
                                 AstrBotPlatformAdapter._reply_callback(message, stream_id)
-                                logger.debug(f"[AstrBot 适配器] 已调用回复回调 -> stream_id: {stream_id[:16]}...")
+                                logger.info(f"[AstrBot 适配器] ✅ 回复回调已调用 -> stream_id: {stream_id[:16]}...")
                             except Exception as callback_err:
-                                logger.error(f"[AstrBot 适配器] 调用回复回调失败: {callback_err}")
+                                logger.error(f"[AstrBot 适配器] ❌ 调用回复回调失败: {callback_err}", exc_info=True)
+                        else:
+                            logger.error(f"[AstrBot 适配器] ❌ _reply_callback 为 None！消息将无法发送到主进程！stream_id={stream_id[:16]}")
                         return True
                     else:
                         # 其他平台使用原始方法
