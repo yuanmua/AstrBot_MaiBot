@@ -4,15 +4,12 @@ API-Server Version SSL配置测试脚本
 主要用于验证配置创建、参数验证等功能
 """
 
-import sys
-import os
 import asyncio
 import logging
-from typing import Dict, Any
 
 # ✅ API-Server Version 正确导入方式
 from astrbot.core.maibot.maim_message.server import create_ssl_server_config, ServerConfig
-from astrbot.core.maibot.maim_message.client import create_ssl_client_config, ClientConfig
+from astrbot.core.maibot.maim_message.client import create_ssl_client_config
 from astrbot.core.maibot.maim_message.message import APIMessageBase, BaseMessageInfo, Seg, MessageDim
 
 # 配置日志

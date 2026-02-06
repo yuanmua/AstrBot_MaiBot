@@ -41,6 +41,7 @@ pip install -e .
 from astrbot.core.maibot.maim_message.message import APIMessageBase
 from astrbot.core.maibot.maim_message.server import WebSocketServer
 from astrbot.core.maibot.maim_message.client import WebSocketClient
+
 print("✅ 导入成功!")
 ```
 

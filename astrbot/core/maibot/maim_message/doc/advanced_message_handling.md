@@ -11,9 +11,11 @@
 ```python
 from astrbot.core.maibot.maim_message import MessageServer, MessageClient
 
+
 # 注册全局处理器
 async def handle_all_messages(message):
     print(f"收到消息: {message}")
+
 
 MessageServer.register_class_handler(handle_all_messages)
 

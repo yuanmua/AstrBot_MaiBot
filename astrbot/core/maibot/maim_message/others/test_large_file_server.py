@@ -1,7 +1,4 @@
 from astrbot.core.maibot.maim_message import MessageBase, Seg, MessageServer
-import asyncio
-import os
-import base64
 import logging
 
 # 配置日志

@@ -11,7 +11,6 @@ from astrbot.core.maibot.maim_message import (
     TargetConfig,
 )
 import asyncio
-import os
 
 
 def construct_message(platform):

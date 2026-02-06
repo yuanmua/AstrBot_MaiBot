@@ -35,38 +35,38 @@ from astrbot.core.maibot.maim_message import (
 ```python
 # ✅ 消息相关组件
 from astrbot.core.maibot.maim_message.message import (
-    APIMessageBase,        # 主要消息类
-    MessageDim,           # 消息维度信息
-    BaseMessageInfo,      # 消息基础信息
-    Seg,                  # 消息片段
-    GroupInfo,            # 群组信息
-    UserInfo,             # 用户信息
-    InfoBase,             # 信息基类
-    SenderInfo,           # 发送者信息
-    ReceiverInfo,         # 接收者信息
-    FormatInfo,           # 格式信息
-    TemplateInfo,         # 模板信息
+    APIMessageBase,  # 主要消息类
+    MessageDim,  # 消息维度信息
+    BaseMessageInfo,  # 消息基础信息
+    Seg,  # 消息片段
+    GroupInfo,  # 群组信息
+    UserInfo,  # 用户信息
+    InfoBase,  # 信息基类
+    SenderInfo,  # 发送者信息
+    ReceiverInfo,  # 接收者信息
+    FormatInfo,  # 格式信息
+    TemplateInfo,  # 模板信息
 )
 
 # ✅ WebSocket服务端组件
 from astrbot.core.maibot.maim_message.server import (
-    WebSocketServer,      # WebSocket服务端业务层API
-    ServerConfig,         # 服务端配置
-    AuthResult,           # 认证结果
-    ConfigManager,        # 配置管理器
-    create_server_config, # 创建服务端配置的便捷函数
+    WebSocketServer,  # WebSocket服务端业务层API
+    ServerConfig,  # 服务端配置
+    AuthResult,  # 认证结果
+    ConfigManager,  # 配置管理器
+    create_server_config,  # 创建服务端配置的便捷函数
 )
 
 # ✅ WebSocket客户端组件
 from astrbot.core.maibot.maim_message.client import (
-    WebSocketClient,      # 单连接WebSocket客户端业务层API
-    WebSocketMultiClient, # 多连接WebSocket客户端业务层API
-    ClientConfig,         # 客户端配置
-    create_client_config, # 创建客户端配置的便捷函数
+    WebSocketClient,  # 单连接WebSocket客户端业务层API
+    WebSocketMultiClient,  # 多连接WebSocket客户端业务层API
+    ClientConfig,  # 客户端配置
+    create_client_config,  # 创建客户端配置的便捷函数
 )
 from astrbot.core.maibot.maim_message.client_factory import (
-    create_client_config,     # 创建单连接客户端配置的便捷函数
-    create_ssl_client_config, # 创建SSL客户端配置的便捷函数
+    create_client_config,  # 创建单连接客户端配置的便捷函数
+    create_ssl_client_config,  # 创建SSL客户端配置的便捷函数
 )
 ```
 
@@ -83,6 +83,7 @@ from astrbot.core.maibot.maim_message.message import APIMessageBase
 # 配置日志
 logging.basicConfig(level=logging.INFO)
 
+
 # 关键回调函数：API Key认证
 async def auth_handler(metadata: dict) -> bool:
     """验证客户端连接的API Key"""
@@ -96,6 +97,7 @@ async def auth_handler(metadata: dict) -> bool:
     else:
         logging.warning(f"❌ 认证失败: 无效的API Key - {api_key}")
         return False
+
 
 # 关键回调函数：用户标识提取
 async def extract_user_handler(metadata: dict) -> str:
@@ -111,6 +113,7 @@ async def extract_user_handler(metadata: dict) -> str:
         return f"prod_user_{api_key.split('_')[2]}"
     else:
         return f"unknown_user_{hash(api_key) % 10000}"
+
 
 # 关键回调函数：消息处理
 async def message_handler(message: APIMessageBase, metadata: dict) -> None:
@@ -152,6 +155,7 @@ async def message_handler(message: APIMessageBase, metadata: dict) -> None:
         logging.error(f"❌ 消息处理失败: {e}")
         # 不重新抛出异常，系统会自动处理错误隔离
 
+
 async def main():
     # 创建带回调的服务器配置
     config = create_server_config(
@@ -184,6 +188,7 @@ async def main():
         await server.stop()
         print("✅ 服务器已停止")
 
+
 if __name__ == "__main__":
     asyncio.run(main())
 ```
@@ -201,6 +206,7 @@ from astrbot.core.maibot.maim_message.message import APIMessageBase, BaseMessage
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
+
 
 # 关键回调函数：客户端消息处理
 async def client_message_handler(message: APIMessageBase, metadata: dict) -> None:
@@ -244,6 +250,7 @@ async def client_message_handler(message: APIMessageBase, metadata: dict) -> Non
     except Exception as e:
         logging.error(f"❌ 服务器消息处理失败: {e}")
         # 可以选择重试或记录错误日志
+
 
 async def single_client_demo():
     # 使用配置工厂函数创建配置，包含消息处理回调
@@ -303,6 +310,7 @@ async def single_client_demo():
         # 停止客户端
         await client.stop()
 
+
 async def handle_server_notification(data: dict, metadata: dict) -> None:
     """处理服务器自定义通知"""
     notification_type = data.get("type", "unknown")
@@ -315,6 +323,7 @@ async def handle_server_notification(data: dict, metadata: dict) -> None:
         logging.warning("⚠️ 服务器维护通知")
     elif notification_type == "update":
         logging.info("🔄 系统更新通知")
+
 
 if __name__ == "__main__":
     asyncio.run(single_client_demo())
@@ -330,6 +339,7 @@ from astrbot.core.maibot.maim_message.message import APIMessageBase, BaseMessage
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
+
 
 # 关键回调函数：多连接客户端消息处理
 async def multi_client_message_handler(message: APIMessageBase, metadata: dict) -> None:
@@ -362,6 +372,7 @@ async def multi_client_message_handler(message: APIMessageBase, metadata: dict) 
         logging.error(f"❌ 多平台消息处理失败: {e}")
         # 可以选择将失败的消息保存到重试队列
 
+
 async def handle_wechat_message(content: str, connection_name: str, sender_user: str) -> None:
     """处理微信平台消息"""
     logging.info(f"💬 微信消息处理 [{connection_name}] {sender_user}: {content}")
@@ -374,6 +385,7 @@ async def handle_wechat_message(content: str, connection_name: str, sender_user:
     else:
         logging.info("📝 处理微信文本消息")
 
+
 async def handle_qq_message(content: str, connection_name: str, sender_user: str) -> None:
     """处理QQ平台消息"""
     logging.info(f"🐧 QQ消息处理 [{connection_name}] {sender_user}: {content}")
@@ -385,6 +397,7 @@ async def handle_qq_message(content: str, connection_name: str, sender_user: str
         logging.info("🎵 处理QQ语音消息")
     else:
         logging.info("📝 处理QQ文本消息")
+
 
 async def handle_telegram_message(content: str, connection_name: str, sender_user: str) -> None:
     """处理Telegram平台消息"""
@@ -399,6 +412,7 @@ async def handle_telegram_message(content: str, connection_name: str, sender_use
         logging.info("🖼️  处理Telegram图片消息")
     else:
         logging.info("📝 处理Telegram文本消息")
+
 
 async def multi_client_demo():
     # 直接创建多连接客户端
@@ -478,6 +492,7 @@ async def multi_client_demo():
         # 停止客户端（会断开所有连接）
         await client.stop()
 
+
 async def handle_platform_broadcast(data: dict, metadata: dict) -> None:
     """处理平台广播消息"""
     message = data.get("message", "")
@@ -492,6 +507,7 @@ async def handle_platform_broadcast(data: dict, metadata: dict) -> None:
         logging.warning("⚠️  平台维护广播，准备执行维护操作")
     elif "更新" in message or "update" in message.lower():
         logging.info("🔄 平台更新广播，检查版本信息")
+
 
 if __name__ == "__main__":
     asyncio.run(multi_client_demo())
@@ -523,9 +539,9 @@ from astrbot.core.maibot.maim_message.server import ServerConfig, create_server_
 
 # 方式1：使用便捷函数
 config = create_server_config(
-    host="0.0.0.0",        # 监听地址
-    port=18040,            # 监听端口
-    path="/ws"              # WebSocket路径
+    host="0.0.0.0",  # 监听地址
+    port=18040,  # 监听端口
+    path="/ws"  # WebSocket路径
 )
 
 # 方式2：直接使用ServerConfig
@@ -566,6 +582,7 @@ import logging
 # 配置日志
 logging.basicConfig(level=logging.INFO)
 
+
 # 关键回调函数：SSL环境下的安全认证
 async def ssl_auth_handler(metadata: dict) -> bool:
     """SSL环境下的安全认证回调"""
@@ -589,6 +606,7 @@ async def ssl_auth_handler(metadata: dict) -> bool:
     logging.info(f"✅ SSL认证成功: {api_key}")
     return True
 
+
 # 关键回调函数：SSL环境用户标识提取
 async def ssl_extract_user_handler(metadata: dict) -> str:
     """SSL环境下的用户标识提取"""
@@ -600,6 +618,7 @@ async def ssl_extract_user_handler(metadata: dict) -> str:
 
     logging.info(f"👤 SSL用户标识提取: {api_key} -> {user_id} (IP: {client_ip})")
     return user_id
+
 
 # 关键回调函数：SSL消息处理
 async def ssl_message_handler(message, metadata: dict) -> None:
@@ -613,6 +632,7 @@ async def ssl_message_handler(message, metadata: dict) -> None:
 
     # SSL环境下的安全消息处理
     asyncio.create_task(process_secure_message(content, metadata))
+
 
 async def process_secure_message(content: str, metadata: dict) -> None:
     """处理安全消息"""
@@ -633,6 +653,7 @@ async def process_secure_message(content: str, metadata: dict) -> None:
     except Exception as e:
         logging.error(f"❌ SSL消息处理失败: {e}")
 
+
 async def handle_admin_command(content: str, metadata: dict) -> None:
     """处理管理员指令"""
     user_id = metadata.get("user_id", "unknown")
@@ -650,14 +671,15 @@ async def handle_admin_command(content: str, metadata: dict) -> None:
     else:
         logging.info(f"🔧 未知管理员指令: {content}")
 
+
 # 创建SSL服务器配置
 config = create_ssl_server_config(
     host="0.0.0.0",
-    port=18044,            # 建议使用443标准HTTPS端口或18044
-    ssl_certfile="/path/to/server.crt",    # SSL证书文件路径
-    ssl_keyfile="/path/to/server.key",     # SSL私钥文件路径
-    ssl_ca_certs="/path/to/ca.crt",        # CA证书文件路径（可选）
-    ssl_verify=True,                       # 是否验证客户端证书
+    port=18044,  # 建议使用443标准HTTPS端口或18044
+    ssl_certfile="/path/to/server.crt",  # SSL证书文件路径
+    ssl_keyfile="/path/to/server.key",  # SSL私钥文件路径
+    ssl_ca_certs="/path/to/ca.crt",  # CA证书文件路径（可选）
+    ssl_verify=True,  # 是否验证客户端证书
 
     # 关键回调函数
     on_auth=ssl_auth_handler,
@@ -695,11 +717,11 @@ from astrbot.core.maibot.maim_message.client import create_ssl_client_config
 
 # 自动检测wss://协议
 config = create_ssl_client_config(
-    url="wss://localhost:18044/ws",      # 使用wss://协议
+    url="wss://localhost:18044/ws",  # 使用wss://协议
     api_key="your_api_key",
-    ssl_ca_certs="/path/to/ca.crt",        # CA证书文件
-    ssl_verify=True,                       # 验证服务器证书
-    ssl_check_hostname=True                # 检查主机名
+    ssl_ca_certs="/path/to/ca.crt",  # CA证书文件
+    ssl_verify=True,  # 验证服务器证书
+    ssl_check_hostname=True  # 检查主机名
 )
 
 # 或者指定详细参数
@@ -708,10 +730,10 @@ config = create_ssl_client_config(
     port=18044,
     api_key="your_api_key",
     ssl_ca_certs="/path/to/ca.crt",
-    ssl_certfile="/path/to/client.crt",    # 客户端证书（双向认证）
-    ssl_keyfile="/path/to/client.key",      # 客户端私钥（双向认证）
+    ssl_certfile="/path/to/client.crt",  # 客户端证书（双向认证）
+    ssl_keyfile="/path/to/client.key",  # 客户端私钥（双向认证）
     ssl_verify=True,
-    ssl_check_hostname=False               # 自签名证书通常禁用
+    ssl_check_hostname=False  # 自签名证书通常禁用
 )
 
 # 使用标准ClientConfig
@@ -825,31 +847,31 @@ import time
 # 创建完整的消息
 message = APIMessageBase(
     message_info=BaseMessageInfo(
-        platform="wechat",                    # 平台标识
-        message_id="msg_123456789",           # 消息ID
-        time=time.time(),                     # 时间戳
-        sender_info=SenderInfo(               # 发送者信息
+        platform="wechat",  # 平台标识
+        message_id="msg_123456789",  # 消息ID
+        time=time.time(),  # 时间戳
+        sender_info=SenderInfo(  # 发送者信息
             user_info=UserInfo(
                 platform="wechat",
                 user_id="user_001",
                 user_nickname="用户昵称",
                 user_cardname="用户名片"
             ),
-            group_info=GroupInfo(             # 群组信息（可选）
+            group_info=GroupInfo(  # 群组信息（可选）
                 platform="wechat",
                 group_id="group_001",
                 group_name="群组名称"
             )
         ),
-        format_info=FormatInfo(               # 格式信息（可选）
+        format_info=FormatInfo(  # 格式信息（可选）
             content_format=["text"],
             accept_format=["text", "emoji"]
         )
     ),
     message_segment=Seg(type="text", data="消息内容"),
     message_dim=MessageDim(
-        api_key="your_api_key",      # ⚠️ 重要：这是目标接收者的API密钥，用于路由
-        platform="wechat"            # ⚠️ 重要：这是目标接收者的平台标识，用于路由
+        api_key="your_api_key",  # ⚠️ 重要：这是目标接收者的API密钥，用于路由
+        platform="wechat"  # ⚠️ 重要：这是目标接收者的平台标识，用于路由
     )
 )
 ```
@@ -1225,6 +1247,7 @@ print(f"用户user_001的连接: {user_connections}")
 import asyncio
 from astrbot.core.maibot.maim_message.server import WebSocketServer, ServerConfig
 
+
 async def safe_server_start():
     config = ServerConfig(host="localhost", port=18040, path="/ws")
     server = WebSocketServer(config)
@@ -1454,6 +1477,7 @@ PRODUCTION_API_KEYS = {
     "prod_key_client_003": {"user": "client_003", "tier": "premium"},
 }
 
+
 # 生产级回调函数：安全认证
 async def production_auth_handler(metadata: Dict[str, Any]) -> bool:
     """生产环境安全认证"""
@@ -1473,6 +1497,7 @@ async def production_auth_handler(metadata: Dict[str, Any]) -> bool:
     logger.info(f"生产环境认证成功: {PRODUCTION_API_KEYS[api_key]['user']} (IP: {client_ip})")
     return True
 
+
 # 生产级回调函数：用户标识提取
 async def production_extract_user_handler(metadata: Dict[str, Any]) -> str:
     """生产环境用户标识提取"""
@@ -1489,6 +1514,7 @@ async def production_extract_user_handler(metadata: Dict[str, Any]) -> str:
     # 降级处理：如果API Key不在映射中，生成临时用户ID
     logger.warning(f"生产环境用户提取降级: {api_key} -> unknown_user")
     return f"unknown_user_{hash(api_key) % 10000}"
+
 
 # 生产级回调函数：消息处理
 async def production_message_handler(message: APIMessageBase, metadata: Dict[str, Any]) -> None:
@@ -1540,6 +1566,7 @@ async def production_message_handler(message: APIMessageBase, metadata: Dict[str
         logger.error(f"生产环境消息处理异常: {platform} {user_id} - {type(e).__name__}")
         await send_error_response(user_id, platform, "服务器内部错误")
 
+
 def classify_production_message(content: str) -> str:
     """生产环境消息分类"""
     content_lower = content.lower().strip()
@@ -1553,6 +1580,7 @@ def classify_production_message(content: str) -> str:
     else:
         return "general"
 
+
 async def handle_production_command(content: str, platform: str, user_id: str) -> None:
     """处理生产环境命令"""
     logger.info(f"生产环境命令处理: {platform} {user_id} -> {content[:50]}")
@@ -1565,6 +1593,7 @@ async def handle_production_command(content: str, platform: str, user_id: str) -
     # 执行命令逻辑
     await execute_production_command(content, platform, user_id)
 
+
 async def handle_production_data(content: str, platform: str, user_id: str) -> None:
     """处理生产环境数据消息"""
     logger.info(f"生产环境数据处理: {platform} {user_id}")
@@ -1576,12 +1605,14 @@ async def handle_production_data(content: str, platform: str, user_id: str) -> N
     except ValueError as e:
         logger.error(f"生产环境数据格式错误: {e}")
 
+
 async def handle_production_query(content: str, platform: str, user_id: str) -> None:
     """处理生产环境查询"""
     logger.info(f"生产环境查询处理: {platform} {user_id} -> {content[:50]}")
 
     # 执行查询逻辑
     await execute_production_query(content, platform, user_id)
+
 
 async def handle_production_general(content: str, platform: str, user_id: str) -> None:
     """处理生产环境普通消息"""
@@ -1590,22 +1621,27 @@ async def handle_production_general(content: str, platform: str, user_id: str) -
     # 普通消息处理
     await process_production_general_message(content, platform, user_id)
 
+
 # 占位符函数（在实际项目中需要完整实现）
 async def execute_production_command(content: str, platform: str, user_id: str) -> None:
     """执行生产环境命令"""
     pass
 
+
 async def process_production_data(content: str, platform: str, user_id: str) -> None:
     """处理生产环境数据"""
     pass
+
 
 async def execute_production_query(content: str, platform: str, user_id: str) -> None:
     """执行生产环境查询"""
     pass
 
+
 async def process_production_general_message(content: str, platform: str, user_id: str) -> None:
     """处理生产环境普通消息"""
     pass
+
 
 # 生产环境配置
 config = ServerConfig(
@@ -1654,7 +1690,7 @@ CMD ["python", "your_server.py"]
    ```python
    from astrbot.core.maibot.maim_message.message import APIMessageBase  # ✅
    # 而不是
-   # from astrbot.core.maibot.maim_message import APIMessageBase        # ❌
+   # from astrbot.core.maibot.src.maim_message import APIMessageBase        # ❌
    ```
 
 2. **连接失败**
@@ -1717,7 +1753,7 @@ CMD ["python", "your_server.py"]
 
 API-Server Version完全支持非maim_message库的客户端程序通过标准WebSocket协议进行通信。详细的使用指导请参考：
 
-- **📖 [外部客户端通信指南](./external_client_communication_guide.md)** - 详细的协议规范和实现示例
+- **📖 [外部客户端通信指南](external_client_communication_guide.md)** - 详细的协议规范和实现示例
 - **💻 [外部客户端示例代码](../examples/external_client_examples.py)** - Python原生WebSocket客户端示例
 
 ### 支持的语言和框架
@@ -1743,5 +1779,5 @@ API-Server Version完全支持非maim_message库的客户端程序通过标准We
 
 更多技术细节请参考：
 - [WebSocket RFC 6455](https://tools.ietf.org/html/rfc6455)
-- [外部客户端通信指南](./external_client_communication_guide.md)
+- [外部客户端通信指南](external_client_communication_guide.md)
 - [API-Server使用示例](../examples/)

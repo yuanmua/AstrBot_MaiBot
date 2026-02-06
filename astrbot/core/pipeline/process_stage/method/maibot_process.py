@@ -57,8 +57,8 @@ class MaiBotProcessSubStage(Stage):
 
         # 动态检查 MaiBot 多实例管理器是否已初始化
         try:
-            from astrbot.core.maibot_instance.maibot_instance import get_instance_manager
-            from astrbot.core.maibot_adapter.platform_adapter import get_astrbot_adapter
+            from astrbot.core.maibot.maibot_adapter.maibot_instance import get_instance_manager
+            from astrbot.core.maibot.maibot_adapter import get_astrbot_adapter
 
             self.maibot_manager = get_instance_manager()
             self.adapter = get_astrbot_adapter()
@@ -85,7 +85,7 @@ class MaiBotProcessSubStage(Stage):
 
         try:
             # 获取转换器
-            from astrbot.core.maibot_adapter import convert_astrbot_to_maibot
+            from astrbot.core.maibot.maibot_adapter import convert_astrbot_to_maibot
 
             # 生成 stream_id（与 MaiBot 算法一致）
             message_obj = event.message_obj
@@ -106,7 +106,7 @@ class MaiBotProcessSubStage(Stage):
             logger.debug(f"[MaiBot][IPC] platform={platform}, chat_id={chat_id[:50]}...")
 
             # 解析实例ID
-            from astrbot.core.maibot_adapter.platform_adapter import parse_astrbot_instance_id
+            from astrbot.core.maibot.maibot_adapter import parse_astrbot_instance_id
             instance_id = parse_astrbot_instance_id(platform) or "default"
 
             logger.debug(f"[MaiBot][IPC] 路由到实例: {instance_id}")

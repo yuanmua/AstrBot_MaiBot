@@ -1115,5 +1115,5 @@ A: 检查 message_dim.api_key 是否正确设置了目标接收者的API密钥�
 
 更多技术细节请参考：
 - [WebSocket RFC 6455](https://tools.ietf.org/html/rfc6455)
-- [maim_message API-Server使用指南](./api_server_usage_guide.md)
+- [maim_message API-Server使用指南](api_server_usage_guide.md)
 - [WebSocket安全最佳实践](https://tools.ietf.org/html/rfc6455#section-10)

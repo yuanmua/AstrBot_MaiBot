@@ -3,7 +3,6 @@ from astrbot.core.maibot.maim_message import (
     UserInfo,
     GroupInfo,
     FormatInfo,
-    TemplateInfo,
     MessageBase,
     Seg,
     Router,
@@ -15,7 +14,6 @@ import os
 import base64
 import logging
 import time
-import random
 
 # 配置日志
 logging.basicConfig(

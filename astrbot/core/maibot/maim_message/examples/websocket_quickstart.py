@@ -8,7 +8,6 @@ with the new modular import structure.
 
 import asyncio
 import time
-from typing import Optional
 
 # 推荐方式: 从server子模块导入API-Server Version组件
 from astrbot.core.maibot.maim_message.server import (
@@ -22,10 +21,10 @@ from astrbot.core.maibot.maim_message.server import (
 
 # 其他导入方式:
 # 从主模块导入 (兼容性)
-# from astrbot.core.maibot.maim_message import WebSocketServer, ServerMessageBase, BaseMessageInfo, Seg, MessageDim
+# from astrbot.core.maibot.src.maim_message import WebSocketServer, ServerMessageBase, BaseMessageInfo, Seg, MessageDim
 
 # 从websocket子模块导入 (完整功能)
-# from astrbot.core.maibot.maim_message.websocket import WebSocketServer, WebSocketClient, ServerMessageBase
+# from astrbot.core.maibot.src.maim_message.websocket import WebSocketServer, WebSocketClient, ServerMessageBase
 
 
 async def auth_handler(metadata: dict) -> bool:
@@ -140,13 +139,13 @@ async def main():
 
     print("\n🎯 可用的导入方式:")
     print("# 从主模块导入")
-    print("from astrbot.core.maibot.maim_message import WebSocketServer, ServerMessageBase")
+    print("from astrbot.core.maibot.src.maim_message import WebSocketServer, ServerMessageBase")
     print()
     print("# 从server子模块导入 (推荐)")
-    print("from astrbot.core.maibot.maim_message.server import WebSocketServer, create_server_config")
+    print("from astrbot.core.maibot.src.maim_message.server import WebSocketServer, create_server_config")
     print()
     print("# 从websocket子模块导入 (完整功能)")
-    print("from astrbot.core.maibot.maim_message.websocket import WebSocketServer, WebSocketClient")
+    print("from astrbot.core.maibot.src.maim_message.websocket import WebSocketServer, WebSocketClient")
 
 
 if __name__ == "__main__":

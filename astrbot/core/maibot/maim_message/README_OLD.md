@@ -39,9 +39,10 @@ Seg(
 
 ## 构造一个合法消息  
 #### 消息构造一图流
-<img src="./doc/img/maim_message_messagebase.png" alt="由于图画的太好我就不打文本了" />
+<img src="doc/img/maim_message_messagebase.png" alt="由于图画的太好我就不打文本了" />
 
-#### 消息构造代码参考  
+#### 消息构造代码参考
+
 ```python
 from astrbot.core.maibot.maim_message import (
     BaseMessageInfo,
@@ -135,7 +136,6 @@ def construct_message(platform):
 ## 简要构造一个消息客户端
 涉及到标准消息的构建与客户端的建立，maim_message提供了一个Router类，可用于管理一个客户端程序处理多种不同平台的数据时建立的多个MessageClient，可参考如下。
 
-
 ```python
 from astrbot.core.maibot.maim_message import (
     Router,
@@ -145,10 +145,10 @@ from astrbot.core.maibot.maim_message import (
 
 # 配置路由config 
 # 从RouteConfig类构建route_config实例
-route_config = RouteConfig( 
-    #根据TargetConfig类构建一个合法的route_config
+route_config = RouteConfig(
+    # 根据TargetConfig类构建一个合法的route_config
     route_config={
-        "platform1": TargetConfig( 
+        "platform1": TargetConfig(
             url="ws://127.0.0.1:19000/ws",
             token=None,  # 如果需要token验证则在这里设置
         ),
@@ -159,7 +159,7 @@ route_config = RouteConfig(
         ),
         "platform3": TargetConfig(
             url="ws://127.0.0.1:19000/ws",
-            token=None, 
+            token=None,
         ),
     }
 )
@@ -170,7 +170,7 @@ router = Router(route_config)
 
 async def main():
     # 使用实例router的方法注册消息处理器
-    router.register_class_handler(message_handler) #message_handler示例见下方
+    router.register_class_handler(message_handler)  # message_handler示例见下方
 
     try:
         # 启动路由器（会自动连接所有配置的平台）
@@ -180,7 +180,7 @@ async def main():
         await asyncio.sleep(2)
 
         # 使用router.send_message()方法发送消息
-        await router.send_message(construct_message("test"))#接受的参数为MessageBase
+        await router.send_message(construct_message("test"))  # 接受的参数为MessageBase
 
         # 保持运行直到被中断
         await router_task
@@ -189,6 +189,7 @@ async def main():
         print("正在关闭连接...")
         await router.stop()
         print("已关闭所有连接")
+
 
 async def message_handler(message):
     """
@@ -212,6 +213,7 @@ if __name__ == "__main__":
 
 ## 构造一个maimcore plugin
 实际上只是模仿了maimcore的结构，真正的plugins应该继续向下游发送消息。
+
 ```python
 from astrbot.core.maibot.maim_message import MessageBase, Seg, MessageServer
 

@@ -8,13 +8,9 @@ MaiBot 多实例管理器测试
 4. 多实例管理
 """
 
-import asyncio
-import json
 import os
 import shutil
-import tempfile
 import pytest
-from pathlib import Path
 
 
 class TestMaibotInstanceManager:
@@ -37,7 +33,7 @@ class TestMaibotInstanceManager:
     @pytest.fixture
     def instance_manager(self, temp_data_root):
         """创建实例管理器"""
-        from astrbot.core.maibot_instance.maibot_instance import (
+        from astrbot.core.maibot.maibot_adapter import (
             MaibotInstanceManager,
         )
         manager = MaibotInstanceManager(data_root=temp_data_root)
@@ -45,8 +41,8 @@ class TestMaibotInstanceManager:
 
     def test_maibot_instance_creation(self):
         """测试 MaibotInstance 实例创建"""
-        from astrbot.core.maibot_instance.maibot_instance import MaibotInstance
-        from astrbot.core.maibot_instance import InstanceStatus
+        from astrbot.core.maibot.maibot_adapter import MaibotInstance
+        from astrbot.core.maibot.maibot_adapter import InstanceStatus
 
         instance = MaibotInstance(
             instance_id="test_instance",

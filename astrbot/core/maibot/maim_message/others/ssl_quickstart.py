@@ -5,13 +5,11 @@ API-Server Version SSL快速开始示例
 这个示例展示了最基础的SSL配置，不需要真实证书文件。
 """
 
-import asyncio
 import logging
 
 # ✅ API-Server Version SSL相关导入
 from astrbot.core.maibot.maim_message.server import create_ssl_server_config, WebSocketServer
 from astrbot.core.maibot.maim_message.client import create_ssl_client_config, WebSocketClient
-from astrbot.core.maibot.maim_message.message import APIMessageBase, BaseMessageInfo, Seg, MessageDim
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -180,8 +178,8 @@ def main():
     print("\n# 基本SSL使用示例")
     print("```python")
     print("# 导入SSL相关函数")
-    print("from astrbot.core.maibot.maim_message.server import create_ssl_server_config")
-    print("from astrbot.core.maibot.maim_message.client import create_ssl_client_config")
+    print("from astrbot.core.maibot.src.maim_message.server import create_ssl_server_config")
+    print("from astrbot.core.maibot.src.maim_message.client import create_ssl_client_config")
     print("")
     print("# 创建SSL配置")
     print("server_config = create_ssl_server_config(")

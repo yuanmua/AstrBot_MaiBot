@@ -3,8 +3,6 @@
 使用pip install -e .安装的外部maim_message库进行测试，验证真实使用场景
 """
 
-import sys
-import os
 import asyncio
 import logging
 import time
@@ -12,8 +10,8 @@ from typing import List, Dict, Any
 
 # 外部库导入测试 - 使用pip安装的maim_message包
 # API-Server Version 必须从子模块导入
-from astrbot.core.maibot.maim_message.server import WebSocketServer, ServerConfig, AuthResult, create_server_config
-from astrbot.core.maibot.maim_message.client import WebSocketClient, ClientConfig, create_client_config
+from astrbot.core.maibot.maim_message.server import WebSocketServer, ServerConfig
+from astrbot.core.maibot.maim_message.client import WebSocketClient, ClientConfig
 from astrbot.core.maibot.maim_message.message import (
     APIMessageBase, BaseMessageInfo, Seg, MessageDim,
     GroupInfo, UserInfo, SenderInfo, FormatInfo

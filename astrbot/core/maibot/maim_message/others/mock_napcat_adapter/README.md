@@ -106,6 +106,7 @@ import asyncio
 from astrbot.core.maibot.maim_message.client import WebSocketClient, create_client_config
 from mock_napcat_adapter import MockNapcatServer, MockConfig
 
+
 async def test_connection():
     # 1. 启动 Mock Napcat Adapter
     mock_config = MockConfig()
@@ -124,6 +125,7 @@ async def test_connection():
 
     # 3. 连接并接收消息
     message_count = 0
+
     async def on_message(message):
         nonlocal message_count
         message_count += 1
@@ -140,6 +142,7 @@ async def test_connection():
 
     # 4. 等待消息
     await asyncio.sleep(30)
+
 
 asyncio.run(test_connection())
 ```

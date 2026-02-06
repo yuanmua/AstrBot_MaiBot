@@ -1,7 +1,6 @@
 """测试日志队列系统在工作线程中的使用"""
 
 import asyncio
-import queue
 import time
 from pathlib import Path
 import sys
@@ -11,10 +10,8 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 from astrbot.core.maibot.maim_message.log_queue import (
     LoggerProxy,
     LogQueueProcessor,
-    LogLevel,
     create_log_queue,
 )
-from astrbot.core.maibot.maim_message.message import APIMessageBase
 
 
 async def test_log_queue():

@@ -13,15 +13,15 @@ import time
 from typing import Dict, Any
 
 # ✅ 正确的导入方式：API-Server Version从子模块导入
-from astrbot.core.maibot.maim_message.server import WebSocketServer, ServerConfig, create_server_config
-from astrbot.core.maibot.maim_message.client import WebSocketClient, ClientConfig, create_client_config
+from astrbot.core.maibot.maim_message.server import WebSocketServer, create_server_config
+from astrbot.core.maibot.maim_message.client import WebSocketClient, create_client_config
 from astrbot.core.maibot.maim_message.message import (
     APIMessageBase, BaseMessageInfo, Seg, MessageDim,
-    GroupInfo, UserInfo, SenderInfo, FormatInfo
+    UserInfo, SenderInfo
 )
 
 # ❌ 错误的导入方式（会失败）
-# from astrbot.core.maibot.maim_message import APIMessageBase, WebSocketServer  # 这会导致ImportError
+# from astrbot.core.maibot.src.maim_message import APIMessageBase, WebSocketServer  # 这会导致ImportError
 
 # 配置日志
 logging.basicConfig(
@@ -388,10 +388,10 @@ async def main():
     print("\n🎉 示例运行完成!")
     print("=" * 50)
     print("\n✅ 导入方式总结:")
-    print("   ✅ from astrbot.core.maibot.maim_message.message import APIMessageBase")
-    print("   ✅ from astrbot.core.maibot.maim_message.server import WebSocketServer")
-    print("   ✅ from astrbot.core.maibot.maim_message.client import WebSocketClient")
-    print("   ❌ from astrbot.core.maibot.maim_message import APIMessageBase  # 会失败")
+    print("   ✅ from astrbot.core.maibot.src.maim_message.message import APIMessageBase")
+    print("   ✅ from astrbot.core.maibot.src.maim_message.server import WebSocketServer")
+    print("   ✅ from astrbot.core.maibot.src.maim_message.client import WebSocketClient")
+    print("   ❌ from astrbot.core.maibot.src.maim_message import APIMessageBase  # 会失败")
 
 
 if __name__ == "__main__":

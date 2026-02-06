@@ -10,8 +10,8 @@ import asyncio
 import logging
 
 # ✅ API-Server Version 正确导入方式
-from astrbot.core.maibot.maim_message.server import create_server_config, create_ssl_server_config, WebSocketServer
-from astrbot.core.maibot.maim_message.client import create_client_config, create_ssl_client_config, WebSocketClient
+from astrbot.core.maibot.maim_message.server import create_server_config, WebSocketServer
+from astrbot.core.maibot.maim_message.client import create_client_config, WebSocketClient
 from astrbot.core.maibot.maim_message.message import APIMessageBase, BaseMessageInfo, Seg, MessageDim
 
 # 配置日志
@@ -106,9 +106,9 @@ async def import_demo():
     try:
         # ✅ 正确的导入方式
         print("✅ 正确的导入方式:")
-        print("   from astrbot.core.maibot.maim_message.server import create_server_config, WebSocketServer")
-        print("   from astrbot.core.maibot.maim_message.client import create_client_config, WebSocketClient")
-        print("   from astrbot.core.maibot.maim_message.message import APIMessageBase")
+        print("   from astrbot.core.maibot.src.maim_message.server import create_server_config, WebSocketServer")
+        print("   from astrbot.core.maibot.src.maim_message.client import create_client_config, WebSocketClient")
+        print("   from astrbot.core.maibot.src.maim_message.message import APIMessageBase")
 
         # 验证导入
         from astrbot.core.maibot.maim_message.message import APIMessageBase as TestMsg
@@ -125,7 +125,7 @@ async def import_demo():
     try:
         # ❌ 错误的导入方式
         print("\n❌ 错误的导入方式（会失败）:")
-        print("   from astrbot.core.maibot.maim_message import APIMessageBase")
+        print("   from astrbot.core.maibot.src.maim_message import APIMessageBase")
         from astrbot.core.maibot.maim_message import APIMessageBase
         print("   ❌ 这不应该成功!")
 
@@ -133,7 +133,7 @@ async def import_demo():
         print("   ✅ 正确：无法从根模块导入API-Server Version组件")
 
     print("\n📝 总结:")
-    print("   - Legacy组件: from astrbot.core.maibot.maim_message import MessageBase, Seg 等")
+    print("   - Legacy组件: from astrbot.core.maibot.src.maim_message import MessageBase, Seg 等")
     print("   - API-Server Version: 从子模块导入 (message, server, client)")
 
 
@@ -155,13 +155,13 @@ async def main():
     print("\n📚 基本用法示例:")
     print("```python")
     print("# HTTP服务器")
-    print("from astrbot.core.maibot.maim_message.server import create_server_config, WebSocketServer")
+    print("from astrbot.core.maibot.src.maim_message.server import create_server_config, WebSocketServer")
     print("config = create_server_config(host='localhost', port=18060)")
     print("server = WebSocketServer(config)")
     print("await server.start()")
     print("")
     print("# HTTPS/SSL服务器")
-    print("from astrbot.core.maibot.maim_message.server import create_ssl_server_config, WebSocketServer")
+    print("from astrbot.core.maibot.src.maim_message.server import create_ssl_server_config, WebSocketServer")
     print("config = create_ssl_server_config(")
     print("    host='localhost',")
     print("    port=18044,")
@@ -172,14 +172,14 @@ async def main():
     print("await server.start()")
     print("")
     print("# HTTP客户端")
-    print("from astrbot.core.maibot.maim_message.client import create_client_config, WebSocketClient")
-    print("from astrbot.core.maibot.maim_message.message import APIMessageBase")
+    print("from astrbot.core.maibot.src.maim_message.client import create_client_config, WebSocketClient")
+    print("from astrbot.core.maibot.src.maim_message.message import APIMessageBase")
     print("config = create_client_config(url='ws://localhost:18060/ws', api_key='your_key')")
     print("client = WebSocketClient(config)")
     print("await client.connect()")
     print("")
     print("# HTTPS/SSL客户端")
-    print("from astrbot.core.maibot.maim_message.client import create_ssl_client_config, WebSocketClient")
+    print("from astrbot.core.maibot.src.maim_message.client import create_ssl_client_config, WebSocketClient")
     print("config = create_ssl_client_config(")
     print("    url='wss://localhost:18044/ws',")
     print("    api_key='your_key',")

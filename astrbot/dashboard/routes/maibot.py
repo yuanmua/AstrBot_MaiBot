@@ -5,7 +5,6 @@
 
 import os
 from datetime import datetime
-from pathlib import Path
 
 import tomlkit
 from quart import request
@@ -789,5 +788,5 @@ class MaiBotManagerRoute(Route):
     @property
     def maibot_adapter(self):
         """获取 MaiBot 适配器"""
-        from astrbot.core.maibot_adapter import get_astrbot_adapter
+        from astrbot.core.maibot.maibot_adapter import get_astrbot_adapter
         return get_astrbot_adapter()

@@ -12,27 +12,18 @@ API-Server API Key传递方式对比测试
 使用外部maim_message库进行测试
 """
 
-import sys
-import os
 import asyncio
 import logging
 import time
 import json
 import uuid
 import websockets
-from typing import List, Dict, Any, Optional
+from typing import Dict, Any
 
 # ✅ API-Server Version 正确导入方式
 from astrbot.core.maibot.maim_message.server import WebSocketServer, create_server_config
 from astrbot.core.maibot.maim_message.message import (
     APIMessageBase,
-    BaseMessageInfo,
-    Seg,
-    MessageDim,
-    GroupInfo,
-    UserInfo,
-    SenderInfo,
-    FormatInfo,
 )
 
 # 配置日志

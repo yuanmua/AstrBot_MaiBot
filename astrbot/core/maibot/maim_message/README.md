@@ -2,7 +2,7 @@
 
 `maim_message` 是一个为 [MaimBot](https://github.com/MaiM-with-u/MaiBot) 生态系统设计的 Python 库，旨在提供一套标准化的消息格式定义和基于 WebSocket 的通信机制。它的核心目标是解耦 MaimBot 的各个组件（如核心服务 `maimcore`、平台适配器 `Adapter`、插件 `Plugin` 等），使得它们可以通过统一的接口进行交互，从而简化开发、增强可扩展性并支持多平台接入。
 
-晦涩难懂的readme -> [点这里](./README_OLD.md)
+晦涩难懂的readme -> [点这里](README_OLD.md)
 
 ## 🆕 API-Server 版本 (v2.0+)
 
@@ -130,8 +130,8 @@ route_config = RouteConfig(
     route_config={
         # "platform_name" 是自定义的标识符，用于区分不同连接
         "my_platform_instance_1": TargetConfig(
-            url="ws://127.0.0.1:8000/ws", # MaimCore 或目标服务器的地址
-            token=None, # 如果服务器需要 Token 认证
+            url="ws://127.0.0.1:8000/ws",  # MaimCore 或目标服务器的地址
+            token=None,  # 如果服务器需要 Token 认证
         ),
         # 可以配置多个连接
         # "another_platform": TargetConfig(...)
@@ -141,6 +141,7 @@ route_config = RouteConfig(
 # 2. 创建 Router 实例
 router = Router(route_config)
 
+
 # 3. 定义如何处理从 MaimCore 收到的消息
 async def handle_response_from_maimcore(message: MessageBase):
     """处理 MaimCore 回复的消息"""
@@ -148,9 +149,11 @@ async def handle_response_from_maimcore(message: MessageBase):
     # 在这里添加将消息发送回原始平台（如QQ、Discord等）的逻辑
     # ...
 
+
 # 4. 注册消息处理器
 # Router 会自动将从对应 platform 收到的消息传递给注册的处理器
 router.register_class_handler(handle_response_from_maimcore)
+
 
 # 5. 构造要发送给 MaimCore 的消息
 def construct_message_to_maimcore(platform_name: str, user_id: str, group_id: str, text_content: str) -> MessageBase:
@@ -159,8 +162,8 @@ def construct_message_to_maimcore(platform_name: str, user_id: str, group_id: st
     group_info = GroupInfo(platform=platform_name, group_id=group_id)
     message_info = BaseMessageInfo(
         platform=platform_name,
-        message_id="some_unique_id_from_platform", # 平台消息的原始ID
-        time=int(asyncio.get_event_loop().time()), # 当前时间戳
+        message_id="some_unique_id_from_platform",  # 平台消息的原始ID
+        time=int(asyncio.get_event_loop().time()),  # 当前时间戳
         user_info=user_info,
         group_info=group_info,
     )
@@ -169,6 +172,7 @@ def construct_message_to_maimcore(platform_name: str, user_id: str, group_id: st
         # 可以添加其他 Seg, 如 Seg("image", "base64data...")
     ])
     return MessageBase(message_info=message_info, message_segment=message_segment)
+
 
 # 6. 运行并发送消息
 async def run_client():
@@ -224,6 +228,7 @@ if __name__ == "__main__":
 import asyncio
 from astrbot.core.maibot.maim_message import MessageBase, Seg, MessageServer
 
+
 # 1. 定义如何处理接收到的消息
 async def handle_incoming_message(message_data: dict):
     """处理从客户端接收到的原始消息字典"""
@@ -239,13 +244,13 @@ async def handle_incoming_message(message_data: dict):
         # - 修改消息内容
 
         # 示例：简单处理后回复
-        processed_text = f"已收到您的消息：'{message.message_segment.data[0].data}'" # 假设第一个 seg 是 text
+        processed_text = f"已收到您的消息：'{message.message_segment.data[0].data}'"  # 假设第一个 seg 是 text
         reply_segment = Seg("seglist", [Seg("text", processed_text)])
 
         # 创建回复消息 (注意：需要填充正确的 platform, user_info, group_info 等)
         # 这里仅为示例，实际应用中需要根据请求信息构造回复的 message_info
         reply_message = MessageBase(
-            message_info=message.message_info, # 借用原始信息，实际应按需修改
+            message_info=message.message_info,  # 借用原始信息，实际应按需修改
             message_segment=reply_segment
         )
 
@@ -258,10 +263,11 @@ async def handle_incoming_message(message_data: dict):
         print(f"处理消息时出错: {e}")
         # 可以考虑向客户端发送错误信息
 
+
 # 2. 创建并运行服务器
 if __name__ == "__main__":
     host = "0.0.0.0"
-    port = 19000 # 监听的端口
+    port = 19000  # 监听的端口
 
     # 创建服务器实例
     server = MessageServer(host=host, port=port)
@@ -270,25 +276,27 @@ if __name__ == "__main__":
     # 注册消息处理器
     server.register_message_handler(handle_incoming_message)
 
+
     # 同步运行服务器 (会阻塞)
     # server.run_sync()
 
     # 或者异步运行 (需要事件循环)
     async def run_server_async():
         try:
-            await server.run() # run() 是异步阻塞的
+            await server.run()  # run() 是异步阻塞的
         except KeyboardInterrupt:
             print("收到停止信号，正在关闭服务器...")
             await server.stop()
             print("服务器已关闭。")
         except Exception as e:
             print(f"服务器运行时发生错误: {e}")
-            await server.stop() # 尝试关闭
+            await server.stop()  # 尝试关闭
+
 
     try:
         asyncio.run(run_server_async())
     except KeyboardInterrupt:
-        pass # asyncio.run 会处理后续清理
+        pass  # asyncio.run 会处理后续清理
 
 ```
 

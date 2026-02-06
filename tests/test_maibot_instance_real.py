@@ -11,14 +11,8 @@ import sys
 # 添加项目根目录到路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from astrbot.core.maibot_instance.maibot_instance import (
-    MaibotInstanceManager,
-    MaibotInstance,
+from astrbot.core.maibot.maibot_adapter import (
     initialize_instance_manager,
-    start_maibot,
-    stop_maibot,
-    list_instances,
-    get_instance_status,
 )
 from astrbot.core.maibot_instance import InstanceStatus
 

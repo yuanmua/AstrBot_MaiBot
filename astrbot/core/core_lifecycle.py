@@ -37,7 +37,7 @@ from astrbot.core.umop_config_router import UmopConfigRouter
 from astrbot.core.updator import AstrBotUpdator
 from astrbot.core.utils.llm_metadata import update_llm_metadata
 from astrbot.core.utils.migra_helper import migra
-from astrbot.core.maibot_instance.maibot_instance import (
+from astrbot.core.maibot.maibot_adapter import (
     initialize_instance_manager,
     MaibotInstanceManager,
 )
@@ -370,7 +370,7 @@ class AstrBotCoreLifecycle:
             logger.info(f"MaiBot 实例管理器初始化完成，共 {len(self.maibot_manager.instances)} 个实例")
 
             # 初始化 AstrBot 适配器
-            from astrbot.core.maibot_adapter.platform_adapter import initialize_adapter
+            from astrbot.core.maibot.maibot_adapter import initialize_adapter
             await initialize_adapter(self.maibot_manager)
 
             # 设置 AstrBot Context 引用（用于知识库 IPC 检索）

@@ -22,10 +22,10 @@ from .message_base import (
 from .converter import MessageConverter
 
 # API-Server Version Components 不在根模块导出，需要从子模块导入
-# 消息相关组件 - 使用 from astrbot.core.maibot.maim_message.message import
-# WebSocket服务端组件 - 使用 from astrbot.core.maibot.maim_message.server import
-# WebSocket客户端组件 - 使用 from astrbot.core.maibot.maim_message.client import
-# 新的专用客户端 - 使用 from astrbot.core.maibot.maim_message.simple_client import 和 from astrbot.core.maibot.maim_message.multi_client import
+# 消息相关组件 - 使用 from astrbot.core.maibot.src.maim_message.message import
+# WebSocket服务端组件 - 使用 from astrbot.core.maibot.src.maim_message.server import
+# WebSocket客户端组件 - 使用 from astrbot.core.maibot.src.maim_message.client import
+# 新的专用客户端 - 使用 from astrbot.core.maibot.src.maim_message.simple_client import 和 from astrbot.core.maibot.src.maim_message.multi_client import
 
 __all__ = [
     # Legacy API Components (从根模块导入)
@@ -47,7 +47,7 @@ __all__ = [
     # 消息格式转换器
     "MessageConverter",
     # 注意：API-Server Version 组件需要从子模块导入：
-    # - 消息相关: from astrbot.core.maibot.maim_message.message import APIMessageBase, MessageDim, etc.
-    # - 服务端: from astrbot.core.maibot.maim_message.server import WebSocketServer, ServerConfig, etc.
-    # - 客户端: from astrbot.core.maibot.maim_message.client import WebSocketClient, ClientConfig, etc.
+    # - 消息相关: from astrbot.core.maibot.src.maim_message.message import APIMessageBase, MessageDim, etc.
+    # - 服务端: from astrbot.core.maibot.src.maim_message.server import WebSocketServer, ServerConfig, etc.
+    # - 客户端: from astrbot.core.maibot.src.maim_message.client import WebSocketClient, ClientConfig, etc.
 ]

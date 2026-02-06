@@ -1,5 +1,4 @@
 from astrbot.core.maibot.maim_message import MessageBase, Seg, MessageServer
-import os
 
 
 async def process_seg(seg: Seg):

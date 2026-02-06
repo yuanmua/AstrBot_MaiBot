@@ -7,7 +7,6 @@ API-Server Version SSL WebSocket测试脚本
 4. 自签名证书测试
 """
 
-import sys
 import os
 import asyncio
 import logging
