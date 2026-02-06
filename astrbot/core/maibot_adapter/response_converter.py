@@ -4,7 +4,7 @@ MaiBot 响应 → AstrBot 消息链转换器
 
 from typing import List, Union
 
-from maim_message import Seg
+from astrbot.core.maibot.maim_message import Seg
 
 from astrbot.core.message.message_event_result import MessageChain
 from astrbot.core.message.components import (

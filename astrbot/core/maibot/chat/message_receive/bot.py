@@ -3,7 +3,7 @@ import os
 import re
 
 from typing import Dict, Any, Optional
-from maim_message import UserInfo, Seg, GroupInfo
+from astrbot.core.maibot.maim_message import UserInfo, Seg, GroupInfo
 
 from astrbot.core.maibot.common.logger import get_logger
 from astrbot.core.maibot.config.config import global_config

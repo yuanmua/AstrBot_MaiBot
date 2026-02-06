@@ -1,5 +1,5 @@
 from typing import List, Optional, Dict, Any, Set
-from maim_message import UserInfo
+from astrbot.core.maibot.maim_message import UserInfo
 import time
 from astrbot.core.maibot.common.logger import get_module_logger
 from .chat_observer import ChatObserver

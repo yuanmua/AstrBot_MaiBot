@@ -1,6 +1,6 @@
 from astrbot.core.maibot.common.server import get_global_server
 import importlib.metadata
-from maim_message import MessageServer
+from astrbot.core.maibot.maim_message import MessageServer
 from astrbot.core.maibot.common.logger import get_logger
 from astrbot.core.maibot.config.config import global_config
 
@@ -83,8 +83,8 @@ def get_global_api() -> MessageServer:
         # 如果版本支持且启用了API Server，则初始化额外服务器
         if has_api_server_feature and enable_api_server:
             try:
-                from maim_message.server import WebSocketServer, ServerConfig
-                from maim_message.message import APIMessageBase
+                from astrbot.core.maibot.maim_message.server import WebSocketServer, ServerConfig
+                from astrbot.core.maibot.maim_message.message import APIMessageBase
 
                 api_logger = get_logger("maim_message_api_server")
 

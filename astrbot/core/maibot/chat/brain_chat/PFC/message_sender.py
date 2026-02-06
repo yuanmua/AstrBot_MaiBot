@@ -3,7 +3,7 @@ from typing import Optional
 from astrbot.core.maibot.common.logger import get_module_logger
 from astrbot.core.maibot.chat.message_receive.chat_stream import ChatStream
 from astrbot.core.maibot.chat.message_receive.message import Message, MessageSending
-from maim_message import UserInfo, Seg
+from astrbot.core.maibot.maim_message import UserInfo, Seg
 from astrbot.core.maibot.chat.message_receive.storage import MessageStorage
 from astrbot.core.maibot.config.config import global_config
 from rich.traceback import install

@@ -3,7 +3,7 @@ import warnings
 from enum import Enum
 from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass, field
-from maim_message import Seg
+from astrbot.core.maibot.maim_message import Seg
 
 from astrbot.core.maibot.llm_models.payload_content.tool_option import ToolParamType as ToolParamType
 from astrbot.core.maibot.llm_models.payload_content.tool_option import ToolCall as ToolCall

@@ -5,7 +5,7 @@ from astrbot.core.maibot.config.config import global_config
 from astrbot.core.maibot.common.logger import get_logger
 from astrbot.core.maibot.chat.message_receive.chat_stream import get_chat_manager
 from astrbot.core.maibot.plugin_system.apis import send_api
-from maim_message.message_base import GroupInfo
+from astrbot.core.maibot.maim_message.message_base import GroupInfo
 
 from astrbot.core.maibot.common.message_repository import count_messages
 

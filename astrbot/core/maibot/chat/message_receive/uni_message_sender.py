@@ -2,7 +2,7 @@ import asyncio
 import traceback
 
 from rich.traceback import install
-from maim_message import Seg
+from astrbot.core.maibot.maim_message import Seg
 
 from astrbot.core.maibot.common.message.api import get_global_api
 from astrbot.core.maibot.common.logger import get_logger
@@ -204,7 +204,7 @@ async def _send_message(message: MessageSending, show_log=True) -> bool:
 
                     if target_api_key:
                         # 构造 APIMessageBase
-                        from maim_message.message import APIMessageBase, MessageDim
+                        from astrbot.core.maibot.maim_message.message import APIMessageBase, MessageDim
 
                         msg_dim = MessageDim(api_key=target_api_key, platform=platform)
 

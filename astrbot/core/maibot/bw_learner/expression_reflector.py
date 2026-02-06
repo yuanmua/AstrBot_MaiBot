@@ -160,7 +160,7 @@ async def _check_tracker_exists(operator_config: str) -> bool:
         user_info = None
         group_info = None
 
-        from maim_message import UserInfo, GroupInfo
+        from astrbot.core.maibot.maim_message import UserInfo, GroupInfo
 
         if stream_type == "group":
             group_info = GroupInfo(group_id=id_str, platform=platform)
@@ -213,7 +213,7 @@ async def _send_to_operator(operator_config: str, text: str, expr: Expression):
         user_info = None
         group_info = None
 
-        from maim_message import UserInfo, GroupInfo
+        from astrbot.core.maibot.maim_message import UserInfo, GroupInfo
 
         if stream_type == "group":
             group_info = GroupInfo(group_id=id_str, platform=platform)

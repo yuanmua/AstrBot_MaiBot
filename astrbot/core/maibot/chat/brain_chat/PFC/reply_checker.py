@@ -4,7 +4,7 @@ from astrbot.core.maibot.common.logger import get_module_logger
 from astrbot.core.maibot.llm_models.utils_model import LLMRequest
 from astrbot.core.maibot.config.config import global_config
 from .chat_observer import ChatObserver
-from maim_message import UserInfo
+from astrbot.core.maibot.maim_message import UserInfo
 
 logger = get_module_logger("reply_checker")
 

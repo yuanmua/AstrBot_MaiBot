@@ -17,7 +17,7 @@ from .observation_info import ObservationInfo
 from .conversation_info import ConversationInfo  # 确保导入 ConversationInfo
 from .reply_generator import ReplyGenerator
 from astrbot.core.maibot.chat.message_receive.chat_stream import ChatStream
-from maim_message import UserInfo
+from astrbot.core.maibot.maim_message import UserInfo
 from astrbot.core.maibot.chat.message_receive.chat_stream import get_chat_manager
 from .pfc_KnowledgeFetcher import KnowledgeFetcher
 from .waiter import Waiter

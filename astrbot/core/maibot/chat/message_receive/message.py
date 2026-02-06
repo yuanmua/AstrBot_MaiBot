@@ -6,7 +6,7 @@ from abc import abstractmethod
 from dataclasses import dataclass
 from rich.traceback import install
 from typing import Optional, Any, List
-from maim_message import Seg, UserInfo, BaseMessageInfo, MessageBase
+from astrbot.core.maibot.maim_message import Seg, UserInfo, BaseMessageInfo, MessageBase
 
 from astrbot.core.maibot.common.logger import get_logger
 from astrbot.core.maibot.config.config import global_config

@@ -1,7 +1,7 @@
 import asyncio
 import time
 
-from maim_message import MessageServer
+from astrbot.core.maibot.maim_message import MessageServer
 
 # from astrbot.core.maibot.common.remote import TelemetryHeartBeatTask
 from astrbot.core.maibot.manager.async_task_manager import async_task_manager

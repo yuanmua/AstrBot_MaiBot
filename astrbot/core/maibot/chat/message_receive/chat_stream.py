@@ -4,7 +4,7 @@ import time
 import copy
 from typing import Dict, Optional, TYPE_CHECKING
 from rich.traceback import install
-from maim_message import GroupInfo, UserInfo
+from astrbot.core.maibot.maim_message import GroupInfo, UserInfo
 
 from astrbot.core.maibot.common.logger import get_logger
 from astrbot.core.maibot.common.database.database import db
