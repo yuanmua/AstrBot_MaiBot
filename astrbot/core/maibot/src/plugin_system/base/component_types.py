@@ -7,8 +7,10 @@ from astrbot.core.maibot.maim_message import Seg
 
 from astrbot.core.maibot.src.llm_models.payload_content.tool_option import ToolParamType as ToolParamType
 from astrbot.core.maibot.src.llm_models.payload_content.tool_option import ToolCall as ToolCall
-
-
+from astrbot.core.maibot.src.common.data_models.message_data_model import ReplyContentType as ReplyContentType
+from astrbot.core.maibot.src.common.data_models.message_data_model import ReplyContent as ReplyContent
+from astrbot.core.maibot.src.common.data_models.message_data_model import ForwardNode as ForwardNode
+from astrbot.core.maibot.src.common.data_models.message_data_model import ReplySetModel as ReplySetModel
 # 组件类型枚举
 class ComponentType(Enum):
     """组件类型枚举"""

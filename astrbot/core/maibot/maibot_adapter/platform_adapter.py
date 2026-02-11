@@ -70,7 +70,6 @@ class AstrBotPlatformAdapter:
     """AstrBot 平台适配器 - 存储消息事件，供回复时使用"""
 
     _instance_manager: Optional["MaibotInstanceManager"] = None
-    _reply_callback: Optional[callable] = None  # 子进程中使用，回复准备好后调用
 
     def __init__(self):
         # 存储待处理的事件：{stream_id: AstrMessageEvent}
@@ -143,16 +142,6 @@ async def initialize_adapter(
     return adapter
 
 
-def set_reply_callback(callback: callable) -> None:
-    """设置回复回调函数（子进程中使用）
-
-    当 monkey patch 拦截到回复消息时，会调用此回调将回复发送给主进程
-
-    Args:
-        callback: 回调函数，签名: callback(message, stream_id)
-    """
-    AstrBotPlatformAdapter._reply_callback = callback
-    logger.info(f"[AstrBot 适配器] 回复回调已设置")
 
 
 __all__ = [
@@ -161,5 +150,4 @@ __all__ = [
     "AstrBotPlatformAdapter",
     "get_astrbot_adapter",
     "initialize_adapter",
-    "set_reply_callback",
 ]

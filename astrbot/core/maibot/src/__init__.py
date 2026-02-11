@@ -128,75 +128,8 @@ class MaiBotCore:
         await self.main_system.initialize()
         logger.info("MainSystem 初始化完成")
 
-        # 9. 注册 AstrBot 平台适配器
-        logger.info("正在注册 AstrBot 适配器...")
-        await self._register_astrbot_adapter()
-
         self.initialized = True
         logger.info("MaiBot 初始化完成")
-
-    async def _register_astrbot_adapter(self):
-        """注册 AstrBot 平台适配器，拦截消息发送
-
-        拦截 MaiBot 的消息发送，通过回调函数将回复发送给主进程
-        """
-        try:
-            from astrbot.core.maibot.src.common.message.api import get_global_api
-            from astrbot.core.maibot.maibot_adapter import (
-                parse_astrbot_platform,
-                AstrBotPlatformAdapter,
-            )
-
-            # 获取 MaiBot 的消息服务器
-            message_server = get_global_api()
-            logger.info(f"[调试] monkey patch 注册, api_instance id: {id(message_server)}")
-
-            # 保存原始的 send_message 方法
-            original_send_message = message_server.send_message
-
-            # 创建包装函数
-            async def wrapped_send_message(message):
-                """包装 send_message，拦截 AstrBot 平台的消息并通过回调发送给主进程"""
-                try:
-                    # 获取消息的 platform 属性
-                    platform = getattr(message.message_info, "platform", None)
-                    logger.info(f"[AstrBot 适配器] send_message 被调用: platform={platform}")
-
-                    # 解析是否为 AstrBot 平台（astr:{instance_id}:{stream_id} 格式）
-                    stream_id = parse_astrbot_platform(platform)
-                    logger.info(f"[AstrBot 适配器] parse_astrbot_platform({platform}) -> stream_id={stream_id[:32] if stream_id else 'None'}")
-
-                    if stream_id:
-                        logger.info(f"[AstrBot 适配器] 解析成功，stream_id: {stream_id[:16]}...")
-                        # 调用回调函数将回复发送给主进程
-                        logger.info(f"[AstrBot 适配器] _reply_callback 当前值: {AstrBotPlatformAdapter._reply_callback}")
-                        if AstrBotPlatformAdapter._reply_callback is not None:
-                            try:
-                                logger.info(f"[AstrBot 适配器] 准备调用回调函数...")
-                                AstrBotPlatformAdapter._reply_callback(message, stream_id)
-                                logger.info(f"[AstrBot 适配器] ✅ 回复回调已调用 -> stream_id: {stream_id[:16]}...")
-                            except Exception as callback_err:
-                                logger.error(f"[AstrBot 适配器] ❌ 调用回复回调失败: {callback_err}", exc_info=True)
-                        else:
-                            logger.error(f"[AstrBot 适配器] ❌ _reply_callback 为 None！消息将无法发送到主进程！stream_id={stream_id[:16]}")
-                        return True
-                    else:
-                        # 其他平台使用原始方法
-                        logger.debug(f"[AstrBot 适配器] 非 AstrBot 平台，使用原始方法: {platform}")
-                        return await original_send_message(message)
-
-                except Exception as e:
-                    logger.error(f"包装的 send_message 失败: {e}", exc_info=True)
-                    # Fallback 到原始方法
-                    return await original_send_message(message)
-
-            # 替换 send_message 方法
-            message_server.send_message = wrapped_send_message
-
-            logger.info("已注册 AstrBot 平台适配器")
-
-        except Exception as e:
-            logger.error(f"注册 AstrBot 平台适配器失败: {e}", exc_info=True)
 
     async def start(self):
         """启动MaiBot定时任务"""

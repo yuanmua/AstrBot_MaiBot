@@ -192,10 +192,26 @@ class MessageServer(BaseMessageHandler):
         # 注册消息处理器
         self.connection.register_message_handler(self.process_message)
 
+        # 发送消息处理器（用于拦截特定平台的消息发送）
+        self._send_message_handlers = []
+
     def register_message_handler(self, handler: Callable):
         """注册实例级别的消息处理器"""
         if handler not in self.message_handlers:
             self.message_handlers.append(handler)
+
+    def register_send_message_handler(self, handler: Callable):
+        """注册发送消息处理器（用于拦截特定平台的消息发送）
+
+        处理器签名: async def handler(message: MessageBase) -> bool
+        返回 True 表示消息已处理，不再通过 WebSocket 发送
+        返回 False 表示消息未处理，继续通过 WebSocket 发送
+
+        Args:
+            handler: 异步处理函数
+        """
+        if handler not in self._send_message_handlers:
+            self._send_message_handlers.append(handler)
 
     def register_custom_message_handler(
         self, message_type_name: str, handler: Callable
@@ -231,7 +247,21 @@ class MessageServer(BaseMessageHandler):
         return await self.connection.send_message(platform, message)
 
     async def send_message(self, message: MessageBase):
-        """发送消息给指定平台"""
+        """发送消息给指定平台
+
+        会先调用注册的发送消息处理器，如果处理器返回 True，则不再通过 WebSocket 发送。
+        """
+        # 调用注册的发送消息处理器
+        for handler in self._send_message_handlers:
+            try:
+                handled = await handler(message)
+                if handled:
+                    # 消息已被处理器处理，不再通过 WebSocket 发送
+                    return True
+            except Exception as e:
+                logger.error(f"发送消息处理器执行失败: {e}", exc_info=True)
+
+        # 没有处理器处理该消息，使用默认的 WebSocket 发送
         return await self.connection.send_message(
             message.message_info.platform, message.to_dict()
         )

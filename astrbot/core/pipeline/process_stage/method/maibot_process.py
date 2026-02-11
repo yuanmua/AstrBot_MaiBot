@@ -85,9 +85,8 @@ class MaiBotProcessSubStage(Stage):
 
         try:
             # 获取转换器
-            from astrbot.core.maibot.maibot_adapter import convert_astrbot_to_maibot
+            from astrbot.core.maibot.maibot_adapter.recv_handler import AstrBotToMaiBot
 
-            # 生成 stream_id（与 MaiBot 算法一致）
             message_obj = event.message_obj
             sender = message_obj.sender
             real_platform = event.platform_meta.name
@@ -95,8 +94,12 @@ class MaiBotProcessSubStage(Stage):
             group_id = str(message_obj.group.group_id) if message_obj.group else None
             stream_id = _generate_stream_id(real_platform, user_id, group_id)
 
-            # 转换消息格式（会添加实例ID到 platform）
-            maibot_message_data = convert_astrbot_to_maibot(event, self.config)
+            # 获取实例ID
+            maibot_settings = self.config.get("maibot_processing", {})
+            instance_id = maibot_settings.get("instance_id", "default")
+
+            # 转换消息格式
+            maibot_message_data = AstrBotToMaiBot.convert_event(event, stream_id, instance_id)
 
             # 从转换后的消息中提取 platform（包含实例ID）
             message_info = maibot_message_data.get("message_info", {})

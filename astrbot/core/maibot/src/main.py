@@ -130,7 +130,7 @@ class MainSystem:
         self.app.register_message_handler(chat_bot.message_process)
         self.app.register_custom_message_handler("message_id_echo", chat_bot.echo_message_process)
 
-        # 触发 ON_START 事件
+        # 触发 ON_START 事件 （好像是定时任务）
         from astrbot.core.maibot.src.plugin_system.core.events_manager import events_manager
         from astrbot.core.maibot.src.plugin_system.base.component_types import EventType
 
@@ -150,7 +150,7 @@ class MainSystem:
                 get_emoji_manager().start_periodic_check_register(),
                 start_dream_scheduler(),
                 self.app.run(),
-                self.server.run(),
+                self.server.run(), # todo
             ]
 
             # 如果 WebUI 服务器已初始化，添加到任务列表

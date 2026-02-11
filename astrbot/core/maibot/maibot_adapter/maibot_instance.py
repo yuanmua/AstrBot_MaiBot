@@ -901,7 +901,7 @@ class MaibotInstanceManager:
         """
         try:
             from astrbot.core.maibot.maibot_adapter.platform_adapter import get_astrbot_adapter
-            from astrbot.core.maibot.maibot_adapter.response_converter import convert_maibot_to_astrbot
+            from astrbot.core.maibot.maibot_adapter.send_handler import convert_maibot_to_astrbot
 
             logger.info(f"[{instance_id}] 📨 收到子进程回复: stream_id={stream_id[:16] if stream_id else 'None'}")
             logger.info(f"[{instance_id}] 回复内容预览: {processed_plain_text[:100] if processed_plain_text else '空'}")
@@ -927,7 +927,7 @@ class MaibotInstanceManager:
             # 使用统一的转换函数将字典列表转换为 MessageChain
             logger.info(f"[{instance_id}] 正在转换消息格式...")
             message_chain = convert_maibot_to_astrbot(segments)
-            logger.info(f"[{instance_id}] 消息转换完成，MessageChain 长度: {len(message_chain)}")
+            logger.info(f"[{instance_id}] 消息转换完成，MessageChain 组件数: {len(message_chain.chain)}")
 
             # 发送消息
             logger.info(f"[{instance_id}] 准备发送消息到平台...")
