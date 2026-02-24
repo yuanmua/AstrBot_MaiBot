@@ -535,6 +535,9 @@ def message_from_db_dict(db_dict: dict) -> MessageRecv:
             "user_nickname": db_dict.get("user_nickname"),
             "user_cardname": db_dict.get("user_cardname"),
         },
+        # AstrBot 扩展字段
+        "astr_instance_id": db_dict.get("astr_instance_id"),
+        "astr_stream_id": db_dict.get("astr_stream_id"),
     }
 
     processed_text = db_dict.get("processed_plain_text", "")

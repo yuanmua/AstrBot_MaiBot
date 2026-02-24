@@ -60,13 +60,13 @@ class MessagePayload:
     """用户消息载荷"""
 
     message_data: Dict[str, Any]           # 消息数据（MessageBase 格式）
-    stream_id: str                         # 流 ID（用于关联回复）
+    unified_msg_origin: str                # 统一消息来源标识符（event.unified_msg_origin）
     instance_id: Optional[str] = None      # 实例 ID
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "message_data": self.message_data,
-            "stream_id": self.stream_id,
+            "unified_msg_origin": self.unified_msg_origin,
             "instance_id": self.instance_id,
         }
 
@@ -75,7 +75,7 @@ class MessagePayload:
 class ReplyPayload:
     """回复消息载荷"""
 
-    stream_id: str                         # 流 ID
+    unified_msg_origin: str               # 统一消息来源标识符
     instance_id: str                       # 实例 ID
     segments: list                         # 消息段列表（字典格式）
     processed_plain_text: str = ""         # 处理后的纯文本
@@ -85,7 +85,7 @@ class ReplyPayload:
 
     def to_dict(self) -> Dict[str, Any]:
         return {
-            "stream_id": self.stream_id,
+            "unified_msg_origin": self.unified_msg_origin,
             "instance_id": self.instance_id,
             "segments": self.segments,
             "processed_plain_text": self.processed_plain_text,

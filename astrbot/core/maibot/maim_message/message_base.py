@@ -220,7 +220,7 @@ class TemplateInfo:
 class BaseMessageInfo:
     """消息信息类"""
 
-    platform: Optional[str] = None
+    platform: Optional[str] = None  # 原始平台名称（如 qq、wechat 等）
     message_id: Optional[str] = None
     time: Optional[float] = None
     group_info: Optional[GroupInfo] = None
@@ -230,6 +230,9 @@ class BaseMessageInfo:
     additional_config: Optional[dict] = None
     sender_info: Optional[SenderInfo] = None
     receiver_info: Optional[ReceiverInfo] = None
+    # AstrBot 扩展字段
+    astr_instance_id: Optional[str] = None  # AstrBot 实例 ID
+    astr_stream_id: Optional[str] = None  # AstrBot 流 ID（用于关联回复）
 
     def to_dict(self) -> Dict:
         """转换为字典格式"""
@@ -314,6 +317,8 @@ class BaseMessageInfo:
             template_info=template_info,
             sender_info=sender_info,
             receiver_info=receiver_info,
+            astr_instance_id=data.get("astr_instance_id"),
+            astr_stream_id=data.get("astr_stream_id"),
         )
 
 

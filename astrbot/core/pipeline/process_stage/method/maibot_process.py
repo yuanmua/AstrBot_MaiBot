@@ -9,23 +9,12 @@ MaiBot 处理子阶段
 4. 主进程的 _handle_instance_reply() 负责发送回复
 """
 
-import hashlib
 from typing import Optional
 
 from astrbot.api import logger
 from astrbot.core.platform.astr_message_event import AstrMessageEvent
 from astrbot.core.pipeline.context import PipelineContext
 from astrbot.core.pipeline.stage import Stage
-
-
-def _generate_stream_id(platform: str, user_id: str, group_id: Optional[str] = None) -> str:
-    """生成聊天流唯一ID，与 MaiBot 的 ChatManager._generate_stream_id 保持一致"""
-    if group_id:
-        components = [platform, str(group_id)]
-    else:
-        components = [platform, str(user_id), "private"]
-    key = "_".join(components)
-    return hashlib.md5(key.encode()).hexdigest()
 
 
 class MaiBotProcessSubStage(Stage):
@@ -87,41 +76,26 @@ class MaiBotProcessSubStage(Stage):
             # 获取转换器
             from astrbot.core.maibot.maibot_adapter.recv_handler import AstrBotToMaiBot
 
-            message_obj = event.message_obj
-            sender = message_obj.sender
-            real_platform = event.platform_meta.name
-            user_id = str(sender.user_id)
-            group_id = str(message_obj.group.group_id) if message_obj.group else None
-            stream_id = _generate_stream_id(real_platform, user_id, group_id)
-
             # 获取实例ID
             maibot_settings = self.config.get("maibot_processing", {})
             instance_id = maibot_settings.get("instance_id", "default")
 
+            # 使用 unified_msg_origin 作为唯一标识符
+            unified_msg_origin = event.unified_msg_origin
+
             # 转换消息格式
-            maibot_message_data = AstrBotToMaiBot.convert_event(event, stream_id, instance_id)
+            maibot_message_data = AstrBotToMaiBot.convert_event(event, unified_msg_origin, instance_id)
 
-            # 从转换后的消息中提取 platform（包含实例ID）
-            message_info = maibot_message_data.get("message_info", {})
-            platform = message_info.get("platform", "")
-            chat_id = message_info.get("chat_id", "")
+            logger.debug(f"[MaiBot][IPC] 路由到实例: {instance_id}, unified_msg_origin={unified_msg_origin}")
 
-            logger.debug(f"[MaiBot][IPC] platform={platform}, chat_id={chat_id[:50]}...")
-
-            # 解析实例ID
-            from astrbot.core.maibot.maibot_adapter import parse_astrbot_instance_id
-            instance_id = parse_astrbot_instance_id(platform) or "default"
-
-            logger.debug(f"[MaiBot][IPC] 路由到实例: {instance_id}")
-
-            # 步骤1：将当前事件存入适配器（按 stream_id 索引）
-            self.adapter.set_event(stream_id, event)
+            # 步骤1：将当前事件存入适配器（按 unified_msg_origin 索引）
+            self.adapter.set_event(unified_msg_origin, event)
 
             # 步骤2：通过 IPC 队列发送消息给子进程
             result = await self.maibot_manager.send_message(
                 instance_id=instance_id,
                 message_data=maibot_message_data,
-                stream_id=stream_id,
+                unified_msg_origin=unified_msg_origin,
                 timeout=30.0,
             )
 
@@ -136,15 +110,15 @@ class MaiBotProcessSubStage(Stage):
             else:
                 error = result.get("error", "未知错误")
                 logger.error(f"[MaiBot][IPC] 发送消息到实例 {instance_id} 失败: {error}")
-                self.adapter.remove_event(stream_id)
+                self.adapter.remove_event(unified_msg_origin)
                 return None
 
         except Exception as e:
             logger.error(f"[MaiBot][IPC] 处理消息失败: {e}", exc_info=True)
             # 清除事件，防止泄漏
             try:
-                if 'stream_id' in locals():
-                    self.adapter.remove_event(stream_id)
+                if 'unified_msg_origin' in locals():
+                    self.adapter.remove_event(unified_msg_origin)
             except Exception:
                 pass
             # 如果 MaiBot 处理失败，继续由 AstrBot 处理

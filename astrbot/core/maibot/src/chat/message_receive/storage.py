@@ -142,6 +142,9 @@ class MessageStorage:
                 key_words=key_words,
                 key_words_lite=key_words_lite,
                 selected_expressions=selected_expressions,
+                # AstrBot 扩展字段
+                astr_instance_id=getattr(message.message_info, "astr_instance_id", None),
+                astr_stream_id=getattr(message.message_info, "astr_stream_id", None),
             )
         except Exception:
             logger.exception("存储消息失败")

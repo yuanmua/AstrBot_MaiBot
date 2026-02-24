@@ -1139,7 +1139,7 @@ class DefaultReplyer:
         # await anchor_message.process()
         sender_info = anchor_message.message_info.user_info if anchor_message else None
 
-        return MessageSending(
+        message_sending = MessageSending(
             message_id=message_id,  # 使用片段的唯一ID
             chat_stream=self.chat_stream,
             bot_user_info=bot_user_info,
@@ -1151,6 +1151,17 @@ class DefaultReplyer:
             thinking_start_time=thinking_start_time,  # 传递原始思考开始时间
             display_message=display_message,
         )
+
+        # 从原始消息中传递 AstrBot 扩展字段
+        if anchor_message and anchor_message.message_info:
+            message_sending.message_info.astr_stream_id = getattr(
+                anchor_message.message_info, "astr_stream_id", None
+            )
+            message_sending.message_info.astr_instance_id = getattr(
+                anchor_message.message_info, "astr_instance_id", None
+            )
+
+        return message_sending
 
     async def llm_generate_content(self, prompt: str):
         with Timer("LLM生成", {}):  # 内部计时器，可选保留

@@ -40,32 +40,32 @@ class RecvMessageHandler:
     def handle_event(
         self,
         event: "AstrMessageEvent",
-        stream_id: str,
+        unified_msg_origin: str,
     ) -> None:
         """
         处理 AstrBot 消息事件
 
         Args:
             event: AstrBot 消息事件
-            stream_id: 流 ID（用于关联回复）
+            unified_msg_origin: 统一消息来源标识符
         """
         try:
             # 转换消息格式
             message_data = self.converter.convert_event(
                 event=event,
-                stream_id=stream_id,
+                unified_msg_origin=unified_msg_origin,
                 instance_id=self.instance_id,
             )
 
             # 通过 IPC 发送到子进程
             self.ipc_client.send_message(
                 message_data=message_data,
-                stream_id=stream_id,
+                unified_msg_origin=unified_msg_origin,
             )
 
             logger.debug(
                 f"[RecvHandler] 消息已发送到子进程: "
-                f"stream_id={stream_id[:16] if stream_id else 'None'}"
+                f"unified_msg_origin={unified_msg_origin[:16] if unified_msg_origin else 'None'}"
             )
 
         except Exception as e:

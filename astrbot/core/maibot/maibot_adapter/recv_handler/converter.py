@@ -4,11 +4,11 @@ AstrBot → MaiBot 消息转换器
 将 AstrBot 的 AstrMessageEvent 转换为 MaiBot 的 MessageBase 格式。
 """
 
+import json
 import time
 from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
 from astrbot.core.maibot.maim_message import (
-    MessageBase,
     BaseMessageInfo,
     GroupInfo,
     UserInfo,
@@ -21,52 +21,13 @@ if TYPE_CHECKING:
     from astrbot.core.message.components import BaseMessageComponent
 
 
-def convert_astrbot_to_maibot(
-    event: "AstrMessageEvent",
-    config: Dict[str, Any] = None,
-) -> Dict[str, Any]:
-    """
-    将 AstrMessageEvent 转换为 MaiBot 的 message_data 字典（兼容旧接口）
-
-    Args:
-        event: AstrBot 消息事件
-        config: AstrBot 配置（用于获取实例ID等）
-
-    Returns:
-        message_data 字典
-    """
-    import hashlib
-
-    # 获取实例ID
-    instance_id = "default"
-    if config:
-        maibot_settings = config.get("maibot_processing", {})
-        instance_id = maibot_settings.get("instance_id", "default")
-
-    # 生成 stream_id
-    message_obj = event.message_obj
-    sender = message_obj.sender
-    real_platform = event.platform_meta.name if hasattr(event, "platform_meta") else "unknown"
-    user_id = str(sender.user_id) if sender else "unknown"
-    group_id = str(message_obj.group.group_id) if message_obj.group else None
-
-    if group_id:
-        components = [real_platform, str(group_id)]
-    else:
-        components = [real_platform, str(user_id), "private"]
-    key = "_".join(components)
-    stream_id = hashlib.md5(key.encode()).hexdigest()
-
-    return AstrBotToMaiBot.convert_event(event, stream_id, instance_id)
-
-
 class AstrBotToMaiBot:
     """AstrBot → MaiBot 消息转换器"""
 
     @staticmethod
     def convert_event(
         event: "AstrMessageEvent",
-        stream_id: str,
+        unified_msg_origin: str,
         instance_id: str = "default",
     ) -> Dict[str, Any]:
         """
@@ -74,17 +35,19 @@ class AstrBotToMaiBot:
 
         Args:
             event: AstrBot 消息事件
-            stream_id: 流 ID（用于关联回复）
+            unified_msg_origin: 统一消息来源标识符（event.unified_msg_origin）
             instance_id: MaiBot 实例 ID
 
         Returns:
-            message_data 字典（可直接传给 chat_bot.message_process）
+            message_data 字典���可直接传给 chat_bot.message_process）
         """
-        # 构建 platform 标识：astr:{instance_id}:{stream_id}
-        platform = f"astr:{instance_id}:{stream_id}"
+        # 获取原始平台名称
+        real_platform = event.platform_meta.name if hasattr(event, "platform_meta") else "unknown"
 
-        # 构建 message_info
-        message_info = AstrBotToMaiBot._build_message_info(event, platform)
+        # 构建 message_info（使用原平台名称，传入 astr 扩展字段）
+        message_info = AstrBotToMaiBot._build_message_info(
+            event, real_platform, instance_id, unified_msg_origin
+        )
 
         # 构建 message_segment
         message_segment = AstrBotToMaiBot._build_message_segment(event)
@@ -101,13 +64,17 @@ class AstrBotToMaiBot:
     def _build_message_info(
         event: "AstrMessageEvent",
         platform: str,
+        instance_id: str = "default",
+        unified_msg_origin: str = "",
     ) -> BaseMessageInfo:
         """
         构建 BaseMessageInfo
 
         Args:
             event: AstrBot 消息事件
-            platform: 平台标识
+            platform: 原始平台名称
+            instance_id: AstrBot 实例 ID
+            unified_msg_origin: 统一消息来源标识符
 
         Returns:
             BaseMessageInfo 对象
@@ -153,6 +120,8 @@ class AstrBotToMaiBot:
             group_info=group_info,
             user_info=user_info,
             format_info=format_info,
+            astr_instance_id=instance_id,
+            astr_stream_id=unified_msg_origin,
         )
 
     @staticmethod
@@ -195,16 +164,6 @@ class AstrBotToMaiBot:
         Returns:
             Seg 列表
         """
-        from astrbot.core.message.components import (
-            Plain,
-            Image,
-            At,
-            Reply,
-            Record,
-            Video,
-            Face,
-            File,
-        )
 
         seg_list = []
 
@@ -227,14 +186,6 @@ class AstrBotToMaiBot:
             Seg 对象或 None
         """
         from astrbot.core.message.components import (
-            Plain,
-            Image,
-            At,
-            Reply,
-            Record,
-            Video,
-            Face,
-            File,
             ComponentType,
         )
 
@@ -242,55 +193,68 @@ class AstrBotToMaiBot:
 
         # 纯文本
         if comp_type == ComponentType.Plain:
-            return Seg(type="text", data=component.text)
+            return Seg(type="text", data=getattr(component, "text", ""))
 
         # 图片
         elif comp_type == ComponentType.Image:
             # 优先使用 URL，其次使用 file，最后使用 base64
-            if component.url:
-                return Seg(type="image", data={"url": component.url})
-            elif component.file:
-                return Seg(type="image", data={"file": component.file})
+            url = getattr(component, "url", None)
+            file = getattr(component, "file", None)
+            if url:
+                return Seg(type="image", data=json.dumps({"url": url}, ensure_ascii=False))
+            elif file:
+                return Seg(type="image", data=json.dumps({"file": file}, ensure_ascii=False))
             else:
                 return Seg(type="image", data="")
 
         # @提及
         elif comp_type == ComponentType.At:
-            return Seg(type="at", data={"qq": str(component.qq)})
+            qq = getattr(component, "qq", "")
+            return Seg(type="at", data=json.dumps({"qq": str(qq)}, ensure_ascii=False))
 
         # 回复
         elif comp_type == ComponentType.Reply:
-            return Seg(type="reply", data={
-                "id": str(component.id),
-                "sender_id": component.sender_id,
-                "message_str": component.message_str,
-            })
+            reply_id = getattr(component, "id", "")
+            sender_id = getattr(component, "sender_id", "")
+            message_str = getattr(component, "message_str", "")
+            return Seg(type="reply", data=json.dumps({
+                "id": str(reply_id),
+                "sender_id": sender_id,
+                "message_str": message_str,
+            }, ensure_ascii=False))
 
         # 语音
         elif comp_type == ComponentType.Record:
-            if component.url:
-                return Seg(type="voice", data={"url": component.url})
-            elif component.file:
-                return Seg(type="voice", data={"file": component.file})
+            url = getattr(component, "url", None)
+            file = getattr(component, "file", None)
+            if url:
+                return Seg(type="voice", data=json.dumps({"url": url}, ensure_ascii=False))
+            elif file:
+                return Seg(type="voice", data=json.dumps({"file": file}, ensure_ascii=False))
             return None
 
         # 视频
         elif comp_type == ComponentType.Video:
-            if hasattr(component, "file") and component.file:
-                return Seg(type="video", data={"file": component.file})
+            file = getattr(component, "file", None)
+            if file:
+                return Seg(type="video", data=json.dumps({"file": file}, ensure_ascii=False))
             return None
 
         # QQ 表情
         elif comp_type == ComponentType.Face:
-            return Seg(type="face", data={"id": component.id})
+            face_id = getattr(component, "id", 0)
+            return Seg(type="face", data=json.dumps({"id": face_id}, ensure_ascii=False))
 
         # 文件
         elif comp_type == ComponentType.File:
-            return Seg(type="file", data={
-                "name": component.name,
-                "url": component.url,
-                "file": component.file_ if hasattr(component, "file_") else "",
-            })
+            name = getattr(component, "name", "")
+            url = getattr(component, "url", "")
+            file = getattr(component, "file_", "") or getattr(component, "file", "")
+            return Seg(type="file", data=json.dumps({
+                "name": name,
+                "url": url,
+                "file": file,
+            }, ensure_ascii=False))
 
         # 其他类型暂不支持
         else:

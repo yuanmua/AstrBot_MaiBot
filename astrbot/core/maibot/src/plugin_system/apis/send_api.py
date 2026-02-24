@@ -124,6 +124,15 @@ async def _send_to_target(
             selected_expressions=selected_expressions,
         )
 
+        # 设置 AstrBot 扩展字段
+        if anchor_message and anchor_message.message_info:
+            bot_message.message_info.astr_stream_id = getattr(
+                anchor_message.message_info, "astr_stream_id", None
+            )
+            bot_message.message_info.astr_instance_id = getattr(
+                anchor_message.message_info, "astr_instance_id", None
+            )
+
         # 发送消息
         sent_msg = await message_sender.send_message(
             bot_message,
@@ -182,6 +191,9 @@ def db_message_to_message_recv(message_obj: "DatabaseMessages") -> MessageRecv:
         "additional_config": message_obj.additional_config,
         "format_info": format_info,
         "template_info": template_info,
+        # AstrBot 扩展字段
+        "astr_instance_id": message_obj.astr_instance_id,
+        "astr_stream_id": message_obj.astr_stream_id,
     }
 
     message_dict_recv = {

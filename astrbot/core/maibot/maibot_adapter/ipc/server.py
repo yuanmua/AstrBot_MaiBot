@@ -43,7 +43,7 @@ class LocalServer:
 
     def send_reply(
         self,
-        stream_id: str,
+        unified_msg_origin: str,
         segments: list,
         processed_plain_text: str = "",
     ) -> None:
@@ -51,12 +51,12 @@ class LocalServer:
         发送回复消息到主进程
 
         Args:
-            stream_id: 流 ID
+            unified_msg_origin: 统一消息来源标识符
             segments: 消息段列表（字典格式）
             processed_plain_text: 处理后的纯文本
         """
         payload = ReplyPayload(
-            stream_id=stream_id,
+            unified_msg_origin=unified_msg_origin,
             instance_id=self.instance_id,
             segments=segments,
             processed_plain_text=processed_plain_text,
@@ -178,7 +178,7 @@ class LocalServer:
         注册消息处理器
 
         Args:
-            handler: 回调函数，签名: handler(message_data, stream_id)
+            handler: 回调函数，签名: handler(message_data, unified_msg_origin)
         """
         self._message_handler = handler
 
@@ -226,7 +226,7 @@ class LocalServer:
                 payload = msg.payload
                 result = self._message_handler(
                     payload.get("message_data"),
-                    payload.get("stream_id"),
+                    payload.get("unified_msg_origin"),
                 )
                 if asyncio.iscoroutine(result):
                     asyncio.create_task(result)

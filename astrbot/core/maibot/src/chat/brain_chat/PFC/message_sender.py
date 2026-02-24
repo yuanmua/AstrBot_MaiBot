@@ -61,6 +61,15 @@ class DirectMessageSender:
                 thinking_start_time=time.time(),
             )
 
+            # 从原始消息中传递 AstrBot 扩展字段
+            if reply_to_message and reply_to_message.message_info:
+                message.message_info.astr_stream_id = getattr(
+                    reply_to_message.message_info, "astr_stream_id", None
+                )
+                message.message_info.astr_instance_id = getattr(
+                    reply_to_message.message_info, "astr_instance_id", None
+                )
+
             # 处理消息
             await message.process()
 

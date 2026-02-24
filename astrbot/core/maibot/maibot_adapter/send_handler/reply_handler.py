@@ -64,16 +64,19 @@ class ReplyHandler:
             True 表示消息已处理（AstrBot 平台），False 表示需要继续处理
         """
         try:
-            # 获取平台信息
-            platform = message.message_info.platform
+            # 获取 AstrBot 扩展字段
+            message_info = message.message_info
+            astr_stream_id = getattr(message_info, "astr_stream_id", None)
 
-            # 检查是否是 AstrBot 平台的消息
-            stream_id = self._parse_astrbot_platform(platform)
-            if not stream_id:
+            self._log("info", f"[ReplyHandler] 收到消息: platform={message_info.platform}, astr_stream_id={astr_stream_id}")
+
+            # 检查是否是 AstrBot 平台的消息（通过 astr_stream_id 判断）
+            if not astr_stream_id:
                 # 不是 AstrBot 平台，返回 False 让 WebSocket 处理
+                self._log("info", "[ReplyHandler] 无 astr_stream_id，返回 False")
                 return False
 
-            self._log("info", f"[ReplyHandler] 拦截到 AstrBot 回复: stream_id={stream_id[:16]}")
+            self._log("info", f"[ReplyHandler] 拦截到 AstrBot 回复: unified_msg_origin={astr_stream_id[:16]}")
 
             # 获取消息段
             message_segment = message.message_segment
@@ -89,7 +92,7 @@ class ReplyHandler:
 
             # 通过 IPC 发送到主进程
             self.ipc_server.send_reply(
-                stream_id=stream_id,
+                unified_msg_origin=astr_stream_id,
                 segments=segments,
                 processed_plain_text=processed_plain_text,
             )
@@ -103,33 +106,6 @@ class ReplyHandler:
             import traceback
             self._log("error", traceback.format_exc())
             return False
-
-    @staticmethod
-    def _parse_astrbot_platform(platform: str) -> Optional[str]:
-        """
-        解析 AstrBot 平台标识，返回 stream_id
-
-        Args:
-            platform: 平台标识，如 "astr:{stream_id}" 或 "astr:{instance_id}:{stream_id}"
-
-        Returns:
-            stream_id 字符串，如果无法解析则返回 None
-        """
-        if not platform or not platform.startswith("astr:"):
-            return None
-
-        # 移除 "astr:" 前缀
-        parts = platform[5:].split(":", 1)
-
-        # 可能的格式：
-        # 1. astr:{stream_id} - 旧格式
-        # 2. astr:{instance_id}:{stream_id} - 新格式
-        if len(parts) == 1:
-            return parts[0]
-        elif len(parts) == 2:
-            return parts[1]
-
-        return None
 
 
 def create_reply_handler(ipc_server: "LocalServer") -> ReplyHandler:

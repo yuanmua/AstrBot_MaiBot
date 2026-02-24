@@ -250,7 +250,28 @@ class MessageServer(BaseMessageHandler):
         """发送消息给指定平台
 
         会先调用注册的发送消息处理器，如果处理器返回 True，则不再通过 WebSocket 发送。
+        如果消息包含 astr_stream_id，即使处理器返回 False，也会尝试通过 IPC 发送。
         """
+        # 检查消息是否有 astr_stream_id，如果有则优先通过 IPC 发送
+        message_info = message.message_info
+        astr_stream_id = getattr(message_info, "astr_stream_id", None)
+
+        if astr_stream_id:
+            # 有 astr_stream_id，尝试通过 IPC 发送
+            # 先调用注册的发送消息处理器，让它处理 IPC 发送
+            for handler in self._send_message_handlers:
+                try:
+                    handled = await handler(message)
+                    if handled:
+                        # 消息已被处理器处理（通过 IPC 发送），不再通过 WebSocket 发送
+                        return True
+                except Exception as e:
+                    logger.error(f"发送消息处理器执行失败: {e}", exc_info=True)
+
+            # 处理器未能处理，但消息有 astr_stream_id，不应该走 WebSocket
+            logger.warning(f"消息包含 astr_stream_id={astr_stream_id[:16]}... 但处理器未能处理")
+            return False
+
         # 调用注册的发送消息处理器
         for handler in self._send_message_handlers:
             try:

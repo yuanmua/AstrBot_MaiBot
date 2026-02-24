@@ -19,13 +19,15 @@ if TYPE_CHECKING:
 
 
 def parse_astrbot_platform(platform: str) -> Optional[str]:
-    """解析 AstrBot 平台标识，返回 stream_id
+    """解析 AstrBot 平台标识，返回 unified_msg_origin
+
+    注意：此函数已弃用，现在直接使用 event.unified_msg_origin
 
     Args:
         platform: 平台标识，如 "astr:{stream_id}" 或 "astr:{instance_id}:{stream_id}"
 
     Returns:
-        stream_id 字符串，如果无法解析则返回 None
+        unified_msg_origin 字符串，如果无法解析则返回 None
     """
     if not platform or not platform.startswith("astr:"):
         return None
@@ -82,32 +84,32 @@ class AstrBotPlatformAdapter:
         cls._instance_manager = manager
         logger.info(f"[AstrBot 适配器] 已设置实例管理器")
 
-    def set_event(self, stream_id: str, event: "AstrMessageEvent"):
+    def set_event(self, unified_msg_origin: str, event: "AstrMessageEvent"):
         """存储事件，供回复时使用"""
-        self._events[stream_id] = event
+        self._events[unified_msg_origin] = event
         sender_name = event.get_sender_name() if hasattr(event, 'get_sender_name') else "unknown"
-        logger.info(f"[AstrBot 适配器] 📥 存储事件: stream_id={stream_id[:16] if stream_id else 'None'}, sender={sender_name}, 当前事件数: {len(self._events)}")
+        logger.info(f"[AstrBot 适配器] 📥 存储事件: unified_msg_origin={unified_msg_origin}, sender={sender_name}, 当前事件数: {len(self._events)}")
 
-    def get_event(self, stream_id: str) -> Optional["AstrMessageEvent"]:
+    def get_event(self, unified_msg_origin: str) -> Optional["AstrMessageEvent"]:
         """获取事件"""
-        event = self._events.get(stream_id)
+        event = self._events.get(unified_msg_origin)
         if event:
             sender_name = event.get_sender_name() if hasattr(event, 'get_sender_name') else "unknown"
-            logger.info(f"[AstrBot 适配器] 📤 获取事件成功: stream_id={stream_id[:16] if stream_id else 'None'}, sender={sender_name}")
+            logger.info(f"[AstrBot 适配器] 📤 获取事件成功: unified_msg_origin={unified_msg_origin}, sender={sender_name}")
         else:
-            logger.warning(f"[AstrBot 适配器] ❌ 获取事件失败: stream_id={stream_id[:16] if stream_id else 'None'} 不存在于事件缓存")
-            # 打印当前缓存的所有 stream_id（只打印前5个）
+            logger.warning(f"[AstrBot 适配器] ❌ 获取事件失败: unified_msg_origin={unified_msg_origin} 不存在于事件缓存")
+            # 打印当前缓存的所有 unified_msg_origin（只打印前5个）
             cached_ids = list(self._events.keys())[:5]
             logger.warning(f"[AstrBot 适配器] 当前缓存的事件: {cached_ids}... (共{len(self._events)}个)")
         return event
 
-    def remove_event(self, stream_id: str):
+    def remove_event(self, unified_msg_origin: str):
         """移除事件"""
-        if stream_id in self._events:
-            del self._events[stream_id]
-            logger.info(f"[AstrBot 适配器] 🗑️ 移除事件: stream_id={stream_id[:16] if stream_id else 'None'}, 剩余事件数: {len(self._events)}")
+        if unified_msg_origin in self._events:
+            del self._events[unified_msg_origin]
+            logger.info(f"[AstrBot 适配器] 🗑️ 移除事件: unified_msg_origin={unified_msg_origin}, 剩余事件数: {len(self._events)}")
         else:
-            logger.warning(f"[AstrBot 适配器] ⚠️ 尝试移除不存在的事件: stream_id={stream_id[:16] if stream_id else 'None'}")
+            logger.warning(f"[AstrBot 适配器] ⚠️ 尝试移除不存在的事件: unified_msg_origin={unified_msg_origin}")
 
 
 # 全局单例

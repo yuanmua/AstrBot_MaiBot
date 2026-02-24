@@ -226,14 +226,14 @@ async def subprocess_main_async(
             send_log("info", "知识库适配器未启用")
 
         # 6. 消息处理函数
-        async def _handle_message(message_data: Dict[str, Any], stream_id: str) -> None:
+        async def _handle_message(message_data: Dict[str, Any], unified_msg_origin: str) -> None:
             """处理来自主进程的消息"""
             try:
                 if not message_data:
                     ipc_server.send_message_result(False, error="消息数据为空")
                     return
 
-                send_log("info", f"收到消息: stream_id={stream_id[:16] if stream_id else 'unknown'}...")
+                send_log("info", f"收到消息: unified_msg_origin={unified_msg_origin[:16] if unified_msg_origin else 'unknown'}...")
 
                 # 获取 MaiBot 的 ChatBot 实例处理消息
                 from astrbot.core.maibot.src.chat.message_receive.bot import chat_bot

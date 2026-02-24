@@ -42,17 +42,17 @@ class LocalClient:
 
     # ========== 发送方法 ==========
 
-    def send_message(self, message_data: Dict[str, Any], stream_id: str) -> None:
+    def send_message(self, message_data: Dict[str, Any], unified_msg_origin: str) -> None:
         """
         发送用户消息到子进程
 
         Args:
             message_data: 消息数据（MessageBase 格式的字典）
-            stream_id: 流 ID（用于关联回复）
+            unified_msg_origin: 统一消息来源标识符
         """
         payload = MessagePayload(
             message_data=message_data,
-            stream_id=stream_id,
+            unified_msg_origin=unified_msg_origin,
             instance_id=self.instance_id,
         )
 
@@ -95,7 +95,7 @@ class LocalClient:
         注册回复处理器
 
         Args:
-            handler: 回调函数，签名: handler(stream_id, segments, processed_plain_text)
+            handler: 回调函数，签名: handler(unified_msg_origin, segments, processed_plain_text)
         """
         self._reply_handler = handler
 
@@ -149,7 +149,7 @@ class LocalClient:
                 payload = msg.payload
                 await self._maybe_await(
                     self._reply_handler(
-                        payload.get("stream_id"),
+                        payload.get("unified_msg_origin"),
                         payload.get("segments", []),
                         payload.get("processed_plain_text", ""),
                     )

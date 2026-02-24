@@ -804,15 +804,15 @@ class MaibotInstanceManager:
                         logger.info(f"实例 {instance_id} 收到信号: {signum}")
                     elif msg_type == "message_reply":
                         # 异步处理，不阻塞循环
-                        stream_id = payload.get("stream_id", "")
+                        unified_msg_origin = payload.get("unified_msg_origin", "")
                         segments = payload.get("segments", [])
                         processed_plain_text = payload.get("processed_plain_text", "")
                         logger.info(f"[{instance_id}] 📩 从 output_queue 收到 message_reply:")
-                        logger.info(f"[{instance_id}]   stream_id={stream_id[:16] if stream_id else 'None'}")
+                        logger.info(f"[{instance_id}]   unified_msg_origin={unified_msg_origin[:16] if unified_msg_origin else 'None'}")
                         logger.info(f"[{instance_id}]   segments数量={len(segments) if segments else 0}")
                         logger.info(f"[{instance_id}]   内容预览: {processed_plain_text[:100] if processed_plain_text else '空'}...")
                         # 启动后台任务处理回复
-                        asyncio.create_task(self._handle_instance_reply(instance_id, stream_id, segments, processed_plain_text))
+                        asyncio.create_task(self._handle_instance_reply(instance_id, unified_msg_origin, segments, processed_plain_text))
                     elif msg_type == "kb_retrieve":
                         # 知识库检索请求，启动后台任务处理
                         asyncio.create_task(self._handle_kb_retrieve(instance, payload))
@@ -887,7 +887,7 @@ class MaibotInstanceManager:
             self._cleanup_instance(instance)
 
     async def _handle_instance_reply(
-        self, instance_id: str, stream_id: str, segments: List[dict], processed_plain_text: str
+        self, instance_id: str, unified_msg_origin: str, segments: List[dict], processed_plain_text: str
     ) -> None:
         """处理子进程返回的回复消息
 
@@ -895,7 +895,7 @@ class MaibotInstanceManager:
 
         Args:
             instance_id: 实例ID
-            stream_id: 流ID
+            unified_msg_origin: 统一消息来源标识符
             segments: 消息段字典列表
             processed_plain_text: 处理后的纯文本
         """
@@ -903,25 +903,25 @@ class MaibotInstanceManager:
             from astrbot.core.maibot.maibot_adapter.platform_adapter import get_astrbot_adapter
             from astrbot.core.maibot.maibot_adapter.send_handler import convert_maibot_to_astrbot
 
-            logger.info(f"[{instance_id}] 📨 收到子进程回复: stream_id={stream_id[:16] if stream_id else 'None'}")
+            logger.info(f"[{instance_id}] 📨 收到子进程回复: unified_msg_origin={unified_msg_origin[:16] if unified_msg_origin else 'None'}")
             logger.info(f"[{instance_id}] 回复内容预览: {processed_plain_text[:100] if processed_plain_text else '空'}")
             logger.info(f"[{instance_id}] segments 数量: {len(segments) if segments else 0}")
 
             adapter = get_astrbot_adapter()
 
             # 获取原始事件
-            event = adapter.get_event(stream_id)
+            event = adapter.get_event(unified_msg_origin)
 
             if not event:
                 current_events = list(adapter._events.keys()) if hasattr(adapter, "_events") else []
                 logger.error(
-                    f"[{instance_id}] ❌ 未找到 stream_id={stream_id[:16] if stream_id else 'None'} 对应的事件，"
+                    f"[{instance_id}] ❌ 未找到 unified_msg_origin={unified_msg_origin[:16] if unified_msg_origin else 'None'} 对应的事件，"
                     f"当前事件缓存: {current_events[:5]}... (共{len(current_events)}个)"
                 )
                 return
 
             if not segments:
-                logger.warning(f"[{instance_id}] ❌ 回复没有消息段: stream_id={stream_id[:16] if stream_id else 'None'}...")
+                logger.warning(f"[{instance_id}] ❌ 回复没有消息段: unified_msg_origin={unified_msg_origin[:16] if unified_msg_origin else 'None'}...")
                 return
 
             # 使用统一的转换函数将字典列表转换为 MessageChain
@@ -932,7 +932,7 @@ class MaibotInstanceManager:
             # 发送消息
             logger.info(f"[{instance_id}] 准备发送消息到平台...")
             await event.send(message_chain)
-            logger.info(f"[{instance_id}] ✅ 回复已发送: stream_id={stream_id[:16] if stream_id else 'None'}, 内容: {processed_plain_text[:50]}")
+            logger.info(f"[{instance_id}] ✅ 回复已发送: unified_msg_origin={unified_msg_origin[:16] if unified_msg_origin else 'None'}, 内容: {processed_plain_text[:50]}")
 
         except Exception as e:
             logger.error(f"[{instance_id}] ❌ 处理子进程回复失败: {e}", exc_info=True)
@@ -1168,7 +1168,7 @@ class MaibotInstanceManager:
         self,
         instance_id: str,
         message_data: Dict[str, Any],
-        stream_id: str,
+        unified_msg_origin: str,
         timeout: float = 30.0,
     ) -> Dict[str, Any]:
         """发送消息给指定实例（IPC 模式）
@@ -1178,7 +1178,7 @@ class MaibotInstanceManager:
         Args:
             instance_id: 实例ID
             message_data: MaiBot 格式的消息数据
-            stream_id: 流ID，用于追踪
+            unified_msg_origin: 流ID，用于追踪
             timeout: 超时时间（秒）
 
         Returns:
@@ -1210,13 +1210,13 @@ class MaibotInstanceManager:
             "type": "message",
             "payload": {
                 "message_data": message_data,
-                "stream_id": stream_id,
+                "unified_msg_origin": unified_msg_origin,
             }
         }
 
         try:
             instance.input_queue.put_nowait(cmd)
-            logger.debug(f"消息已发送到实例 {instance_id}: stream_id={stream_id[:16]}...")
+            logger.debug(f"消息已发送到实例 {instance_id}: unified_msg_origin={unified_msg_origin[:16]}...")
         except Exception as e:
             logger.error(f"发送消息到实例 {instance_id} 失败: {e}")
             return {"success": False, "error": str(e)}
@@ -1314,14 +1314,14 @@ def get_instance_status(instance_id: str) -> Optional[Dict[str, Any]]:
 async def send_message_to_instance(
     instance_id: str,
     message_data: Dict[str, Any],
-    stream_id: str,
+    unified_msg_origin: str,
     timeout: float = 30.0,
 ) -> Dict[str, Any]:
     """便捷函数：发送消息给指定实例（IPC 模式）"""
     manager = get_instance_manager()
     if manager is None:
         return {"success": False, "error": "实例管理器未初始化"}
-    return await manager.send_message(instance_id, message_data, stream_id, timeout)
+    return await manager.send_message(instance_id, message_data, unified_msg_origin, timeout)
 
 
 __all__ = [

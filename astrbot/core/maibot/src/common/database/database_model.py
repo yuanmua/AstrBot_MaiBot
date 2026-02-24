@@ -175,6 +175,10 @@ class Messages(BaseModel):
 
     selected_expressions = TextField(null=True)
 
+    # AstrBot 扩展字段（用于 IPC 回复路由）
+    astr_instance_id = TextField(null=True)  # AstrBot 实例 ID
+    astr_stream_id = TextField(null=True)  # AstrBot 流 ID（用于关联回复）
+
     class Meta:
         # database = db # 继承自 BaseModel
         table_name = "messages"
