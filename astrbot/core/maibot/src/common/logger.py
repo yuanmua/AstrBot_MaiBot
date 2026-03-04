@@ -338,7 +338,8 @@ def _check_subprocess_mode():
         return True
     try:
         # 延迟导入，避免循环依赖问题
-        from astrbot.core.maibot.maibot_adapter import is_subprocess_mode
+        # 先尝试从 maibot_adapter.subprocess 导入
+        from astrbot.core.maibot.maibot_adapter.subprocess import is_subprocess_mode
         if is_subprocess_mode():
             _subprocess_mode = True
             return True
@@ -770,11 +771,23 @@ class ModuleColoredConsoleRenderer:
 file_handler = get_file_handler()
 console_handler = get_console_handler()
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(message)s",
-    handlers=[file_handler, console_handler],
-)
+# 检查是否子进程模式（子进程模式下不添加console_handler，由maibot_logger统一管理）
+_is_subprocess = _check_subprocess_mode()
+
+if _is_subprocess:
+    # 子进程模式：只添加文件handler，控制台输出由maibot_logger管理
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(message)s",
+        handlers=[file_handler],
+    )
+else:
+    # 普通模式：添加文件handler和控制台handler
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(message)s",
+        handlers=[file_handler, console_handler],
+    )
 
 
 def configure_structlog():

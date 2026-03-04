@@ -206,7 +206,15 @@ class MaiBotManagerRoute(Route):
         Request Body:
             - name: 实例名称
             - description: 描述
-            - lifecycle: 生命周期配置
+            - lifecycle: 生命周期配置 {"restart_on_crash": bool, "max_restarts": int, "restart_delay": int}
+            - host: 服务主机地址
+            - port: 服务端口
+            - web_host: WebUI 主机地址
+            - web_port: WebUI 端口
+            - enable_webui: 是否启用 WebUI
+            - enable_socket: 是否启用 Socket
+            - logging: 日志配置 {"enable_console": bool, "log_level": str}
+            - knowledge_base: 知识库配置 {"enabled": bool, "kb_names": [], "fusion_top_k": int, "return_top_k": int}
         """
         if not self._check_maibot_manager():
             return Response().error("麦麦管理器未初始化").__dict__, 500
@@ -218,7 +226,7 @@ class MaiBotManagerRoute(Route):
 
             data = await request.get_json()
 
-            # 更新字段
+            # 更新基本字段
             if "name" in data:
                 instance.name = data["name"]
             if "description" in data:
@@ -226,10 +234,38 @@ class MaiBotManagerRoute(Route):
             if "lifecycle" in data:
                 instance.lifecycle.update(data["lifecycle"])
 
-            # 更新配置
-            instance.updated_at = None  # 会在保存时自动设置
+            # 更新网络配置字段
+            if "host" in data:
+                instance.host = data["host"]
+            if "port" in data:
+                instance.port = data["port"]
+            if "web_host" in data:
+                instance.web_host = data["web_host"]
+            if "web_port" in data:
+                instance.web_port = data["web_port"]
+            if "enable_webui" in data:
+                instance.enable_webui = data["enable_webui"]
+            if "enable_socket" in data:
+                instance.enable_socket = data["enable_socket"]
 
+            # 更新日志配置
+            if "logging" in data:
+                instance.logging.update(data["logging"])
+
+            # 更新知识库配置
+            if "knowledge_base" in data:
+                instance.knowledge_base.update(data["knowledge_base"])
+
+            # 保存元数据到 instances_meta.json
+            instance.updated_at = None  # 会在保存时自动设置
             await self.maibot_manager._save_instances_metadata()
+
+            # 如果修改了 webui 相关的网络配置，同步更新 TOML 文件
+            sync_toml_fields = ["enable_webui", "enable_socket", "logging", "knowledge_base"]
+            should_sync_toml = any(field in data for field in sync_toml_fields)
+
+            if should_sync_toml:
+                await self._sync_instance_config_to_toml(instance_id, instance)
 
             return Response().ok({
                 "id": instance_id,
@@ -239,6 +275,51 @@ class MaiBotManagerRoute(Route):
         except Exception as e:
             logger.error(f"更新实例配置失败: {e}", exc_info=True)
             return Response().error(f"更新实例配置失败: {e}").__dict__, 500
+
+    async def _sync_instance_config_to_toml(self, instance_id: str, instance):
+        """同步实例配置到 TOML 文件
+
+        将 instances_meta.json 中的配置同步到 TOML 配置文件
+        """
+        try:
+            config_path = self._get_instance_config_path(instance_id)
+            if not os.path.exists(config_path):
+                logger.warning(f"实例 {instance_id} 的 TOML 配置文件不存在，跳过同步")
+                return
+
+            # 读取 TOML 配置
+            with open(config_path, "r", encoding="utf-8") as f:
+                doc = tomlkit.load(f)
+
+            # 同步 webui 配置
+            if "webui" not in doc:
+                doc["webui"] = {}
+            doc["webui"]["enabled"] = instance.enable_webui
+
+            # 同步日志配置
+            if "log" not in doc:
+                doc["log"] = {}
+            if hasattr(instance, "logging") and instance.logging:
+                if "log_level" in instance.logging:
+                    doc["log"]["log_level"] = instance.logging.get("log_level", "INFO")
+                if "console_log_level" in instance.logging:
+                    doc["log"]["console_log_level"] = instance.logging.get("console_log_level", "INFO")
+
+            # 同步知识库配置 (lpmm_knowledge)
+            if "lpmm_knowledge" not in doc:
+                doc["lpmm_knowledge"] = {}
+            if hasattr(instance, "knowledge_base") and instance.knowledge_base:
+                kb_config = instance.knowledge_base
+                doc["lpmm_knowledge"]["enable"] = kb_config.get("enabled", False)
+
+            # 保存 TOML 配置
+            with open(config_path, "w", encoding="utf-8") as f:
+                f.write(tomlkit.dumps(doc))
+
+            logger.info(f"已同步实例 {instance_id} 的配置到 TOML 文件")
+
+        except Exception as e:
+            logger.error(f"同步实例 {instance_id} 配置到 TOML 失败: {e}", exc_info=True)
 
     async def delete_instance(self, instance_id: str):
         """删除实例

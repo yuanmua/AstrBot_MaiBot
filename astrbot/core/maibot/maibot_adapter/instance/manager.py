@@ -44,6 +44,7 @@ class MaibotInstanceManager:
         self.instances: Dict[str, MaibotInstance] = {}
         self.metadata_path = os.path.join(data_root, "config", "instances_meta.json")
         self._astrbot_context = None  # AstrBot Context 引用，用于知识库 IPC
+        self._conversation_manager = None  # 会话管理器，用于保存对话历史
 
     async def initialize(self) -> None:
         """初始化实例管理器"""
@@ -665,7 +666,7 @@ class MaibotInstanceManager:
             self._cleanup_instance(instance)
 
     async def _handle_instance_reply(self, instance_id: str, unified_msg_origin: str, segments: List[dict], processed_plain_text: str) -> None:
-        """处理子进程返回的回复消息"""
+        """处理子进程返回的回复消息，发送到平台并保存对话历史"""
         try:
             from astrbot.core.maibot.maibot_adapter import get_astrbot_adapter
             from astrbot.core.maibot.maibot_adapter.send_handler import convert_maibot_to_astrbot
@@ -686,6 +687,17 @@ class MaibotInstanceManager:
             message_chain = convert_maibot_to_astrbot(segments)
             await event.send(message_chain)
             logger.info(f"[{instance_id}] ✅ 回复已发送")
+
+            # 保存对话历史到 AstrBot 会话系统
+            if self._conversation_manager:
+                from .history import save_maibot_history
+                await save_maibot_history(
+                    conv_manager=self._conversation_manager,
+                    event=event,
+                    unified_msg_origin=unified_msg_origin,
+                    reply_text=processed_plain_text,
+                    instance_id=instance_id,
+                )
 
         except Exception as e:
             logger.error(f"[{instance_id}] ❌ 处理子进程回复失败: {e}", exc_info=True)
@@ -757,6 +769,11 @@ class MaibotInstanceManager:
         """设置 AstrBot Context 引用"""
         self._astrbot_context = context
         logger.info("已设置 AstrBot Context 引用")
+
+    def set_conversation_manager(self, conversation_manager) -> None:
+        """设置会话管理器引用，用于保存 MaiBot 对话历史"""
+        self._conversation_manager = conversation_manager
+        logger.info("已设置会话管理器引用")
 
     async def restart_instance(self, instance_id: str) -> bool:
         """重启指定实例"""

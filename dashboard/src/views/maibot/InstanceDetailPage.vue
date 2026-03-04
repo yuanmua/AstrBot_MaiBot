@@ -75,8 +75,67 @@
                   <span class="font-weight-bold">{{ currentInstance.id }}</span>
                 </div>
                 <div class="d-flex justify-space-between py-1">
-                  <span>{{ tm("instanceDetail.port") }}:</span>
-                  <span>{{ currentInstance.port }}</span>
+                  <span>名称:</span>
+                  <span>{{ currentInstance.name }}</span>
+                </div>
+                <div class="d-flex justify-space-between py-1">
+                  <span>描述:</span>
+                  <span>{{ currentInstance.description || "-" }}</span>
+                </div>
+                <div class="d-flex justify-space-between py-1">
+                  <span>服务地址:</span>
+                  <span
+                    >{{ currentInstance.host }}:{{ currentInstance.port }}</span
+                  >
+                </div>
+                <div class="d-flex justify-space-between py-1">
+                  <span>WebUI 地址:</span>
+                  <span
+                    >{{ currentInstance.web_host }}:{{
+                      currentInstance.web_port
+                    }}</span
+                  >
+                </div>
+                <div class="d-flex justify-space-between py-1">
+                  <span>WebUI:</span>
+                  <v-chip
+                    size="x-small"
+                    :color="currentInstance.enable_webui ? 'success' : 'grey'"
+                  >
+                    {{ currentInstance.enable_webui ? "启用" : "禁用" }}
+                  </v-chip>
+                </div>
+                <div class="d-flex justify-space-between py-1">
+                  <span>Socket:</span>
+                  <v-chip
+                    size="x-small"
+                    :color="currentInstance.enable_socket ? 'success' : 'grey'"
+                  >
+                    {{ currentInstance.enable_socket ? "启用" : "禁用" }}
+                  </v-chip>
+                </div>
+                <div class="d-flex justify-space-between py-1">
+                  <span>日志级别:</span>
+                  <span>{{
+                    currentInstance.logging?.log_level || "INFO"
+                  }}</span>
+                </div>
+                <div class="d-flex justify-space-between py-1">
+                  <span>崩溃重启:</span>
+                  <v-chip
+                    size="x-small"
+                    :color="
+                      currentInstance.lifecycle?.restart_on_crash
+                        ? 'success'
+                        : 'grey'
+                    "
+                  >
+                    {{
+                      currentInstance.lifecycle?.restart_on_crash
+                        ? "启用"
+                        : "禁用"
+                    }}
+                  </v-chip>
                 </div>
                 <div class="d-flex justify-space-between py-1">
                   <span>{{ tm("instanceDetail.createdAt") }}:</span>
@@ -115,6 +174,21 @@
               >
                 {{ tm("instanceDetail.refresh") }}
               </v-btn>
+            </div>
+
+            <!-- 编辑实例配置按钮 -->
+            <v-btn
+              block
+              color="primary"
+              class="mt-4"
+              size="large"
+              prepend-icon="mdi-cog"
+              @click="openEditMetadataDialog"
+            >
+              编辑实例配置
+            </v-btn>
+            <div class="text-caption text-grey text-center mt-1">
+              修改网络、启动、知识库等配置
             </div>
           </v-card-text>
         </v-card>
@@ -354,6 +428,220 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- 编辑实例元数据对话框 -->
+    <v-dialog v-model="showEditMetadataDialog" max-width="600">
+      <v-card>
+        <v-card-title>编辑实例配置</v-card-title>
+        <v-card-text>
+          <v-form ref="metadataFormRef">
+            <v-row>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="metadataForm.name"
+                  label="实例名称"
+                  variant="outlined"
+                  density="compact"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="6">
+                <v-text-field
+                  v-model="metadataForm.description"
+                  label="描述"
+                  variant="outlined"
+                  density="compact"
+                ></v-text-field>
+              </v-col>
+            </v-row>
+
+            <v-divider class="my-2"></v-divider>
+            <div class="text-subtitle-2 mb-2">网络配置</div>
+
+            <v-row>
+              <v-col cols="6" sm="3">
+                <v-text-field
+                  v-model="metadataForm.host"
+                  label="服务 Host"
+                  variant="outlined"
+                  density="compact"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="6" sm="3">
+                <v-text-field
+                  v-model.number="metadataForm.port"
+                  label="服务端口"
+                  type="number"
+                  variant="outlined"
+                  density="compact"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="6" sm="3">
+                <v-text-field
+                  v-model="metadataForm.web_host"
+                  label="WebUI Host"
+                  variant="outlined"
+                  density="compact"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="6" sm="3">
+                <v-text-field
+                  v-model.number="metadataForm.web_port"
+                  label="WebUI 端口"
+                  type="number"
+                  variant="outlined"
+                  density="compact"
+                ></v-text-field>
+              </v-col>
+            </v-row>
+
+            <v-row>
+              <v-col cols="6">
+                <v-switch
+                  v-model="metadataForm.enable_webui"
+                  label="启用 WebUI"
+                  color="primary"
+                  density="compact"
+                  hide-details
+                ></v-switch>
+              </v-col>
+              <v-col cols="6">
+                <v-switch
+                  v-model="metadataForm.enable_socket"
+                  label="启用 Socket"
+                  color="primary"
+                  density="compact"
+                  hide-details
+                ></v-switch>
+              </v-col>
+            </v-row>
+
+            <v-divider class="my-2"></v-divider>
+            <div class="text-subtitle-2 mb-2">生命周期</div>
+
+            <v-row>
+              <v-col cols="12">
+                <v-switch
+                  v-model="metadataForm.lifecycle.restart_on_crash"
+                  label="崩溃后自动重启"
+                  color="primary"
+                  density="compact"
+                  hide-details
+                ></v-switch>
+              </v-col>
+              <v-col cols="6" sm="6">
+                <v-text-field
+                  v-model.number="metadataForm.lifecycle.max_restarts"
+                  label="最大重启次数"
+                  type="number"
+                  variant="outlined"
+                  density="compact"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="6" sm="6">
+                <v-text-field
+                  v-model.number="metadataForm.lifecycle.restart_delay"
+                  label="重启延迟 (毫秒)"
+                  type="number"
+                  variant="outlined"
+                  density="compact"
+                ></v-text-field>
+              </v-col>
+            </v-row>
+
+            <v-divider class="my-2"></v-divider>
+            <div class="text-subtitle-2 mb-2">日志配置</div>
+
+            <v-row>
+              <v-col cols="6">
+                <v-switch
+                  v-model="metadataForm.logging.enable_console"
+                  label="输出到控制台"
+                  color="primary"
+                  density="compact"
+                  hide-details
+                ></v-switch>
+              </v-col>
+              <v-col cols="6" sm="6">
+                <v-select
+                  v-model="metadataForm.logging.log_level"
+                  label="日志级别"
+                  :items="['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']"
+                  variant="outlined"
+                  density="compact"
+                ></v-select>
+              </v-col>
+            </v-row>
+
+            <v-divider class="my-2"></v-divider>
+            <div class="text-subtitle-2 mb-2">知识库配置</div>
+            <v-row>
+              <v-col cols="12">
+                <v-switch
+                  v-model="metadataForm.knowledge_base.enabled"
+                  label="启用知识库"
+                  color="primary"
+                  density="compact"
+                  hide-details
+                ></v-switch>
+              </v-col>
+              <v-col cols="12">
+                <v-text-field
+                  v-model="metadataForm.knowledge_base.path"
+                  label="知识库路径"
+                  variant="outlined"
+                  density="compact"
+                  :disabled="!metadataForm.knowledge_base.enabled"
+                  hint="知识库根目录路径"
+                  persistent-hint
+                ></v-text-field>
+              </v-col>
+              <v-col cols="6" sm="4">
+                <v-text-field
+                  v-model.number="metadataForm.knowledge_base.fusion_top_k"
+                  label="融合 Top K"
+                  type="number"
+                  variant="outlined"
+                  density="compact"
+                  :disabled="!metadataForm.knowledge_base.enabled"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="6" sm="4">
+                <v-text-field
+                  v-model.number="metadataForm.knowledge_base.return_top_k"
+                  label="返回 Top K"
+                  type="number"
+                  variant="outlined"
+                  density="compact"
+                  :disabled="!metadataForm.knowledge_base.enabled"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="4">
+                <v-text-field
+                  v-model="knowledgeBaseNamesInput"
+                  label="知识库名称 (逗号分隔)"
+                  variant="outlined"
+                  density="compact"
+                  :disabled="!metadataForm.knowledge_base.enabled"
+                  hint="多个知识库用逗号分隔"
+                  persistent-hint
+                ></v-text-field>
+              </v-col>
+            </v-row>
+          </v-form>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn @click="showEditMetadataDialog = false">取消</v-btn>
+          <v-btn
+            color="primary"
+            @click="saveMetadata"
+            :loading="savingMetadata"
+          >
+            保存
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -363,7 +651,11 @@ import { useRoute } from "vue-router";
 import { useToast } from "@/utils/toast";
 import { useModuleI18n } from "@/i18n/composables";
 import { useInstances } from "@/composables/useInstances";
-import { getInstanceConfig, saveInstanceConfig } from "@/utils/maibotApi";
+import {
+  getInstanceConfig,
+  saveInstanceConfig,
+  updateInstance,
+} from "@/utils/maibotApi";
 import {
   BotSection,
   PersonalitySection,
@@ -412,6 +704,47 @@ const rawConfig = ref("");
 // 对话框状态
 const showRestartDialog = ref(false);
 const showSaveSuccessDialog = ref(false);
+const showEditMetadataDialog = ref(false);
+const savingMetadata = ref(false);
+
+// 元数据表单
+const metadataForm = ref({
+  name: "",
+  description: "",
+  host: "127.0.0.1",
+  port: 8000,
+  web_host: "127.0.0.1",
+  web_port: 8001,
+  enable_webui: false,
+  enable_socket: false,
+  lifecycle: {
+    restart_on_crash: true,
+    max_restarts: 3,
+    restart_delay: 5000,
+  },
+  logging: {
+    enable_console: true,
+    log_level: "INFO",
+  },
+  knowledge_base: {
+    enabled: false,
+    path: "",
+    kb_names: [] as string[],
+    fusion_top_k: 5,
+    return_top_k: 20,
+  },
+});
+
+// 知识库名称输入（逗号分隔的字符串）
+const knowledgeBaseNamesInput = computed({
+  get: () => metadataForm.value.knowledge_base.kb_names.join(", "),
+  set: (value: string) => {
+    metadataForm.value.knowledge_base.kb_names = value
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+  },
+});
 
 // 当前实例
 const currentInstance = computed(() => {
@@ -822,6 +1155,60 @@ const handleStop = async () => {
 const handleRefresh = async () => {
   await refreshInstances();
   await loadConfig();
+};
+
+// 打开编辑元数据对话框
+const openEditMetadataDialog = () => {
+  if (!currentInstance.value) return;
+
+  // 填充表单数据
+  metadataForm.value = {
+    name: currentInstance.value.name || "",
+    description: currentInstance.value.description || "",
+    host: currentInstance.value.host || "127.0.0.1",
+    port: currentInstance.value.port || 8000,
+    web_host: currentInstance.value.web_host || "127.0.0.1",
+    web_port: currentInstance.value.web_port || 8001,
+    enable_webui: currentInstance.value.enable_webui || false,
+    enable_socket: currentInstance.value.enable_socket || false,
+    lifecycle: {
+      restart_on_crash:
+        currentInstance.value.lifecycle?.restart_on_crash ?? true,
+      max_restarts: currentInstance.value.lifecycle?.max_restarts ?? 3,
+      restart_delay: currentInstance.value.lifecycle?.restart_delay ?? 5000,
+    },
+    logging: {
+      enable_console: currentInstance.value.logging?.enable_console ?? true,
+      log_level: currentInstance.value.logging?.log_level || "INFO",
+    },
+    knowledge_base: {
+      enabled: currentInstance.value.knowledge_base?.enabled ?? false,
+      path: currentInstance.value.knowledge_base?.path || "",
+      kb_names: currentInstance.value.knowledge_base?.kb_names || [],
+      fusion_top_k: currentInstance.value.knowledge_base?.fusion_top_k ?? 5,
+      return_top_k: currentInstance.value.knowledge_base?.return_top_k ?? 20,
+    },
+  };
+
+  showEditMetadataDialog.value = true;
+};
+
+// 保存元数据
+const saveMetadata = async () => {
+  savingMetadata.value = true;
+
+  try {
+    await updateInstance(instanceId, metadataForm.value);
+    success("实例配置已更新", { type: "success" });
+    showEditMetadataDialog.value = false;
+    await handleRefresh();
+  } catch (err: any) {
+    const errorMsg =
+      err.response?.data?.message || err.message || "更新配置失败";
+    showError(errorMsg, { type: "error" });
+  } finally {
+    savingMetadata.value = false;
+  }
 };
 
 // 状态工具函数

@@ -290,8 +290,9 @@ class InstanceLogManager:
 
         # 添加 MaiBot 日志处理器（用于发送到主进程）
         if self.enable_console:
-            # 设置为 DEBUG，确保能接收所有级别日志
-            self._maibot_handler.setLevel(logging.DEBUG)
+            # 根据配置的 log_level 过滤控制台输出
+            console_level = getattr(logging, self.log_level.upper(), logging.INFO)
+            self._maibot_handler.setLevel(console_level)
             # 设置纯文本格式化器（不包含 ANSI 颜色代码）
             console_formatter = structlog.stdlib.ProcessorFormatter(
                 processor=structlog.dev.ConsoleRenderer(colors=False),

@@ -35,11 +35,6 @@ class ProcessStage(Stage):
         event: AstrMessageEvent,
     ) -> None | AsyncGenerator[None, None]:
         """处理事件"""
-        # 优先检查是否需要由 MaiBot 处理
-        maibot_processed = await self.maibot_sub_stage.process(event)
-        if maibot_processed:
-            # MaiBot 已经处理并停止了事件，直接返回
-            return
 
         activated_handlers: list[StarHandlerMetadata] = event.get_extra(
             "activated_handlers",
@@ -59,6 +54,12 @@ class ProcessStage(Stage):
                         yield
                 else:
                     yield
+
+        # 优先检查是否需要由 MaiBot 处理
+        maibot_processed = await self.maibot_sub_stage.process(event)
+        if maibot_processed:
+            # MaiBot 已经处理并停止了事件，直接返回
+            return
 
         # 调用 LLM 相关请求
         if not self.ctx.astrbot_config["provider_settings"].get("enable", True):

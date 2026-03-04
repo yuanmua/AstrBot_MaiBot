@@ -376,6 +376,9 @@ class AstrBotCoreLifecycle:
             # 设置 AstrBot Context 引用（用于知识库 IPC 检索）
             self.maibot_manager.set_astrbot_context(self.star_context)
 
+            # 设置会话管理器引用（用于保存 MaiBot 对话历史）
+            self.maibot_manager.set_conversation_manager(self.star_context.conversation_manager)
+
             # 按启动顺序自动启动所有实例
             await self._auto_start_maibot_instances()
         except Exception as e:

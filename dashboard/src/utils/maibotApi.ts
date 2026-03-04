@@ -28,7 +28,8 @@ apiClient.interceptors.request.use((config) => {
 
 // 响应数据接口
 export interface ApiResponse<T = any> {
-  success: string;
+  success?: string;
+  status?: string;
   message?: string;
   data?: T;
   error?: string;
@@ -48,9 +49,29 @@ export interface InstanceInfo {
     | "error"
     | "restarting";
   is_default: boolean;
+  host: string;
   port: number;
+  web_host: string;
+  web_port: number;
   enable_webui: boolean;
   enable_socket: boolean;
+  lifecycle?: {
+    start_order?: number;
+    restart_on_crash?: boolean;
+    max_restarts?: number;
+    restart_delay?: number;
+  };
+  logging?: {
+    enable_console?: boolean;
+    log_level?: string;
+  };
+  knowledge_base?: {
+    enabled?: boolean;
+    path?: string;
+    kb_names?: string[];
+    fusion_top_k?: number;
+    return_top_k?: number;
+  };
   created_at: string;
   updated_at: string;
   started_at?: string;
@@ -83,9 +104,15 @@ export async function getInstances(): Promise<InstanceInfo[]> {
         description: inst.description,
         status: inst.status,
         is_default: inst.is_default,
+        host: inst.host,
         port: inst.port,
+        web_host: inst.web_host,
+        web_port: inst.web_port,
         enable_webui: inst.enable_webui,
         enable_socket: inst.enable_socket,
+        lifecycle: inst.lifecycle,
+        logging: inst.logging,
+        knowledge_base: inst.knowledge_base,
         created_at: inst.created_at,
         updated_at: inst.updated_at,
         started_at: inst.started_at,
@@ -118,9 +145,15 @@ export async function getRunningInstances(): Promise<InstanceInfo[]> {
         description: inst.description,
         status: inst.status,
         is_default: inst.is_default,
+        host: inst.host,
         port: inst.port,
+        web_host: inst.web_host,
+        web_port: inst.web_port,
         enable_webui: inst.enable_webui,
         enable_socket: inst.enable_socket,
+        lifecycle: inst.lifecycle,
+        logging: inst.logging,
+        knowledge_base: inst.knowledge_base,
         created_at: inst.created_at,
         updated_at: inst.updated_at,
         started_at: inst.started_at,
@@ -184,21 +217,48 @@ export async function createInstance(data: {
 }
 
 /**
- * 更新实例配置
+ * 更新实例元数据配置（instances_meta.json 中的字段）
+ * 会同步更新 TOML 文件中的相关配置
  */
 export async function updateInstance(
   instanceId: string,
-  data: Partial<InstanceInfo>,
+  data: {
+    name?: string;
+    description?: string;
+    lifecycle?: {
+      restart_on_crash?: boolean;
+      max_restarts?: number;
+      restart_delay?: number;
+    };
+    host?: string;
+    port?: number;
+    web_host?: string;
+    web_port?: number;
+    enable_webui?: boolean;
+    enable_socket?: boolean;
+    logging?: {
+      enable_console?: boolean;
+      log_level?: string;
+    };
+    knowledge_base?: {
+      enabled?: boolean;
+      path?: string;
+      kb_names?: string[];
+      fusion_top_k?: number;
+      return_top_k?: number;
+    };
+  },
 ): Promise<InstanceInfo> {
   try {
     const response = await apiClient.put<ApiResponse<InstanceInfo>>(
       `/instances/${instanceId}`,
       data,
     );
-    if (response.data.success && response.data.data) {
+    // 支持 success 和 status 两种响应格式
+    if ((response.data.success || response.data.status === "ok") && response.data.data) {
       return response.data.data;
     }
-    throw new Error(response.data.error || "更新实例失败");
+    throw new Error(response.data.error || response.data.message || "更新实例失败");
   } catch (error) {
     console.error(`更新实例 ${instanceId} 失败:`, error);
     throw error;
