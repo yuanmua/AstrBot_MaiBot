@@ -373,7 +373,7 @@ class MaibotInstanceManager:
             logger.info(f"子进程已启动，PID: {instance.process.pid}")
 
             # 5. 等待子进程初始化并接收初始状态
-            init_timeout = 30
+            init_timeout = 300
             start_time = time.time()
 
             while time.time() - start_time < init_timeout:
