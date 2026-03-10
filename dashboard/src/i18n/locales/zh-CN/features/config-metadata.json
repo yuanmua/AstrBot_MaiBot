@@ -634,6 +634,39 @@
         "enable": {
           "description": "启用麦麦处理",
           "hint": "开启后，该机器人的所有消息都将由麦麦处理，不再使用 AstrBot 的插件和 LLM 流水线。"
+        },
+        "maibot_instance_id": {
+          "description": "选择麦麦实例",
+          "hint": "选择处理该机器人消息的麦麦实例。留空则使用默认实例。"
+        }
+      }
+    }
+  },
+  "openclaw_group": {
+    "name": "OpenClaw 配置",
+    "openclaw": {
+      "description": "OpenClaw 处理",
+      "hint": "启用后，消息将由 OpenClaw（小虾虾）处理并返回。OpenClaw 是一个个人 AI 助手，支持多种消息渠道。",
+      "openclaw_processing": {
+        "enable": {
+          "description": "启用 OpenClaw 处理",
+          "hint": "开启后，该机器人的所有消息都将由 OpenClaw 处理，不再使用 AstrBot 的插件和 LLM 流水线。"
+        },
+        "gateway_url": {
+          "description": "OpenClaw 网关地址",
+          "hint": "OpenClaw 网关的 WebSocket 或 HTTP 地址。例如: ws://localhost:18789 或 http://localhost:18789"
+        },
+        "token": {
+          "description": "认证 Token",
+          "hint": "OpenClaw 网关的认证 Token。"
+        },
+        "timeout": {
+          "description": "响应超时时间",
+          "hint": "等待 OpenClaw 响应的超时时间，单位为秒。"
+        },
+        "connection_type": {
+          "description": "连接方式",
+          "hint": "连接到 OpenClaw 网关的方式。"
         }
       }
     }

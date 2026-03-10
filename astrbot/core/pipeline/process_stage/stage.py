@@ -9,6 +9,7 @@ from ..stage import Stage, register_stage
 from .method.agent_request import AgentRequestSubStage
 from .method.star_request import StarRequestSubStage
 from .method.maibot_process import MaiBotProcessSubStage
+from .method.openclaw_process import OpenClawProcessSubStage
 
 
 @register_stage
@@ -30,11 +31,20 @@ class ProcessStage(Stage):
         self.maibot_sub_stage = MaiBotProcessSubStage()
         await self.maibot_sub_stage.initialize(ctx)
 
+        # initialize openclaw process sub stage
+        self.openclaw_sub_stage = OpenClawProcessSubStage()
+        await self.openclaw_sub_stage.initialize(ctx)
+
     async def process(
         self,
         event: AstrMessageEvent,
     ) -> None | AsyncGenerator[None, None]:
         """处理事件"""
+        # 检查是否需要由 OpenClaw 处理
+        openclaw_processed = await self.openclaw_sub_stage.process(event)
+        if openclaw_processed:
+            # OpenClaw 已经处理并停止了事件，直接返回
+            return
 
         activated_handlers: list[StarHandlerMetadata] = event.get_extra(
             "activated_handlers",
@@ -60,6 +70,7 @@ class ProcessStage(Stage):
         if maibot_processed:
             # MaiBot 已经处理并停止了事件，直接返回
             return
+
 
         # 调用 LLM 相关请求
         if not self.ctx.astrbot_config["provider_settings"].get("enable", True):

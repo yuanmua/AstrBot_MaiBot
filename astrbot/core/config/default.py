@@ -222,6 +222,13 @@ DEFAULT_CONFIG = {
         "enable": False,  # 是否启用麦麦处理
         "maibot_instance_id": "",  # 麦麦实例 ID（留空则使用默认实例）
     },
+    "openclaw_processing": {
+        "enable": False,  # 是否启用 OpenClaw 处理
+        "gateway_url": "ws://localhost:18789",  # OpenClaw 网关地址
+        "token": "",  # OpenClaw 认证 Token
+        "timeout": 30,  # 响应超时时间（秒）
+        "connection_type": "websocket",  # 连接方式: websocket / http
+    },
 }
 
 
@@ -3316,6 +3323,44 @@ CONFIG_METADATA_3 = {
                         "type": "string",
                         "hint": "选择处理该机器人消息的麦麦实例。留空则使用默认实例。",
                         "_special": "maibot_instance_selector",
+                    },
+                },
+            },
+        },
+    },
+    "openclaw_group": {
+        "name": "OpenClaw 配置",
+        "metadata": {
+            "openclaw": {
+                "description": "OpenClaw (小龙虾) 处理",
+                "hint": "启用后，消息将由 OpenClaw 处理并返回。OpenClaw 是一个个人 AI 助手，支持多种消息渠道。",
+                "type": "object",
+                "items": {
+                    "openclaw_processing.enable": {
+                        "description": "启用 OpenClaw 处理",
+                        "type": "bool",
+                        "hint": "开启后，该机器人的所有消息都将由 OpenClaw 处理，不再使用 AstrBot 的插件和 LLM 流水线。",
+                    },
+                    "openclaw_processing.gateway_url": {
+                        "description": "OpenClaw 网关地址",
+                        "type": "string",
+                        "hint": "OpenClaw 网关的 WebSocket 或 HTTP 地址。例如: ws://localhost:18789 或 http://localhost:18789",
+                    },
+                    "openclaw_processing.token": {
+                        "description": "认证 Token",
+                        "type": "string",
+                        "hint": "OpenClaw 网关的认证 Token。",
+                    },
+                    "openclaw_processing.timeout": {
+                        "description": "响应超时时间",
+                        "type": "number",
+                        "hint": "等待 OpenClaw 响应的超时时间，单位为秒。",
+                    },
+                    "openclaw_processing.connection_type": {
+                        "description": "连接方式",
+                        "type": "string",
+                        "hint": "连接到 OpenClaw 网关的方式。",
+                        "options": ["websocket", "http"],
                     },
                 },
             },
