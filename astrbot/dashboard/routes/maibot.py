@@ -68,6 +68,16 @@ class MaiBotManagerRoute(Route):
                 ("PUT", self.save_routing_rules),
                 ("DELETE", self.clear_routing_rules),
             ],
+            # ============ 模型配置管理 ============
+            "/maibot/model_config": [
+                ("GET", self.get_model_config),
+                ("PUT", self.save_model_config),
+            ],
+            # ============ WebUI 配置管理 ============
+            "/maibot/webui_config": [
+                ("GET", self.get_webui_config),
+                ("PUT", self.save_webui_config),
+            ],
         }
         self.register_routes()
 
@@ -931,3 +941,124 @@ class MaiBotManagerRoute(Route):
         """获取 MaiBot 适配器"""
         from astrbot.core.maibot.maibot_adapter import get_astrbot_adapter
         return get_astrbot_adapter()
+
+    # ============ 模型配置管理 ============
+
+    def _get_model_config_path(self) -> str:
+        """获取模型配置文件路径"""
+        data_dir = get_astrbot_data_path()
+        return os.path.join(data_dir, "maibot", "config", "model_config.toml")
+
+    async def get_model_config(self):
+        """获取模型配置文件内容"""
+        try:
+            config_path = self._get_model_config_path()
+
+            if not os.path.exists(config_path):
+                # 文件不存在，返回空配置
+                return Response().ok({
+                    "config": {},
+                    "exists": False,
+                }).__dict__
+
+            # 读取 TOML 文件
+            with open(config_path, "r", encoding="utf-8") as f:
+                config_data = tomlkit.load(f)
+
+            return Response().ok({
+                "config": config_data,
+                "exists": True,
+            }).__dict__
+        except Exception as e:
+            logger.error(f"获取模型配置失败: {e}", exc_info=True)
+            return Response().error(f"获取模型配置失败: {e}").__dict__, 500
+
+    async def save_model_config(self):
+        """保存模型配置文件"""
+        try:
+            config_path = self._get_model_config_path()
+
+            data = await request.get_json()
+            raw_content = data.get("raw_content")
+
+            if raw_content is not None:
+                # 验证 TOML 格式
+                try:
+                    tomlkit.loads(raw_content)
+                except Exception as e:
+                    return Response().error(f"TOML 格式错误: {e}").__dict__, 400
+
+                # 确保目录存在
+                os.makedirs(os.path.dirname(config_path), exist_ok=True)
+
+                # 保存内容
+                with open(config_path, "w", encoding="utf-8") as f:
+                    f.write(raw_content)
+            else:
+                return Response().error("请求数据中缺少 raw_content 字段").__dict__, 400
+
+            logger.info("模型配置已保存")
+            return Response().ok({
+                "message": "模型配置已保存",
+            }).__dict__
+        except Exception as e:
+            logger.error(f"保存模型配置失败: {e}", exc_info=True)
+            return Response().error(f"保存模型配置失败: {e}").__dict__, 500
+
+    # ============ WebUI 配置管理 ============
+
+    def _get_webui_config_path(self) -> str:
+        """获取 WebUI 配置文件路径"""
+        data_dir = get_astrbot_data_path()
+        return os.path.join(data_dir, "maibot", "webui.json")
+
+    async def get_webui_config(self):
+        """获取 WebUI 配置文件内容"""
+        try:
+            config_path = self._get_webui_config_path()
+
+            if not os.path.exists(config_path):
+                return Response().ok({
+                    "config": {},
+                    "exists": False,
+                }).__dict__
+
+            # 读取 JSON 文件
+            import json
+            with open(config_path, "r", encoding="utf-8") as f:
+                config_data = json.load(f)
+
+            return Response().ok({
+                "config": config_data,
+                "exists": True,
+            }).__dict__
+        except Exception as e:
+            logger.error(f"获取 WebUI 配置失败: {e}", exc_info=True)
+            return Response().error(f"获取 WebUI 配置失败: {e}").__dict__, 500
+
+    async def save_webui_config(self):
+        """保存 WebUI 配置文件"""
+        try:
+            config_path = self._get_webui_config_path()
+
+            data = await request.get_json()
+            config_data = data.get("config")
+
+            if config_data is None:
+                return Response().error("请求数据中缺少 config 字段").__dict__, 400
+
+            # 确保目录存在
+            os.makedirs(os.path.dirname(config_path), exist_ok=True)
+
+            # 保存内容
+            import json
+            with open(config_path, "w", encoding="utf-8") as f:
+                json.dump(config_data, f, indent=4, ensure_ascii=False)
+
+            logger.info("WebUI 配置已保存")
+            return Response().ok({
+                "message": "WebUI 配置已保存",
+            }).__dict__
+        except Exception as e:
+            logger.error(f"保存 WebUI 配置失败: {e}", exc_info=True)
+            return Response().error(f"保存 WebUI 配置失败: {e}").__dict__, 500

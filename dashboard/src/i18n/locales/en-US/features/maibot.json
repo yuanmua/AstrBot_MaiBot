@@ -203,6 +203,12 @@
       "enable_relationship": "Enable Relationship System",
       "error_rate": "Char Replace Rate",
       "max_length": "Max Length"
+    },
+    "model": {
+      "title": "Model Configuration",
+      "api_providers": "API Providers",
+      "models": "Models",
+      "model_task_config": "Task Model Configuration"
     }
   },
   "logPanel": {

@@ -203,6 +203,12 @@
       "enable_relationship": "启用关系系统",
       "error_rate": "单字替换概率",
       "max_length": "最大长度"
+    },
+    "model": {
+      "title": "模型配置",
+      "api_providers": "API 服务商",
+      "models": "模型列表",
+      "model_task_config": "任务模型配置"
     }
   },
   "logPanel": {

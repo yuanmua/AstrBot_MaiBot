@@ -120,6 +120,25 @@
                     currentInstance.logging?.log_level || "INFO"
                   }}</span>
                 </div>
+                <div v-if="webuiConfig.access_token" class="d-flex justify-space-between py-1 align-center">
+                  <span>Access Token:</span>
+                  <div class="d-flex align-center">
+                    <v-tooltip location="top">
+                      <template #activator="{ props }">
+                        <span v-bind="props" class="font-weight-bold text-truncate mr-1" style="max-width: 100px; display: inline-block;">
+                          {{ webuiConfig.access_token.substring(0, 8) }}...
+                        </span>
+                      </template>
+                      <span>{{ webuiConfig.access_token }}</span>
+                    </v-tooltip>
+                    <v-btn
+                      icon="mdi-content-copy"
+                      size="x-small"
+                      variant="text"
+                      @click="copyAccessToken"
+                    ></v-btn>
+                  </div>
+                </div>
                 <div class="d-flex justify-space-between py-1">
                   <span>崩溃重启:</span>
                   <v-chip
@@ -262,6 +281,10 @@
               <v-icon start size="small">mdi-web</v-icon>
               {{ tm("configSections.webui.title") }}
             </v-tab>
+            <v-tab value="model">
+              <v-icon start size="small">mdi-brain</v-icon>
+              {{ tm("configSections.model.title") }}
+            </v-tab>
             <v-tab value="other">
               <v-icon start size="small">mdi-tune</v-icon>
               {{ tm("configSections.other.title") }}
@@ -332,6 +355,10 @@
               :config="config.webui"
               @update:config="updateSection('webui', $event)"
             />
+          </v-window-item>
+
+          <v-window-item value="model">
+            <ModelSection ref="modelSectionRef" />
           </v-window-item>
 
           <v-window-item v-if="config.message_receive" value="other">
@@ -674,6 +701,7 @@ import {
   getInstanceConfig,
   saveInstanceConfig,
   updateInstance,
+  getWebuiConfig,
 } from "@/utils/maibotApi";
 import {
   BotSection,
@@ -686,6 +714,7 @@ import {
   DebugSection,
   WebUISection,
   OtherSection,
+  ModelSection,
 } from "./config-sections";
 
 const { tm } = useModuleI18n("features/maibot");
@@ -719,6 +748,12 @@ const originalConfig = ref<Record<string, any>>({});
 // 追踪每个 section 的原始值，用于计算差异
 const originalSectionConfigs = ref<Record<string, any>>({});
 const rawConfig = ref("");
+
+// WebUI 配置数据
+const webuiConfig = ref<Record<string, any>>({});
+
+// 模型配置 section 引用
+const modelSectionRef = ref<InstanceType<typeof ModelSection> | null>(null);
 
 // 对话框状态
 const showRestartDialog = ref(false);
@@ -1051,12 +1086,23 @@ const loadConfig = async () => {
   error.value = null;
 
   try {
+    // 加载实例配置
     const data = await getInstanceConfig(instanceId);
     if (data) {
       const parsed = parseConfigToSections(data);
       config.value = parsed;
       originalConfig.value = JSON.parse(JSON.stringify(parsed));
       rawConfig.value = objectToToml(mergeConfigToToml(parsed));
+    }
+
+    // 加载 WebUI 配置
+    try {
+      const webuiData = await getWebuiConfig();
+      if (webuiData.config) {
+        webuiConfig.value = webuiData.config;
+      }
+    } catch (e) {
+      console.warn("加载 WebUI 配置失败:", e);
     }
   } catch (err: any) {
     error.value = err.message || "加载配置失败";
@@ -1078,6 +1124,18 @@ const copyConfig = async () => {
     const tomlContent = objectToToml(mergeConfigToToml(config.value));
     await navigator.clipboard.writeText(tomlContent);
     success("配置已复制到剪贴板", { type: "success" });
+  } catch {
+    showError("复制失败", { type: "error" });
+  }
+};
+
+// 复制 Access Token
+const copyAccessToken = async () => {
+  try {
+    if (webuiConfig.value.access_token) {
+      await navigator.clipboard.writeText(webuiConfig.value.access_token);
+      success("Access Token 已复制到剪贴板", { type: "success" });
+    }
   } catch {
     showError("复制失败", { type: "error" });
   }

@@ -183,7 +183,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import type { InstanceInfo } from "@/utils/features.maibotApi";
+import type { InstanceInfo } from "@/utils/maibotApi";
 import { useInstances } from "@/composables/useInstances";
 import { useModuleI18n } from "@/i18n/composables";
 const { tm } = useModuleI18n("features/maibot");

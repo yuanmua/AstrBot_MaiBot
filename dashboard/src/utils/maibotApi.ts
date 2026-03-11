@@ -562,6 +562,84 @@ export async function getDefaultTemplateConfig(): Promise<any> {
   }
 }
 
+/**
+ * 获取模型配置
+ */
+export async function getModelConfig(): Promise<{
+  config: any;
+  exists: boolean;
+}> {
+  try {
+    const response = await apiClient.get<ApiResponse>("/model_config");
+    if (response.data.status === "ok" && response.data.data) {
+      return {
+        config: response.data.data.config || {},
+        exists: response.data.data.exists || false,
+      };
+    }
+    throw new Error(response.data.message || "获取模型配置失败");
+  } catch (error) {
+    console.error("获取模型配置失败:", error);
+    throw error;
+  }
+}
+
+/**
+ * 保存模型配置
+ */
+export async function saveModelConfig(rawContent: string): Promise<void> {
+  try {
+    const response = await apiClient.put<ApiResponse>("/model_config", {
+      raw_content: rawContent,
+    });
+    if (response.data.status !== "ok") {
+      throw new Error(response.data.message || "保存模型配置失败");
+    }
+  } catch (error) {
+    console.error("保存模型配置失败:", error);
+    throw error;
+  }
+}
+
+/**
+ * 获取 WebUI 配置
+ */
+export async function getWebuiConfig(): Promise<{
+  config: any;
+  exists: boolean;
+}> {
+  try {
+    const response = await apiClient.get<ApiResponse>("/webui_config");
+    if (response.data.status === "ok" && response.data.data) {
+      return {
+        config: response.data.data.config || {},
+        exists: response.data.data.exists || false,
+      };
+    }
+    throw new Error(response.data.message || "获取 WebUI 配置失败");
+  } catch (error) {
+    console.error("获取 WebUI 配置失败:", error);
+    throw error;
+  }
+}
+
+/**
+ * 保存 WebUI 配置
+ */
+export async function saveWebuiConfig(config: any): Promise<void> {
+  try {
+    const response = await apiClient.put<ApiResponse>("/webui_config", {
+      config,
+    });
+    if (response.data.status !== "ok") {
+      throw new Error(response.data.message || "保存 WebUI 配置失败");
+    }
+  } catch (error) {
+    console.error("保存 WebUI 配置失败:", error);
+    throw error;
+  }
+}
+
 export default {
   getInstances,
   getRunningInstances,
@@ -582,4 +660,8 @@ export default {
   downloadInstanceLogs,
   getDataTxt,
   saveDataTxt,
+  getModelConfig,
+  saveModelConfig,
+  getWebuiConfig,
+  saveWebuiConfig,
 };

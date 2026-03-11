@@ -134,7 +134,7 @@ const {
   downloadInstanceLogsAsync,
 } = useInstances();
 
-const { toastSuccess: toastSuccess } = useToast();
+const toastSuccess = useToast();
 
 // 状态
 const loading = ref(false);
@@ -207,7 +207,7 @@ const refreshLogs = async () => {
   try {
     await fetchInstanceLogs(props.instanceId, 200);
   } catch (err) {
-    toastSuccess(instanceErrors[props.instanceId] || "加载日志失败", {
+    toastSuccess.success(instanceErrors[props.instanceId] || "加载日志失败", {
       type: "error",
     });
   } finally {
@@ -222,9 +222,9 @@ const handleClearLogs = async () => {
 
   try {
     await clearInstanceLogsAsync(props.instanceId);
-    toastSuccess("日志已清空", { type: "toastSuccess" });
+    toastSuccess.success("日志已清空", { type: "toastSuccess" });
   } catch (err) {
-    toastSuccess(instanceErrors[props.instanceId] || "清空日志失败", {
+    toastSuccess.success(instanceErrors[props.instanceId] || "清空日志失败", {
       type: "error",
     });
   } finally {
@@ -238,9 +238,9 @@ const downloadLogs = async () => {
 
   try {
     await downloadInstanceLogsAsync(props.instanceId);
-    toastSuccess("日志已下载", { type: "toastSuccess" });
+    toastSuccess.success("日志已下载", { type: "toastSuccess" });
   } catch (err) {
-    toastSuccess(instanceErrors[props.instanceId] || "下载日志失败", {
+    toastSuccess.success(instanceErrors[props.instanceId] || "下载日志失败", {
       type: "error",
     });
   } finally {
@@ -254,7 +254,7 @@ const toggleRealtime = () => {
 };
 
 // 自动刷新日志
-let refreshInterval: NodeJS.Timeout | null = null;
+let refreshInterval: number | null = null;
 
 const startAutoRefresh = () => {
   if (refreshInterval) clearInterval(refreshInterval);

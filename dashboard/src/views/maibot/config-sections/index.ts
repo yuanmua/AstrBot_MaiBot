@@ -9,3 +9,4 @@ export { default as LogSection } from "./LogSection.vue";
 export { default as DebugSection } from "./DebugSection.vue";
 export { default as WebUISection } from "./WebUISection.vue";
 export { default as OtherSection } from "./OtherSection.vue";
+export { default as ModelSection } from "./ModelSection.vue";

@@ -62,7 +62,7 @@ class InstanceContext:
     """是否启用 Socket 服务"""
 
     # WebUI 静态文件目录
-    webui_dist_path: str = "D:\work\Bot\参考\MaiBot\webui\dist"
+    webui_dist_path: str = ""
     """WebUI 静态文件目录路径，为空时自动计算"""
 
     # 缓存路径
