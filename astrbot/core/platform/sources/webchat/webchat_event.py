@@ -27,6 +27,8 @@ class WebChatMessageEvent(AstrMessageEvent):
     def __init__(self, message_str, message_obj, platform_meta, session_id) -> None:
         super().__init__(message_str, message_obj, platform_meta, session_id)
         os.makedirs(attachments_dir, exist_ok=True)
+        # 当设为 True 时，send(None) 不发送 end 信号（由 MaiBot 异步回复后手动发送）
+        self._suppress_end_signal = False
 
     @staticmethod
     async def _send(
@@ -131,6 +133,9 @@ class WebChatMessageEvent(AstrMessageEvent):
 
     async def send(self, message: MessageChain | None) -> None:
         message_id = self.message_obj.message_id
+        # 如果 MaiBot 正在异步处理，跳过 end 信号，避免提前关闭 SSE 连接
+        if message is None and self._suppress_end_signal:
+            return
         await WebChatMessageEvent._send(message_id, message, session_id=self.session_id)
         await super().send(MessageChain([]))
 
