@@ -1,6 +1,6 @@
 [project]
 name = "AstrBot"
-version = "4.19.4"
+version = "4.19.5"
 description = "Easy-to-use multi-platform LLM chatbot and development framework"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -64,7 +64,7 @@ dependencies = [
   "sqlalchemy[asyncio]>=2.0.41",
   "sqlmodel>=0.0.24",
   "structlog>=25.4.0",
-  "telegramify-markdown>=0.5.1",
+  "telegramify-markdown>=1.0.0",
   "toml>=0.10.2",
   "tomlkit>=0.13.3",
   "urllib3>=2.5.0",
