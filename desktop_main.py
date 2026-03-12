@@ -568,7 +568,6 @@ def run_cli_mode(port: int = 6185):
 
 def main():
     # 设置打包版本环境变量
-    os.environ["ASTRBOT_DESKTOP_CLIENT"] = "1"
 
     parser = argparse.ArgumentParser(description="AstrBot 桌面版")
     parser.add_argument("--cli", action="store_true", help="强制命令行模式")
@@ -599,7 +598,7 @@ def main():
         logger.info("启动桌面应用...")
 
         # 直接在当前进程启动 astrbot
-        runner = astrbotrunner(port=args.port)
+        runner = AstrBotRunner(port=args.port)
         logger.info("直接在当前进程启动...")
 
         # 在后台线程启动 astrbot（因为桌面应用需要主线程）
@@ -610,18 +609,18 @@ def main():
                     runner.start(dashboard)
                 else:
                     runner.start()
-            except exception as e:
+            except Exception as e:
                 logger.error(f"astrbot 启动失败: {e}")
 
-        astrbot_thread = threading.thread(target=run_astrbot, daemon=true)
+        astrbot_thread = threading.Thread(target=run_astrbot, daemon=True)
         astrbot_thread.start()
 
         time.sleep(2)  # 等待 astrbot 启动
 
         # napcatqq 服务（仅当嵌入时）
-        napcat = none
+        napcat = None
         if napcat_embedded:
-            napcat = napcatservice(port=args.napcat_port, dev_mode=args.dev)
+            napcat = NapCatService(port=args.napcat_port, dev_mode=args.dev)
             napcat.start()
             time.sleep(3)
 
@@ -631,7 +630,7 @@ def main():
                 napcat_service=napcat,
                 napcat_embedded=napcat_embedded,
             )
-        except exception as e:
+        except Exception as e:
             logger.error(f"桌面应用错误: {e}")
             exit_code = 1
 

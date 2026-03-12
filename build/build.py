@@ -61,7 +61,7 @@ def build_astrbot_frontend() -> bool:
 
     print("\n[1/2] 安装依赖...")
     try:
-        run_command([pnpm_cmd, "install", "-y"], cwd=dashboard_dir)
+        run_command([pnpm_cmd, "install"], cwd=dashboard_dir)
     except subprocess.CalledProcessError as e:
         print(f"[错误] 安装依赖失败: {e}")
         return False
