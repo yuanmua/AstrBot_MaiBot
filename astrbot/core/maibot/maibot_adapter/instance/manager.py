@@ -745,6 +745,13 @@ class MaibotInstanceManager:
             await event.send(message_chain)
             logger.info(f"[{instance_id}] ✅ 回复已发送")
 
+            # 如果是 WebChat 事件，手动发送 end 信号关闭 SSE 连接
+            from astrbot.core.platform.sources.webchat.webchat_event import WebChatMessageEvent
+            if isinstance(event, WebChatMessageEvent) and event._suppress_end_signal:
+                event._suppress_end_signal = False
+                await event.send(None)
+                logger.info(f"[{instance_id}] ✅ WebChat end 信号已发送")
+
             # 保存对话历史到 AstrBot 会话系统
             if self._conversation_manager:
                 from .history import save_maibot_history

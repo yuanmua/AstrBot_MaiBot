@@ -103,6 +103,12 @@ class MaiBotProcessSubStage(Stage):
                 # 回复会通过 output_queue -> _handle_instance_reply() 异步发送
                 logger.debug(f"[MaiBot][IPC] 消息已提交处理")
 
+                # 如果是 WebChat 事件，阻止 scheduler 提前发送 end 信号关闭 SSE 连接
+                # MaiBot 异步回复后，_handle_instance_reply() 会手动发送 end 信号
+                from astrbot.core.platform.sources.webchat.webchat_event import WebChatMessageEvent
+                if isinstance(event, WebChatMessageEvent):
+                    event._suppress_end_signal = True
+
                 # 停止事件传播（MaiBot 已经处理）
                 event.stop_event()
                 return True
