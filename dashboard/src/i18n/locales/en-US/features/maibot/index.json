@@ -3,6 +3,7 @@
   "subtitle": "Manage multiple independent MaiBot bot instances",
   "instances": "Instance List",
   "addInstance": "Create Instance",
+  "editModel": "Edit Model",
   "emptyText": "No instances yet, click Create Instance to add one",
   "instance": "Instance",
   "routing": "Routing Rules",

@@ -17,6 +17,8 @@ class MessageType:
     PING = "ping"                          # 心跳检测
     STOP = "stop"                          # 停止命令
     KB_RESULT = "kb_retrieve_result"       # 知识库检索结果
+    TOOL_DEFINITIONS = "tool_definitions"  # AstrBot 工具定义
+    TOOL_EXECUTE_RESULT = "tool_execute_result"  # 工具执行结果
 
     # ========== 子进程 → 主进程 ==========
     STATUS = "status"                      # 状态更新

@@ -1,3 +1,4 @@
+import asyncio
 import time
 from typing import List, Dict, Tuple, Optional, Any
 from astrbot.core.maibot.src.plugin_system.apis.tool_api import get_llm_available_tool_definitions, get_tool_instance
@@ -11,6 +12,59 @@ from astrbot.core.maibot.src.chat.message_receive.chat_stream import get_chat_ma
 from astrbot.core.maibot.src.common.logger import get_logger
 
 logger = get_logger("tool_use")
+
+# ========== AstrBot 工具定义全局存储 ==========
+# 存储从主进程通过 config 传递过来的 AstrBot 工具定义
+_astrbot_tool_definitions: List[Dict[str, Any]] = []
+# 存储 AstrBot 工具名称集合（用于快速判断）
+_astrbot_tool_names: set = set()
+
+# ========== IPC 客户端引用（用于调用主进程执行工具） ==========
+_ipc_client = None
+
+
+def set_ipc_client(client) -> None:
+    """设置 IPC 客户端，供工具执行时使用
+
+    Args:
+        client: IPC 客户端对象
+    """
+    global _ipc_client
+    _ipc_client = client
+    logger.info("已设置 IPC 客户端")
+
+
+def get_ipc_client():
+    """获取 IPC 客户端"""
+    return _ipc_client
+
+
+def set_astrbot_tool_definitions(tool_definitions: List[Dict[str, Any]]) -> None:
+    """设置 AstrBot 工具定义，供 ToolExecutor 使用
+
+    Args:
+        tool_definitions: 工具定义列表，每个元素为 {"name": str, "description": str, "parameters": dict}
+    """
+    global _astrbot_tool_definitions, _astrbot_tool_names
+    _astrbot_tool_definitions = tool_definitions
+    _astrbot_tool_names = {t.get("name", "") for t in tool_definitions if t.get("name")}
+    logger.info(f"已设置 {len(tool_definitions)} 个 AstrBot 工具定义: {_astrbot_tool_names}")
+
+
+def get_astrbot_tool_definitions() -> List[Dict[str, Any]]:
+    """获取 AstrBot 工具定义
+
+    Returns:
+        工具定义列表
+    """
+    return _astrbot_tool_definitions
+
+
+def clear_astrbot_tool_definitions() -> None:
+    """清除 AstrBot 工具定义"""
+    global _astrbot_tool_definitions
+    _astrbot_tool_definitions = []
+    logger.info("已清除 AstrBot 工具定义")
 
 
 def init_tool_executor_prompt():
@@ -141,6 +195,18 @@ class ToolExecutor:
             return tool_results, [], ""
 
     def _get_tool_definitions(self) -> List[Dict[str, Any]]:
+        """获取可用的工具定义
+
+        优先级：
+        1. 如果配置了 AstrBot 工具定义，优先使用（通过 config 传递）
+        2. 否则使用 MaiBot 自己的工具定义
+        """
+        # 优先使用 AstrBot 工具定义
+        if _astrbot_tool_definitions:
+            logger.debug(f"{self.log_prefix}使用 AstrBot 工具定义 ({len(_astrbot_tool_definitions)} 个)")
+            return _astrbot_tool_definitions
+
+        # 回退到 MaiBot 自己的工具
         all_tools = get_llm_available_tool_definitions()
         user_disabled_tools = global_announcement_manager.get_disabled_chat_tools(self.chat_id)
         return [definition for name, definition in all_tools if name not in user_disabled_tools]
@@ -229,7 +295,21 @@ class ToolExecutor:
             function_args = tool_call.args or {}
             function_args["llm_called"] = True  # 标记为LLM调用
 
-            # 获取对应工具实例
+            # 判断是否为 AstrBot 工具（通过工具名称判断）
+            if function_name in _astrbot_tool_names:
+                # 通过 IPC 调用主进程执行 AstrBot 工具
+                result = await self._execute_astrbot_tool_via_ipc(function_name, function_args)
+                if result:
+                    return {
+                        "tool_call_id": tool_call.call_id,
+                        "role": "tool",
+                        "name": function_name,
+                        "type": "function",
+                        "content": result,
+                    }
+                return None
+
+            # 获取对应工具实例（MaiBot 自己的工具）
             tool_instance = tool_instance or get_tool_instance(function_name, self.chat_stream)
             if not tool_instance:
                 logger.warning(f"未知工具名称: {function_name}")
@@ -249,6 +329,78 @@ class ToolExecutor:
         except Exception as e:
             logger.error(f"执行工具调用时发生错误: {str(e)}")
             raise e
+
+    async def _execute_astrbot_tool_via_ipc(self, tool_name: str, tool_args: dict) -> Optional[str]:
+        """通过 IPC 调用主进程执行 AstrBot 工具
+
+        Args:
+            tool_name: 工具名称
+            tool_args: 工具参数
+
+        Returns:
+            工具执行结果，如果失败则返回 None
+        """
+        import uuid
+        from multiprocessing import Queue
+
+        # 检查是否有 IPC 客户端
+        client = get_ipc_client()
+        if not client:
+            logger.warning(f"IPC 客户端未设置，无法执行 AstrBot 工具: {tool_name}")
+            return None
+
+        request_id = str(uuid.uuid4())
+
+        # 发送工具执行请求到主进程
+        # 注意：这里我们需要使用同步的方式发送，然后等待结果
+        try:
+            # 直接使用 Queue 发送（LocalClient 内部也是用 Queue）
+            # 构造消息
+            msg = {
+                "type": "tool_execute",
+                "payload": {
+                    "request_id": request_id,
+                    "tool_name": tool_name,
+                    "tool_args": tool_args,
+                }
+            }
+
+            # 发送到主进程
+            client.input_queue.put_nowait(msg)
+
+            # 等待结果（从 output_queue）
+            start_time = time.time()
+            timeout = 30.0  # 30 秒超时
+
+            while time.time() - start_time < timeout:
+                await asyncio.sleep(0.1)
+
+                if client.output_queue.empty():
+                    continue
+
+                try:
+                    result_msg = client.output_queue.get_nowait()
+                    msg_type = result_msg.get("type", "")
+                    if msg_type == "tool_execute_result":
+                        payload = result_msg.get("payload", {})
+                        req_id = payload.get("request_id", "")
+                        if req_id == request_id:
+                            if payload.get("success"):
+                                result = payload.get("result", {})
+                                return result.get("content", "")
+                            else:
+                                error = payload.get("error", "未知错误")
+                                logger.error(f"AstrBot 工具执行失败: {error}")
+                                return f"工具执行失败: {error}"
+                except Exception:
+                    continue
+
+            logger.warning(f"AstrBot 工具执行超时: {tool_name}")
+            return None
+
+        except Exception as e:
+            logger.error(f"通过 IPC 执行 AstrBot 工具失败: {e}")
+            return None
 
     def _generate_cache_key(self, target_message: str, chat_history: str, sender: str) -> str:
         """生成缓存键

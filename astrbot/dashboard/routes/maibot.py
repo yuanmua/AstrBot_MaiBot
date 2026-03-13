@@ -580,7 +580,6 @@ class MaiBotManagerRoute(Route):
         # 从 astrbot_path 获取数据目录
         data_dir = get_astrbot_data_path()
         instances_dir = os.path.join(data_dir, "maibot", "config", "instances")
-        logger.error(f"获取实例的路径为 {instances_dir}" )
 
         return os.path.join(instances_dir, f"{instance_id}.toml")
 

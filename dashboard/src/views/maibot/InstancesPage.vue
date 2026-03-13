@@ -6,14 +6,24 @@
         <h1 class="text-h4 mb-2">{{ tm("title") }}</h1>
         <p class="text-grey">{{ tm("subtitle") }}</p>
       </div>
-      <v-btn
-        color="primary"
-        size="large"
-        prepend-icon="mdi-plus"
-        @click="goToCreate"
-      >
-        {{ tm("addInstance") }}
-      </v-btn>
+      <div class="d-flex gap-2">
+        <v-btn
+          color="secondary"
+          size="large"
+          prepend-icon="mdi-brain"
+          @click="openModelConfigDialog"
+        >
+          {{ tm("editModel") }}
+        </v-btn>
+        <v-btn
+          color="primary"
+          size="large"
+          prepend-icon="mdi-plus"
+          @click="goToCreate"
+        >
+          {{ tm("addInstance") }}
+        </v-btn>
+      </div>
     </div>
 
     <!-- 加载状态 -->
@@ -97,6 +107,22 @@
       </v-card>
     </v-dialog>
 
+    <!-- 模型配置对话框 -->
+    <v-dialog v-model="showModelConfigDialog" max-width="1200" scrollable>
+      <v-card>
+        <v-card-title class="d-flex align-center">
+          <v-icon start>mdi-brain</v-icon>
+          模型配置
+          <v-spacer />
+          <v-btn icon="mdi-close" variant="text" @click="closeModelConfigDialog" />
+        </v-card-title>
+        <v-divider />
+        <v-card-text style="max-height: 80vh;">
+          <ModelSection ref="modelSectionRef" />
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+
     <!-- 操作按钮浮窗 -->
     <!--    <v-speed-dial v-model="fab" direction="top" open-on-hover class="fixed-fab">-->
     <!--      <template #activator="{ props }">-->
@@ -129,6 +155,7 @@ import { useRouter } from "vue-router";
 import { useToast } from "@/utils/toast";
 import { useInstances } from "@/composables/useInstances";
 import InstanceCard from "@/components/maibot/InstanceCard.vue";
+import ModelSection from "@/views/maibot/config-sections/ModelSection.vue";
 import { useModuleI18n } from "@/i18n/composables";
 const { tm } = useModuleI18n("features/maibot");
 
@@ -151,6 +178,8 @@ const fab = ref(false);
 const showDeleteDialog = ref(false);
 const isDeleting = ref(false);
 const selectedDeleteInstanceId = ref("");
+const showModelConfigDialog = ref(false);
+const modelSectionRef = ref<InstanceType<typeof ModelSection> | null>(null);
 
 // 删除表单
 const deleteFormData = ref({
@@ -160,6 +189,20 @@ const deleteFormData = ref({
 // 跳转到创建页面
 const goToCreate = () => {
   router.push("/maibot/create");
+};
+
+// 打开模型配置对话框
+const openModelConfigDialog = () => {
+  showModelConfigDialog.value = true;
+  // 对话框打开后，重新加载配置
+  setTimeout(() => {
+    modelSectionRef.value?.loadConfig();
+  }, 100);
+};
+
+// 关闭模型配置对话框
+const closeModelConfigDialog = () => {
+  showModelConfigDialog.value = false;
 };
 
 // 启动实例

@@ -14,8 +14,30 @@ import sys
 from pathlib import Path
 from typing import Dict, Any, Optional
 
-# 确保项目根目录在路径中
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../..", "..", "..", ".."))
+# Windows 下必须使用 spawn 方式启动子进程
+if sys.platform == "win32":
+    try:
+        multiprocessing.set_start_method("spawn", force=True)
+    except RuntimeError:
+        pass  # 已经设置过了
+
+# 处理打包后的路径问题
+def _get_project_root() -> str:
+    """获取项目根目录，处理打包后的各种情况"""
+    # 检查是否在打包环境中运行
+    if getattr(sys, "frozen", False):
+        # 打包环境：子进程的 sys.executable 指向 exe 所在目录
+        exe_dir = os.path.dirname(sys.executable)
+        # _internal 模式
+        internal_dir = os.path.join(exe_dir, "_internal")
+        if os.path.exists(internal_dir):
+            return exe_dir  # 项目根是 exe 所在目录，不是 _internal
+        return exe_dir
+
+    # 开发环境：使用 __file__ 计算
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
+
+PROJECT_ROOT = _get_project_root()
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
@@ -41,6 +63,15 @@ def _run_subprocess_main(
 
     创建一个新的事件循环并运行异步的 subprocess_main_async
     """
+    # 打印启动日志（Windows multiprocessing 在子进程中无法使用 logging，需要用 print）
+    print(f"[MaibotSubprocess] ===== 子进程启动 =====")
+    print(f"[MaibotSubprocess] PROJECT_ROOT: {PROJECT_ROOT}")
+    print(f"[MaibotSubprocess] MAIBOT_PATH: {MAIBOT_PATH}")
+    print(f"[MaibotSubprocess] sys.executable: {sys.executable}")
+    print(f"[MaibotSubprocess] sys.frozen: {getattr(sys, 'frozen', False)}")
+    print(f"[MaibotSubprocess] sys.path[0]: {sys.path[0] if sys.path else 'empty'}")
+    print(f"[MaibotSubprocess] =======================")
+
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     try:
@@ -196,7 +227,16 @@ async def subprocess_main_async(
         global_api.register_send_message_handler(reply_handler.handle_outgoing_message)
         send_log("info", "[子进程] 回复处理器已注册到 maim_message API（register_send_message_handler）")
 
-        # 5. 设置知识库适配器
+        # 5. 设置 AstrBot 工具定义（在 MaiBot 初始化完成后设置）
+        astrbot_tool_definitions = config.get("astrbot_tool_definitions", [])
+        if astrbot_tool_definitions:
+            from astrbot.core.maibot.src.plugin_system.core.tool_use import set_astrbot_tool_definitions
+            set_astrbot_tool_definitions(astrbot_tool_definitions)
+            send_log("info", f"已加载 {len(astrbot_tool_definitions)} 个 AstrBot 工具定义")
+        else:
+            send_log("info", "未配置 AstrBot 工具定义，使用 MaiBot 原有工具")
+
+        # 6. 设置知识库适配器
         from astrbot.core.maibot.src.chat.knowledge.knowledge_base_adapter import (
             KnowledgeBaseAdapter,
             create_kb_adapter,
@@ -206,6 +246,18 @@ async def subprocess_main_async(
 
         # 注册知识库结果处理器
         ipc_server.register_kb_result_handler(cache_kb_response)
+
+        # 7. 设置 ToolExecutor 的 IPC 客户端（用于调用 AstrBot 工具）
+        from astrbot.core.maibot.src.plugin_system.core.tool_use import set_ipc_client
+
+        # 创建一个简单的客户端对象，包含 input_queue 和 output_queue
+        class SimpleIPCClient:
+            def __init__(self, input_q, output_q):
+                self.input_queue = input_q
+                self.output_queue = output_q
+
+        set_ipc_client(SimpleIPCClient(input_queue, output_queue))
+        send_log("info", "[子进程] ToolExecutor IPC 客户端已设置")
 
         # 从配置中读取知识库设置
         kb_config = config.get("knowledge_base", {})
@@ -253,7 +305,7 @@ async def subprocess_main_async(
         # 注册消息处理器
         ipc_server.register_message_handler(_handle_message)
 
-        # 7. 主循环：处理来自主进程的命令
+        # 8. 主循环：处理来自主进程的命令
         send_log("info", "开始处理命令...")
         while running:
             try:

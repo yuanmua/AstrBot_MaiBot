@@ -281,10 +281,6 @@
               <v-icon start size="small">mdi-web</v-icon>
               {{ tm("configSections.webui.title") }}
             </v-tab>
-            <v-tab value="model">
-              <v-icon start size="small">mdi-brain</v-icon>
-              {{ tm("configSections.model.title") }}
-            </v-tab>
             <v-tab value="other">
               <v-icon start size="small">mdi-tune</v-icon>
               {{ tm("configSections.other.title") }}
@@ -355,10 +351,6 @@
               :config="config.webui"
               @update:config="updateSection('webui', $event)"
             />
-          </v-window-item>
-
-          <v-window-item value="model">
-            <ModelSection ref="modelSectionRef" />
           </v-window-item>
 
           <v-window-item v-if="config.message_receive" value="other">
@@ -714,7 +706,6 @@ import {
   DebugSection,
   WebUISection,
   OtherSection,
-  ModelSection,
 } from "./config-sections";
 
 const { tm } = useModuleI18n("features/maibot");
@@ -751,9 +742,6 @@ const rawConfig = ref("");
 
 // WebUI 配置数据
 const webuiConfig = ref<Record<string, any>>({});
-
-// 模型配置 section 引用
-const modelSectionRef = ref<InstanceType<typeof ModelSection> | null>(null);
 
 // 对话框状态
 const showRestartDialog = ref(false);

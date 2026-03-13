@@ -3,6 +3,7 @@
   "subtitle": "管理和监控您的 MaiBot 实例",
   "instances": "实例列表",
   "addInstance": "添加实例",
+  "editModel": "编辑模型",
   "emptyText": "暂无实例，请点击右上角按钮创建",
   "common": {
     "enable": "启用",

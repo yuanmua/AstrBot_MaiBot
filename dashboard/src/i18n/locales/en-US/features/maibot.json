@@ -3,6 +3,7 @@
   "subtitle": "Manage and monitor your MaiBot instances",
   "instances": "Instances",
   "addInstance": "Add Instance",
+  "editModel": "Edit Model",
   "emptyText": "No instances yet. Click the button above to create one.",
   "common": {
     "enable": "Enable",

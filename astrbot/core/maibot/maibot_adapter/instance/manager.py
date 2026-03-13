@@ -9,6 +9,7 @@ MaiBot 多实例启动管理器
 
 import asyncio
 import json
+import multiprocessing
 import os
 import shutil
 import sys
@@ -17,8 +18,30 @@ from datetime import datetime
 from multiprocessing import Process, Queue
 from typing import Optional, Dict, Any, List
 
-# 确保项目根目录在路径中（Windows multiprocessing 需要）
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../..", "..", "..", ".."))
+# Windows 下必须使用 spawn 方式启动子进程
+if sys.platform == "win32":
+    try:
+        multiprocessing.set_start_method("spawn", force=True)
+    except RuntimeError:
+        pass  # 已经设置过了
+
+# 处理打包后的路径问题
+def _get_project_root() -> str:
+    """获取项目根目录，处理打包后的各种情况"""
+    # 检查是否在打包环境中运行
+    if getattr(sys, "frozen", False):
+        # 打包环境：子进程的 sys.executable 指向 exe 所在目录
+        exe_dir = os.path.dirname(sys.executable)
+        # _internal 模式
+        internal_dir = os.path.join(exe_dir, "_internal")
+        if os.path.exists(internal_dir):
+            return exe_dir  # 项目根是 exe 所在目录
+        return exe_dir
+
+    # 开发环境：使用 __file__ 计算
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
+
+PROJECT_ROOT = _get_project_root()
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
@@ -51,6 +74,9 @@ class MaibotInstanceManager:
         os.makedirs(os.path.join(self.data_root, "config", "instances"), exist_ok=True)
         os.makedirs(os.path.join(self.data_root, "instances"), exist_ok=True)
 
+        # 复制模型配置模板（如果不存在）
+        self._ensure_model_config_template()
+
         await self._load_instances_metadata()
 
         if "default" not in self.instances:
@@ -58,6 +84,27 @@ class MaibotInstanceManager:
             await self.create_instance("default", "默认麦麦", is_default=True)
 
         logger.info(f"实例管理器初始化完成，共 {len(self.instances)} 个实例")
+
+    def _ensure_model_config_template(self) -> None:
+        """确保模型配置文件存在，如果不存在则从模板复制"""
+        model_config_path = os.path.join(self.data_root, "config", "model_config.toml")
+        if os.path.exists(model_config_path):
+            return
+
+        # 模板路径: src/template/model_config_template.toml
+        template_path = os.path.join(
+            os.path.dirname(__file__),
+            "../..",
+            "src",
+            "template",
+            "model_config_template.toml",
+        )
+        if os.path.exists(template_path):
+            os.makedirs(os.path.dirname(model_config_path), exist_ok=True)
+            shutil.copy2(template_path, model_config_path)
+            logger.info(f"已从模板创建模型配置文件: {model_config_path}")
+        else:
+            logger.warning(f"未找到模型配置模板: {template_path}")
 
     async def _load_instances_metadata(self) -> None:
         """加载实例元数据"""
@@ -260,10 +307,11 @@ class MaibotInstanceManager:
 
         instance.created_at = datetime.now()
 
+        # 模板在 src/template/ 目录下
         template_path = os.path.join(
             os.path.dirname(__file__),
             "../..",
-            "maibot",
+            "src",
             "template",
             "bot_config_template.toml",
         )
@@ -344,6 +392,10 @@ class MaibotInstanceManager:
 
             # 3. 构建配置字典
             data_root = self.data_root
+
+            # 获取 AstrBot 工具定义（供 MaiBot 使用）
+            astrbot_tool_definitions = self._get_astrbot_tool_definitions()
+
             config = {
                 "data_root": data_root,
                 "host": instance.host,
@@ -354,6 +406,7 @@ class MaibotInstanceManager:
                 "enable_socket": instance.enable_socket,
                 "logging": instance.logging,
                 "knowledge_base": instance.knowledge_base,
+                "astrbot_tool_definitions": astrbot_tool_definitions,
             }
 
             # 4. 创建并启动子进程
@@ -623,6 +676,8 @@ class MaibotInstanceManager:
                         asyncio.create_task(self._handle_instance_reply(instance_id, unified_msg_origin, segments, processed_plain_text))
                     elif msg_type == "kb_retrieve":
                         asyncio.create_task(self._handle_kb_retrieve(instance, payload))
+                    elif msg_type == "tool_execute":
+                        asyncio.create_task(self._handle_tool_execute(instance, payload))
 
                 await asyncio.sleep(0.05)
 
@@ -754,6 +809,71 @@ class MaibotInstanceManager:
             logger.error(f"[{instance.instance_id}] 知识库检索失败: {e}", exc_info=True)
             self._send_kb_result(instance, request_id, False, error=str(e))
 
+    async def _handle_tool_execute(self, instance: MaibotInstance, payload: Dict[str, Any]) -> None:
+        """处理工具执行请求"""
+        request_id = payload.get("request_id", "")
+        tool_name = payload.get("tool_name", "")
+        tool_args = payload.get("tool_args", {})
+
+        logger.info(f"[{instance.instance_id}] 工具执行请求: {tool_name}")
+
+        try:
+            result = await self._execute_astrbot_tool(tool_name, tool_args)
+            self._send_tool_result(instance, request_id, True, result=result)
+        except Exception as e:
+            logger.error(f"[{instance.instance_id}] 工具执行失败: {e}", exc_info=True)
+            self._send_tool_result(instance, request_id, False, error=str(e))
+
+    async def _execute_astrbot_tool(self, tool_name: str, tool_args: dict) -> Dict[str, Any]:
+        """执行 AstrBot 工具"""
+        try:
+            if not hasattr(self, '_astrbot_context') or not self._astrbot_context:
+                raise RuntimeError("AstrBot Context 未设置")
+
+            plugin_context = self._astrbot_context
+            tmgr = plugin_context.get_llm_tool_manager()
+
+            # 获取工具
+            tool = tmgr.get_func(tool_name)
+            if not tool:
+                raise ValueError(f"工具不存在: {tool_name}")
+
+            if not tool.active:
+                raise ValueError(f"工具未激活: {tool_name}")
+
+            # 执行工具
+            # 需要构建 context
+            from astrbot.core.astr_agent_context import AstrAgentContext
+            context = AstrAgentContext(
+                platform_context=plugin_context.platform_context,
+                event=plugin_context.event,
+                provider=plugin_context.provider,
+                session=plugin_context.session,
+                config=plugin_context.config,
+                conversation_manager=plugin_context.conversation_manager,
+            )
+
+            # 调用工具
+            result = await tool.call(context, **tool_args)
+            return {"content": result}
+        except Exception as e:
+            logger.error(f"执行 AstrBot 工具失败: {tool_name}, 错误: {e}")
+            raise
+
+    def _send_tool_result(self, instance: MaibotInstance, request_id: str, success: bool, result: Dict = None, error: str = "") -> None:
+        """发送工具执行结果"""
+        if instance.input_queue is None:
+            logger.warning(f"[{instance.instance_id}] 无法发送工具结果：队列未初始化")
+            return
+
+        try:
+            instance.input_queue.put_nowait({
+                "type": "tool_execute_result",
+                "payload": {"request_id": request_id, "success": success, "result": result, "error": error}
+            })
+        except Exception as e:
+            logger.error(f"[{instance.instance_id}] 发送工具结果失败: {e}")
+
     def _send_kb_result(self, instance: MaibotInstance, request_id: str, success: bool, results: List[Dict] = None, error: str = "") -> None:
         """发送知识库检索结果"""
         if instance.input_queue is None:
@@ -777,6 +897,81 @@ class MaibotInstanceManager:
             return None
         except Exception:
             return None
+
+    def _get_astrbot_tool_definitions(self) -> list:
+        """获取 AstrBot 的工具定义，供 MaiBot 使用
+
+        Returns:
+            list: 工具定义列表，每个元素为 {"name": str, "description": str, "parameters": list}
+                  parameters 是 MaiBot 格式：[(name, type, description, required, enum_values), ...]
+        """
+        try:
+            if not hasattr(self, '_astrbot_context') or not self._astrbot_context:
+                logger.warning("未设置 AstrBot Context，无法获取工具定义")
+                return []
+
+            plugin_context = self._astrbot_context
+            tmgr = plugin_context.get_llm_tool_manager()
+
+            # 获取完整工具集
+            toolset = tmgr.get_full_tool_set()
+
+            # 转换为工具定义格式（转换为 MaiBot 期望的格式）
+            tool_definitions = []
+            for tool in toolset.tools:
+                if not hasattr(tool, 'active') or tool.active:
+                    # 将 JSON Schema 格式转换为 MaiBot 格式
+                    params = self._convert_parameters_format(tool.parameters)
+                    tool_definitions.append({
+                        "name": tool.name,
+                        "description": tool.description,
+                        "parameters": params,
+                    })
+
+            logger.info(f"获取到 {len(tool_definitions)} 个 AstrBot 工具定义")
+            return tool_definitions
+        except Exception as e:
+            logger.error(f"获取 AstrBot 工具定义失败: {e}")
+            return []
+
+    def _convert_parameters_format(self, json_schema: dict) -> list:
+        """将 JSON Schema 格式转换为 MaiBot 格式
+
+        MaiBot 期望格式: [(name, ToolParamType, description, required, enum_values), ...]
+        - name: 参数名
+        - type: ToolParamType 枚举
+        - description: 参数描述
+        - required: 是否必填 (bool)
+        - enum_values: 枚举值列表或 None
+        """
+        from astrbot.core.maibot.src.llm_models.payload_content.tool_option import ToolParamType
+
+        if not json_schema or "properties" not in json_schema:
+            return []
+
+        properties = json_schema.get("properties", {})
+        required_fields = json_schema.get("required", [])
+
+        # 类型映射：JSON Schema 类型 -> ToolParamType
+        type_mapping = {
+            "string": ToolParamType.STRING,
+            "integer": ToolParamType.INTEGER,
+            "number": ToolParamType.FLOAT,
+            "boolean": ToolParamType.BOOLEAN,
+        }
+
+        result = []
+        for name, schema in properties.items():
+            json_type = schema.get("type", "string")
+            # 使用映射转换为 ToolParamType，默认为 STRING
+            param_type = type_mapping.get(json_type, ToolParamType.STRING)
+            description = schema.get("description", "")
+            required = name in required_fields
+            enum_values = schema.get("enum")
+
+            result.append((name, param_type, description, required, enum_values))
+
+        return result
 
     def set_astrbot_context(self, context) -> None:
         """设置 AstrBot Context 引用"""

@@ -3,6 +3,7 @@
   "subtitle": "管理多个独立的麦麦机器人实例",
   "instances": "实例列表",
   "addInstance": "创建实例",
+  "editModel": "编辑模型",
   "emptyText": "暂无实例，点击 创建实例 添加",
   "instance": "实例",
   "routing": "路由规则",
